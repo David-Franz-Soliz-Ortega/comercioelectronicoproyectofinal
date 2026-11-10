@@ -30,4 +30,6 @@ Cada microservicio tiene una base lógica propia. PostgreSQL corresponde a los s
 
 ## Infraestructura objetivo
 
-`infraestructura/` reserva espacios para Docker Compose, NGINX, Kubernetes, Helm, Argo CD y monitoreo. La estructura no incluye todavía manifiestos, imágenes, flujos de integración y entrega ni configuración operativa.
+Docker Compose en la raíz levanta PostgreSQL, MongoDB, Redis, RabbitMQ y NGINX. Las bases usan volúmenes persistentes y no publican puertos al equipo anfitrión; únicamente NGINX publica HTTP. Las cuentas de servicio de PostgreSQL y MongoDB tienen permisos limitados a su propia base lógica.
+
+`infraestructura/docker/` contiene inicializadores de bases, la configuración de RabbitMQ y el enrutamiento preparado para `frontend` y `gateway/graphql/`. Esos servicios de aplicación todavía no están definidos; no se agregan contenedores ficticios. Kubernetes, Helm, Argo CD y monitoreo permanecen como espacios reservados, sin despliegues implementados.

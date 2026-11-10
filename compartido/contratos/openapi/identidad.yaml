@@ -1,0 +1,73 @@
+openapi: 3.1.0
+info:
+  title: Propuesta de API de identidad SIGAPE
+  version: 1.0.0
+  description: Propuesta pendiente de aprobación; consulta mínima de una identidad, sin exponer atributos personales.
+x-estado-propuesta: pendiente-de-aprobacion
+servers:
+  - url: http://identidad:3000/api/v1
+    description: Nombre y puerto internos propuestos para desarrollo con Docker.
+paths:
+  /identidades/{idIdentidad}:
+    get:
+      operationId: consultarIdentidad
+      summary: Consultar el estado de una identidad
+      parameters:
+        - name: idIdentidad
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Identidad encontrada.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [idIdentidad, estado]
+                properties:
+                  idIdentidad:
+                    type: string
+                    format: uuid
+                  estado:
+                    type: string
+                    description: Estado de identidad por acordar con el servicio.
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+components:
+  responses:
+    NoEncontrado:
+      description: Recurso no encontrado.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problema"
+    ErrorInterno:
+      description: Error interno del servicio.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problema"
+  schemas:
+    Problema:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+        idCorrelacion:
+          type: string

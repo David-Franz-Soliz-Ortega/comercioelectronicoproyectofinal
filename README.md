@@ -2,7 +2,7 @@
 
 **Sistema de Gestión y Administración de Procesos Electorales** · Proyecto final COM-600
 
-Este repositorio contiene la estructura inicial de un monorepositorio orientado a microservicios. Por ahora incluye estructura y documentación: no implementa lógica de negocio, operaciones CRUD ni aplicaciones ejecutables, y no instala dependencias.
+Este repositorio contiene la estructura inicial de un monorepositorio orientado a microservicios. Incluye la infraestructura local Docker Compose y contratos iniciales propuestos; todavía no implementa lógica de negocio, operaciones CRUD ni aplicaciones ejecutables.
 
 ## Estructura
 
@@ -15,6 +15,7 @@ Este repositorio contiene la estructura inicial de un monorepositorio orientado 
 - `infraestructura/`: espacios para Docker Compose, Kubernetes, Helm, Argo CD y monitoreo.
 - `pruebas/integracion/` y `pruebas/rendimiento/`: pruebas entre componentes y de rendimiento.
 - `docs/`: documentación del proyecto y su arquitectura.
+- `docker-compose.yml` y `infraestructura/docker/`: bases de datos, Redis, RabbitMQ y NGINX para desarrollo local.
 
 ## Tecnologías acordadas
 
@@ -22,10 +23,23 @@ Node.js/TypeScript y PostgreSQL para `identidad`, `elecciones` y `padron-elector
 
 La comunicación contempla REST/OpenAPI, gRPC y mensajería asíncrona con RabbitMQ. La infraestructura objetivo contempla Docker Compose, NGINX, Kubernetes, Helm y Argo CD.
 
-## Inicio
+## Infraestructura local
+
+Requisitos: Docker Engine y el complemento Docker Compose.
+
+1. Copia `.env.example` como `.env` y sustituye todos los valores `CAMBIAR_...` por claves aleatorias distintas.
+2. Valida la configuración con `docker compose config`.
+3. Inicia solo la infraestructura con `docker compose up -d` y revisa el estado con `docker compose ps`.
+4. Consulta los registros con `docker compose logs -f` y detén los contenedores con `docker compose down`.
+
+Solo NGINX publica un puerto en el equipo anfitrión, `8080` por defecto. PostgreSQL, MongoDB, Redis y RabbitMQ solo son accesibles desde la red Docker interna. Las rutas de NGINX para `frontend` y `gateway` están preparadas, pero devolverán error de proxy hasta que se incorporen esas aplicaciones. Los scripts de inicialización se ejecutan únicamente al crear volúmenes de datos vacíos.
+
+Los contratos iniciales están en [`compartido/contratos/README.md`](compartido/contratos/README.md); las propuestas que afectan a varios integrantes requieren aprobación antes de considerarse definitivas.
+
+## Convenciones
 
 1. Revisa [`AGENTS.md`](AGENTS.md) y [`docs/arquitectura.md`](docs/arquitectura.md) antes de proponer cambios.
-2. Usa la estructura existente y conserva el aislamiento de datos de cada microservicio.
-3. Las versiones de los entornos de ejecución, los comandos de instalación y ejecución, y los despliegues se definirán al incorporar las primeras aplicaciones; todavía no hay manifiestos ni dependencias para ejecutar.
+2. Conserva el aislamiento de datos: ningún microservicio accede directamente a la base de otro.
+3. Mantén el código, pruebas y configuración de cada servicio dentro de `microservicios/` y documenta sus integraciones mediante contratos compartidos.
 
-No guardes credenciales ni secretos reales en este repositorio. No hay un comando de inicio disponible en esta etapa inicial.
+No guardes credenciales ni secretos reales en este repositorio. En esta etapa solo se inicia la infraestructura; los servicios de aplicación se incorporarán después.

@@ -1,0 +1,72 @@
+openapi: 3.1.0
+info:
+  title: Propuesta de API de padrón electoral SIGAPE
+  version: 1.0.0
+  description: Propuesta pendiente de aprobación; consulta de elegibilidad sin exponer datos personales.
+x-estado-propuesta: pendiente-de-aprobacion
+servers:
+  - url: http://padron-electoral:3000/api/v1
+    description: Nombre y puerto internos propuestos para desarrollo con Docker.
+paths:
+  /inscripciones/{idInscripcion}/elegibilidad:
+    get:
+      operationId: consultarElegibilidad
+      summary: Consultar el resultado de elegibilidad de una inscripción
+      parameters:
+        - name: idInscripcion
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Resultado de elegibilidad consultado.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [idInscripcion, elegible]
+                properties:
+                  idInscripcion:
+                    type: string
+                    format: uuid
+                  elegible:
+                    type: boolean
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+components:
+  responses:
+    NoEncontrado:
+      description: Inscripción no encontrada.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problema"
+    ErrorInterno:
+      description: Error interno del servicio.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problema"
+  schemas:
+    Problema:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+        idCorrelacion:
+          type: string

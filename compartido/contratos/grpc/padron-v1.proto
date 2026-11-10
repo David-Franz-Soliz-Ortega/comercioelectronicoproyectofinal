@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package sigape.padron.v1;
+
+option go_package = "sigape/compartido/contratos/grpc/padronv1";
+
+// Propuesta pendiente de aprobación entre elecciones (cliente) y padrón electoral (servidor).
+service ServicioPadron {
+  rpc ConsultarElegibilidad (SolicitudElegibilidad) returns (RespuestaElegibilidad);
+}
+
+message SolicitudElegibilidad {
+  string id_correlacion = 1;
+  string id_proceso_electoral = 2;
+  string id_inscripcion = 3;
+}
+
+message RespuestaElegibilidad {
+  string id_correlacion = 1;
+  ResultadoElegibilidad resultado = 2;
+}
+
+enum ResultadoElegibilidad {
+  RESULTADO_ELEGIBILIDAD_NO_DEFINIDO = 0;
+  RESULTADO_ELEGIBILIDAD_ELEGIBLE = 1;
+  RESULTADO_ELEGIBILIDAD_NO_ELEGIBLE = 2;
+}

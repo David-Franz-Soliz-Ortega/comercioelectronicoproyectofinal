@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sigape.local/contratos/eventos/voto.registrado.v1.schema.json",
+  "title": "Propuesta de evento voto.registrado.v1",
+  "description": "Propuesta pendiente de aprobación. Notifica un registro para conteo por elección; no incluye identidad del votante, mesa, candidatura ni selección.",
+  "x-estado-propuesta": "pendiente-de-aprobacion",
+  "x-emisor": "votacion",
+  "x-consumidores": ["resultados"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["idEvento", "tipo", "version", "timestamp", "datos"],
+  "properties": {
+    "idEvento": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identificador único del evento para deduplicación del consumidor."
+    },
+    "tipo": {
+      "const": "voto.registrado.v1"
+    },
+    "version": {
+      "const": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Instante UTC en que se registró el evento."
+    },
+    "datos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["idEleccion"],
+      "properties": {
+        "idEleccion": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identificador de la elección al que se atribuye el registro."
+        }
+      }
+    }
+  }
+}
