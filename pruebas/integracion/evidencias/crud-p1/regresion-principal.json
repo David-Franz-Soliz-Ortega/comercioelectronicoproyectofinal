@@ -1,0 +1,184 @@
+{
+  "correcto": true,
+  "alcance": "Solo lectura; no prueba nuevas mutations ni nuevos eventos AMQP",
+  "http": [
+    {
+      "ruta": "/",
+      "http": 200
+    },
+    {
+      "ruta": "/api/v1/salud/identidad",
+      "http": 200
+    },
+    {
+      "ruta": "/api/v1/salud/elecciones",
+      "http": 200
+    },
+    {
+      "ruta": "/api/v1/salud/candidaturas",
+      "http": 200
+    },
+    {
+      "ruta": "/api/v1/salud/padron-electoral",
+      "http": 200
+    },
+    {
+      "ruta": "/api/v1/salud/votacion",
+      "http": 200
+    },
+    {
+      "ruta": "/api/v1/salud/resultados",
+      "http": 200
+    },
+    {
+      "ruta": "/api/v1/salud/graphql",
+      "http": 200
+    },
+    {
+      "ruta": "/graphql",
+      "http": 200
+    },
+    {
+      "ruta": "/api/v1/elecciones/fd6aab6d-3b48-48ce-8188-ae72c0ce4edb/inscripciones/7079bbd9-c850-419b-9f89-596f8a681bc2/elegibilidad",
+      "http": 200
+    }
+  ],
+  "graphql": {
+    "data": {
+      "elecciones": {
+        "total": 10006,
+        "elementos": [
+          {
+            "idEleccion": "cee091dd-5b0c-4828-9500-43146f650eb9"
+          }
+        ]
+      },
+      "candidaturas": {
+        "total": 2,
+        "elementos": [
+          {
+            "idCandidatura": "ca65b10e-7c79-4aa7-ab61-9d56e8940149",
+            "eleccion": {
+              "idEleccion": "1b5de077-cb68-4525-a225-4c513ac8a38d"
+            }
+          }
+        ]
+      },
+      "inscripciones": {
+        "total": 4,
+        "elementos": [
+          {
+            "idInscripcion": "acb3f6c9-b798-40a5-ab83-9aaff5d70915",
+            "eleccion": {
+              "idEleccion": "fd6aab6d-3b48-48ce-8188-ae72c0ce4edb"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "grpc": {
+    "idEleccion": "fd6aab6d-3b48-48ce-8188-ae72c0ce4edb",
+    "idInscripcion": "7079bbd9-c850-419b-9f89-596f8a681bc2",
+    "elegible": true,
+    "idCorrelacion": "97b319fafe30fd6076ca05e04f2d30cf"
+  },
+  "rabbitmq": {
+    "consumidores": [
+      {
+        "cola": "resultados.conteo.v1",
+        "ack_manual": true,
+        "prefetch": 1
+      },
+      {
+        "cola": "resultados.auditoria.v1",
+        "ack_manual": true,
+        "prefetch": 1
+      }
+    ],
+    "colas": [
+      {
+        "nombre": "resultados.auditoria.v1",
+        "durable": true,
+        "tipo": "quorum"
+      },
+      {
+        "nombre": "resultados.auditoria.v1.dlq",
+        "durable": true,
+        "tipo": "quorum"
+      },
+      {
+        "nombre": "resultados.conteo.v1",
+        "durable": true,
+        "tipo": "quorum"
+      },
+      {
+        "nombre": "resultados.conteo.v1.dlq",
+        "durable": true,
+        "tipo": "quorum"
+      }
+    ]
+  },
+  "contenedores": [
+    {
+      "servicio": "base-mongodb",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "base-postgres",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "cache-redis",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "candidaturas",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "elecciones",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "entrada-nginx",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "frontend",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "gateway-graphql",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "identidad",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "mensajeria-rabbitmq",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "padron-electoral",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "resultados",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "resultados-auditoria",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "resultados-conteo",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "votacion",
+      "salud": "healthy"
+    }
+  ]
+}

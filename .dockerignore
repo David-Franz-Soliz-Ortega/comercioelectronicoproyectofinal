@@ -13,6 +13,6 @@
 **/.mypy_cache
 **/.ruff_cache
 pruebas
-frontend
-gateway
+gateway/*
+!gateway/graphql
 infraestructura

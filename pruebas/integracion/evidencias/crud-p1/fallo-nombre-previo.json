@@ -1,0 +1,6 @@
+{
+  "esperado": 422,
+  "recibido": 201,
+  "nombre_vacio_persistido": true,
+  "idPrueba": "d07af6ea-c15b-491e-889f-f0392071f21e"
+}

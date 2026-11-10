@@ -1,0 +1,12 @@
+{
+  "correcto": true,
+  "volumenes": [
+    "4d289c643a3fc1540de6e3e0bd559e09ba09b1fb86303c315f9759e570de1f37",
+    "b6cbe5b5fef0f63feedb85b7542d2d0944d0956ff65840acfc3820f86a740220",
+    "sigape-cierre-p1-16b6533d_datos_mongodb",
+    "sigape-cierre-p1-16b6533d_datos_postgres",
+    "sigape-cierre-p1-16b6533d_datos_rabbitmq",
+    "sigape-cierre-p1-16b6533d_datos_redis"
+  ],
+  "compartidos_con_principal": []
+}

@@ -1,0 +1,79 @@
+openapi: 3.0.3
+info:
+  title: SIGAPE votación sintética
+  version: 1.0.0
+  description: Propuesta académica pendiente de revisión. Registra participación sintética, sin identidad ni selección. Sin autenticación.
+x-estado-propuesta: pendiente-de-aprobacion
+paths:
+  /api/v1/votos:
+    post:
+      summary: Persistir registro y evento pendiente de publicación atómica
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [idEleccion]
+              properties:
+                idEleccion: {type: string, format: uuid}
+      responses:
+        '201':
+          description: Registro creado; publicación asíncrona
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Evento'}
+        '200':
+          description: Repetición idempotente del mismo registro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Evento'}
+        '400': {description: JSON o UUID inválido}
+        '409': {description: Clave usada con otra elección}
+        '503': {description: PostgreSQL no disponible}
+  /api/v1/votos/{idEvento}:
+    get:
+      summary: Consultar registro persistido por identificador de evento
+      parameters:
+        - in: path
+          name: idEvento
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Evento registrado
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Evento'}
+        '400': {description: UUID inválido}
+        '404': {description: Registro inexistente}
+        '503': {description: Persistencia no disponible}
+  /api/v1/salud:
+    get:
+      summary: Comprobar PostgreSQL, Redis y publicador RabbitMQ
+      responses:
+        '200': {description: Dependencias disponibles}
+        '503': {description: Dependencia no disponible}
+components:
+  schemas:
+    Evento:
+      type: object
+      additionalProperties: false
+      required: [idEvento, tipo, version, timestamp, datos]
+      properties:
+        idEvento: {type: string, format: uuid}
+        tipo: {type: string, enum: [voto.registrado.v1]}
+        version: {type: integer, enum: [1]}
+        timestamp: {type: string, format: date-time}
+        datos:
+          type: object
+          additionalProperties: false
+          required: [idEleccion]
+          properties:
+            idEleccion: {type: string, format: uuid}

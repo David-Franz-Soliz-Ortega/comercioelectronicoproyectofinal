@@ -1,0 +1,6 @@
+{
+  "correcto": false,
+  "error": "Command '['docker', 'compose', '--env-file', '/tmp/sigape-cierre-p1-kj1pnii0/entorno.env', '-p', 'sigape-cierre-p1-16b6533d', '-f', '/tmp/sigape-cierre-p1-kj1pnii0/candidato/docker-compose.yml', '-f', '/tmp/sigape-cierre-p1-kj1pnii0/compose.aislado.yml', 'up', '-d', '--build', '--wait', '--wait-timeout', '300']' returned non-zero exit status 1.",
+  "principal_sin_cambios": true,
+  "datos_principal_conservados": true
+}

@@ -1,0 +1,10 @@
+{
+  "name": "sigape-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=24"},
+  "scripts": {"desarrollar": "vite --host 0.0.0.0", "compilar": "vite build", "probar-navegador": "node pruebas/navegador.mjs"},
+  "dependencies": {"react": "19.1.1", "react-dom": "19.1.1"},
+  "devDependencies": {"@vitejs/plugin-react": "5.0.4", "vite": "7.1.7", "playwright": "1.56.1"}
+}

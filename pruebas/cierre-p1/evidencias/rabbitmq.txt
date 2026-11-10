@@ -1,0 +1,11 @@
+OK: salud por NGINX: identidad
+OK: salud por NGINX: elecciones
+OK: salud por NGINX: candidaturas
+OK: salud por NGINX: padron-electoral
+OK: salud por NGINX: votacion
+OK: salud por NGINX: resultados
+OK: contratos REST, dos conexiones con ACK manual y DLQ durables
+OK: NGINX → votacion → PostgreSQL/bandeja → RabbitMQ → dos consumidores → resultados
+OK: colas sin mensajes pendientes ni ACK pendientes
+OK: persistencia MongoDB e idempotencia tras cinco reentregas
+{"idEleccionSintetica": "f3713838-3454-4245-9b84-443def619458", "idEvento": "8073e568-d8fb-4508-be42-5970363b3e8d", "totalRegistros": 1, "totalEventosAuditados": 1, "datosConservados": true}

@@ -5,15 +5,19 @@ Este directorio contiene contratos y propuestas de integración entre microservi
 ## Contenido y estado
 
 - `openapi/identidad.yaml`, `openapi/elecciones.yaml`, `openapi/candidaturas.yaml` y `openapi/padron-electoral.yaml`: propuestas REST CRUD P1. Conservan las consultas GET existentes y añaden listado, creación, actualización, eliminación, salud, validación, filtros y paginación.
-- `grpc/padron-v1.proto`: propuesta de consulta síncrona de elegibilidad desde `elecciones` hacia `padron-electoral`; todavía no hay cliente ni servidor implementados.
-- `eventos/voto.registrado.v1.schema.json`: propuesta de evento emitido por `votacion` para `resultados`; no hay productor ni consumidores implementados todavía.
+- `grpc/padron-v1.proto`: propuesta de consulta síncrona de elegibilidad desde `elecciones` hacia `padron-electoral`; cliente real en `elecciones` y servidor en `padron-electoral:50051`, con deadline, correlación, estados gRPC y prueba entre contenedores. Sigue pendiente de revisión humana.
+- `eventos/voto.registrado.v1.schema.json`: propuesta de evento emitido por `votacion` para `resultados`; productor con bandeja transaccional en `votacion` y dos consumidores independientes de conteo y auditoría técnica en `resultados`, con ACK manual, deduplicación persistente y DLQ. El esquema no cambia.
 
 Los campos CRUD son mínimos y demostrativos. El padrón solo almacena `idEleccion` y `elegible`; nunca identidad del elector. No hay autenticación en estas API, así que deben permanecer en un entorno académico aislado. La revisión de contratos por el equipo sigue pendiente.
+
+- `openapi/votacion.yaml` y `openapi/resultados.yaml`: propuestas REST de registro sintético idempotente, consulta, conteo, auditoría y salud, implementadas junto con los servicios. Pendientes de revisión.
+
+- `graphql/esquema.graphql`: propuesta del BFF implementado; queries y mutations de elecciones, candidaturas y padrón mediante sus contratos REST, con DataLoader por operación. Pendiente de revisión humana.
 
 ## Versionado y cambios
 
 - REST: los documentos OpenAPI describen la versión mayor `/api/v1`. Cambios compatibles se incorporan tras revisión; eliminar o reinterpretar operaciones o campos requiere una versión mayor nueva, como `/api/v2`.
-- gRPC: el paquete incluye la versión mayor (`padron.v1`). No se reutilizan números de campo eliminados; cambios incompatibles requieren `v2`.
+- gRPC: el paquete incluye la versión mayor (`sigape.padron.v1`). No se reutilizan números de campo eliminados; cambios incompatibles requieren `v2`.
 - Eventos: el nombre y el esquema incluyen la versión (`voto.registrado.v1`). La versión publicada es inmutable; cambios incompatibles requieren otro evento versionado.
 - Actualizar contrato, productores, consumidores y pruebas en el mismo cambio. Revisar privacidad, compatibilidad, idempotencia y migración antes de aprobar.
 
@@ -21,13 +25,16 @@ Los campos CRUD son mínimos y demostrativos. El padrón solo almacena `idElecci
 
 ### Servicios Docker y puertos
 
-Los servicios actuales son `base-postgres`, `base-mongodb`, `cache-redis`, `mensajeria-rabbitmq`, `entrada-nginx`, `identidad`, `elecciones`, `candidaturas` y `padron-electoral`. Los puertos HTTP internos de aplicación son 3000 para Node.js y 8000 para FastAPI. Solo NGINX publica HTTP (8080 en el anfitrión, configurable con `PUERTO_HTTP_PUBLICO`); bases, Redis, RabbitMQ y servicios no publican puertos al anfitrión.
+Los servicios actuales son `base-postgres`, `base-mongodb`, `cache-redis`, `mensajeria-rabbitmq`, `entrada-nginx`, `identidad`, `elecciones`, `candidaturas`, `padron-electoral`, `votacion`, `resultados`, `resultados-conteo` y `resultados-auditoria` y `gateway-graphql`. Los puertos HTTP internos de aplicación son 3000 para Node.js y 8000 para FastAPI. Solo NGINX publica HTTP (8080 en el anfitrión, configurable con `PUERTO_HTTP_PUBLICO`); bases, Redis, RabbitMQ y servicios no publican puertos al anfitrión.
 
 | Componente | Puerto interno | Publicación local |
 | --- | ---: | --- |
 | NGINX | 80 | 8080 por defecto |
 | Servicios Node.js | 3000 | No |
-| Servicio FastAPI de candidaturas | 8000 | No |
+| API FastAPI de candidaturas y resultados | 8000 | No |
+| API Go de votación | 8080 | No |
+| BFF GraphQL | 4000 | No |
+| gRPC del padrón | 50051 | No |
 | PostgreSQL | 5432 | No |
 | MongoDB | 27017 | No |
 | Redis | 6379 | No |

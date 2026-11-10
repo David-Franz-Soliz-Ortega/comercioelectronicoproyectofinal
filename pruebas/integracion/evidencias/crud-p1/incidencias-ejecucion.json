@@ -1,0 +1,10 @@
+{
+  "arranque_aislado": "Un primer arranque detectó candidaturas unhealthy antes de recuperarse; se añadió start_period de 40 s en el override de pruebas.",
+  "nginx": "El primer navegador detectó redirección absoluta sin puerto; se corrigió absolute_redirect off. Después de recrear contenedores se recarga NGINX para actualizar DNS.",
+  "grpc_principal": {
+    "primera_comprobacion_tras_despliegue": 504,
+    "repeticion": 200,
+    "limite": "No se afirma disponibilidad ininterrumpida durante recreación."
+  },
+  "ejecucion": "La ejecución aislada conservada se reanudó tras corregir los fallos. Los resultados anteriores no se presentan como aprobados."
+}

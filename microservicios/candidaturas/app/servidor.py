@@ -9,7 +9,7 @@ from fastapi import FastAPI, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pymongo import ASCENDING, MongoClient
 from pymongo.collection import Collection
 
@@ -20,6 +20,7 @@ cliente = MongoClient(
     password=os.environ.get("MONGODB_PASSWORD"),
     authSource=os.environ.get("MONGODB_AUTH_SOURCE", "admin"),
     serverSelectionTimeoutMS=5000,
+    tz_aware=True,
 )
 base = cliente[os.environ.get("MONGODB_DATABASE", "candidaturas_db")]
 coleccion: Collection = base["candidaturas"]
@@ -33,6 +34,11 @@ class NuevaCandidatura(BaseModel):
     nombre: str = Field(min_length=1, max_length=120)
     tipo: str
     estado: str
+
+    @field_validator("nombre", mode="before")
+    @classmethod
+    def normalizar_nombre(cls, valor):
+        return valor.strip() if isinstance(valor, str) else valor
 
 
 def problema(estado: int, titulo: str, detalle: str, ruta: str, correlacion: str) -> JSONResponse:
@@ -57,8 +63,8 @@ def representar(documento: dict) -> dict:
         "nombre": documento["nombre"],
         "tipo": documento["tipo"],
         "estado": documento["estado"],
-        "creadoEn": documento["creadoEn"].isoformat(),
-        "actualizadoEn": documento["actualizadoEn"].isoformat(),
+        "creadoEn": documento["creadoEn"].isoformat(timespec="milliseconds"),
+        "actualizadoEn": documento["actualizadoEn"].isoformat(timespec="milliseconds"),
     }
 
 

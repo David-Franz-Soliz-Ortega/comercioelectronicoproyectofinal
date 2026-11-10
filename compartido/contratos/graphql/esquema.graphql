@@ -1,0 +1,53 @@
+"""BFF académico, propuesta pendiente de revisión. No incluye autenticación."""
+type Query {
+  elecciones(pagina: Int = 1, limite: Int = 20, estado: EstadoEleccion, nombre: String): PaginaElecciones!
+  eleccion(idEleccion: ID!): Eleccion
+  eleccionesPorIds(ids: [ID!]!): [Eleccion]!
+  candidaturas(pagina: Int = 1, limite: Int = 20, idEleccion: ID, estado: EstadoCandidatura): PaginaCandidaturas!
+  inscripciones(pagina: Int = 1, limite: Int = 20, idEleccion: ID, elegible: Boolean): PaginaInscripciones!
+}
+
+"""Cada escritura se delega al propietario REST; no hay transacción entre servicios."""
+type Mutation {
+  crearEleccion(entrada: NuevaEleccion!): Eleccion!
+  crearCandidatura(entrada: NuevaCandidatura!): Candidatura!
+  crearInscripcion(entrada: NuevaInscripcion!): Inscripcion!
+}
+
+enum EstadoEleccion { borrador programada en_curso finalizada anulada }
+enum EstadoCandidatura { borrador pendiente aprobada rechazada retirada }
+enum TipoCandidatura { individual lista }
+input NuevaEleccion { nombre: String!, estado: EstadoEleccion! }
+input NuevaCandidatura { idEleccion: ID!, nombre: String!, tipo: TipoCandidatura!, estado: EstadoCandidatura! }
+input NuevaInscripcion { idEleccion: ID!, elegible: Boolean! }
+
+type Eleccion {
+  idEleccion: ID!
+  nombre: String!
+  estado: EstadoEleccion!
+  creadoEn: String!
+  actualizadoEn: String!
+  candidaturas(pagina: Int = 1, limite: Int = 20): PaginaCandidaturas
+  inscripciones(pagina: Int = 1, limite: Int = 20): PaginaInscripciones
+}
+type Candidatura {
+  idCandidatura: ID!
+  idEleccion: ID!
+  nombre: String!
+  tipo: TipoCandidatura!
+  estado: EstadoCandidatura!
+  creadoEn: String!
+  actualizadoEn: String!
+  eleccion: Eleccion
+}
+type Inscripcion {
+  idInscripcion: ID!
+  idEleccion: ID!
+  elegible: Boolean!
+  creadoEn: String!
+  actualizadoEn: String!
+  eleccion: Eleccion
+}
+type PaginaElecciones { elementos: [Eleccion!]!, pagina: Int!, limite: Int!, total: Int! }
+type PaginaCandidaturas { elementos: [Candidatura!]!, pagina: Int!, limite: Int!, total: Int! }
+type PaginaInscripciones { elementos: [Inscripcion!]!, pagina: Int!, limite: Int!, total: Int! }

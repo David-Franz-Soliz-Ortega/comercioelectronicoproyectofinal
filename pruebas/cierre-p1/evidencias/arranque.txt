@@ -1,0 +1,652 @@
+ Image sigape-cierre-p1-16b6533d-padron-electoral Building 
+ Image sigape-cierre-p1-16b6533d-frontend Building 
+ Image sigape-cierre-p1-16b6533d-identidad Building 
+ Image sigape-cierre-p1-16b6533d-resultados Building 
+ Image sigape-cierre-p1-16b6533d-candidaturas Building 
+ Image sigape-cierre-p1-16b6533d-votacion Building 
+ Image sigape-cierre-p1-16b6533d-elecciones Building 
+ Image sigape-cierre-p1-16b6533d-resultados-conteo Building 
+ Image sigape-cierre-p1-16b6533d-gateway-graphql Building 
+ Image sigape-cierre-p1-16b6533d-resultados-auditoria Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 5.39kB done
+#1 DONE 0.0s
+
+#2 [identidad internal] load build definition from Dockerfile
+#2 transferring dockerfile: 779B done
+#2 DONE 0.0s
+
+#3 [gateway-graphql internal] load build definition from Dockerfile
+#3 transferring dockerfile: 947B done
+#3 DONE 0.0s
+
+#4 [resultados-conteo internal] load build definition from Dockerfile
+#4 transferring dockerfile: 694B done
+#4 DONE 0.1s
+
+#5 [votacion internal] load build definition from Dockerfile
+#5 transferring dockerfile: 634B done
+#5 DONE 0.1s
+
+#6 [elecciones internal] load build definition from Dockerfile
+#6 transferring dockerfile: 1.02kB done
+#6 DONE 0.1s
+
+#7 [padron-electoral internal] load build definition from Dockerfile
+#7 transferring dockerfile: 1.08kB done
+#7 DONE 0.1s
+
+#8 [resultados-conteo internal] load metadata for docker.io/library/python:3.12-slim
+#8 ...
+
+#9 [frontend internal] load build definition from Dockerfile
+#9 transferring dockerfile: 635B 0.0s done
+#9 DONE 0.2s
+
+#10 [candidaturas internal] load build definition from Dockerfile
+#10 transferring dockerfile: 780B done
+#10 DONE 0.2s
+
+#11 [gateway-graphql internal] load metadata for docker.io/library/node:24-alpine
+#11 DONE 0.2s
+
+#12 [gateway-graphql internal] load .dockerignore
+#12 DONE 0.0s
+
+#8 [candidaturas internal] load metadata for docker.io/library/python:3.12-slim
+#8 ...
+
+#12 [padron-electoral internal] load .dockerignore
+#12 transferring context: 252B 0.0s done
+#12 DONE 0.1s
+
+#13 [votacion internal] load metadata for docker.io/library/golang:1.23-alpine
+#13 DONE 0.2s
+
+#14 [padron-electoral internal] load build context
+#14 DONE 0.0s
+
+#15 [identidad internal] load build context
+#15 DONE 0.0s
+
+#12 [frontend internal] load .dockerignore
+#12 transferring context: 252B 0.0s done
+#12 DONE 0.1s
+
+#16 [elecciones internal] load build context
+#16 DONE 0.0s
+
+#17 [frontend internal] load metadata for docker.io/library/nginx:1.29-alpine
+#17 DONE 0.3s
+
+#18 [elecciones compilacion 1/8] FROM docker.io/library/node:24-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8
+#18 resolve docker.io/library/node:24-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8
+#18 ...
+
+#19 [frontend internal] load build context
+#19 DONE 0.0s
+
+#20 [gateway-graphql internal] load build context
+#20 transferring context: 35.29kB 0.1s done
+#20 DONE 0.2s
+
+#18 [frontend compilacion 1/8] FROM docker.io/library/node:24-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8
+#18 ...
+
+#12 [resultados-conteo internal] load .dockerignore
+#12 transferring context: 252B 0.0s done
+#12 DONE 0.1s
+
+#12 [candidaturas internal] load .dockerignore
+#12 transferring context: 252B 0.0s done
+#12 DONE 0.1s
+
+#8 [resultados-auditoria internal] load metadata for docker.io/library/python:3.12-slim
+#8 DONE 0.9s
+
+#18 [frontend compilacion 1/8] FROM docker.io/library/node:24-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8
+#18 resolve docker.io/library/node:24-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8 0.6s done
+#18 resolve docker.io/library/node:24-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8 0.6s done
+#18 DONE 0.7s
+
+#12 [votacion internal] load .dockerignore
+#12 transferring context: 252B 0.0s done
+#12 DONE 0.1s
+
+#21 [votacion internal] load metadata for docker.io/library/alpine:3.21
+#21 DONE 1.1s
+
+#22 [frontend stage-1 1/3] FROM docker.io/library/nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+#22 resolve docker.io/library/nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+#22 resolve docker.io/library/nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de 0.9s done
+#22 DONE 0.9s
+
+#15 [identidad internal] load build context
+#15 transferring context: 58.54kB 0.1s done
+#15 DONE 0.3s
+
+#14 [padron-electoral internal] load build context
+#14 transferring context: 81.39kB 0.1s done
+#14 DONE 0.3s
+
+#19 [frontend internal] load build context
+#19 transferring context: 97.21kB 0.1s done
+#19 DONE 0.6s
+
+#23 [resultados-auditoria internal] load build context
+#23 DONE 0.0s
+
+#16 [elecciones internal] load build context
+#16 transferring context: 99.82kB 0.1s done
+#16 DONE 0.5s
+
+#24 [resultados-auditoria 1/8] FROM docker.io/library/python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
+#24 resolve docker.io/library/python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
+#24 resolve docker.io/library/python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b 0.5s done
+#24 resolve docker.io/library/python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b 0.5s done
+#24 DONE 0.5s
+
+#25 [gateway-graphql verificacion 5/8] COPY gateway/graphql/src ./src
+#25 CACHED
+
+#26 [gateway-graphql stage-1 3/6] COPY --from=verificacion /app/node_modules ./node_modules
+#26 CACHED
+
+#27 [gateway-graphql verificacion 6/8] COPY gateway/graphql/pruebas ./pruebas
+#27 CACHED
+
+#28 [gateway-graphql stage-1 4/6] COPY --from=verificacion /app/src ./src
+#28 CACHED
+
+#29 [gateway-graphql stage-1 5/6] COPY --from=verificacion /app/esquema.graphql ./esquema.graphql
+#29 CACHED
+
+#30 [gateway-graphql verificacion 7/8] COPY compartido/contratos/graphql/esquema.graphql ./esquema.graphql
+#30 CACHED
+
+#31 [gateway-graphql verificacion 8/8] RUN npm run verificar
+#31 CACHED
+
+#32 [gateway-graphql compilacion 2/8] WORKDIR /app
+#32 CACHED
+
+#33 [gateway-graphql verificacion 3/8] COPY gateway/graphql/package.json gateway/graphql/package-lock.json ./
+#33 CACHED
+
+#34 [gateway-graphql verificacion 4/8] RUN npm ci --ignore-scripts --no-audit --no-fund
+#34 CACHED
+
+#35 [gateway-graphql stage-1 6/6] COPY gateway/graphql/package.json ./package.json
+#35 CACHED
+
+#36 [identidad compilacion 6/8] COPY microservicios/identidad/src ./src
+#36 CACHED
+
+#37 [identidad compilacion 7/8] COPY compartido/contratos/openapi/identidad.yaml ./contrato.yaml
+#37 CACHED
+
+#38 [identidad compilacion 8/8] RUN npm run compilar
+#38 CACHED
+
+#39 [identidad ejecucion 4/6] RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
+#39 CACHED
+
+#40 [identidad compilacion 5/8] COPY microservicios/identidad/tsconfig.json ./tsconfig.json
+#40 CACHED
+
+#41 [identidad ejecucion 5/6] COPY --from=compilacion /app/dist ./dist
+#41 CACHED
+
+#32 [identidad compilacion 2/8] WORKDIR /app
+#32 CACHED
+
+#42 [identidad compilacion 3/8] COPY microservicios/identidad/package.json microservicios/identidad/package-lock.json ./
+#42 CACHED
+
+#43 [identidad compilacion 4/8] RUN npm ci --no-audit --no-fund
+#43 CACHED
+
+#44 [identidad ejecucion 6/6] COPY --from=compilacion /app/contrato.yaml ./contrato.yaml
+#44 CACHED
+
+#45 [frontend construccion 4/8] RUN npm ci --ignore-scripts --no-audit --no-fund
+#45 CACHED
+
+#46 [frontend construccion 8/8] RUN npm run compilar
+#46 CACHED
+
+#47 [frontend construccion 6/8] COPY frontend/src ./src
+#47 CACHED
+
+#48 [frontend construccion 7/8] COPY frontend/public ./public
+#48 CACHED
+
+#32 [frontend compilacion 2/8] WORKDIR /app
+#32 CACHED
+
+#49 [frontend construccion 5/8] COPY frontend/index.html frontend/vite.config.js ./
+#49 CACHED
+
+#50 [frontend stage-1 2/3] COPY frontend/nginx.conf /etc/nginx/nginx.conf
+#50 CACHED
+
+#51 [frontend construccion 3/8] COPY frontend/package.json frontend/package-lock.json ./
+#51 CACHED
+
+#52 [identidad] exporting to image
+#52 ...
+
+#53 [frontend stage-1 3/3] COPY --from=construccion /app/dist /usr/share/nginx/html
+#53 CACHED
+
+#52 [identidad] exporting to image
+#52 exporting layers
+#52 exporting layers 0.1s done
+#52 ...
+
+#54 [padron-electoral compilacion 10/10] RUN npm run compilar && npm run probar-grpc
+#54 CACHED
+
+#55 [padron-electoral ejecucion 5/7] COPY --from=compilacion /app/dist ./dist
+#55 CACHED
+
+#32 [padron-electoral compilacion 2/8] WORKDIR /app
+#32 CACHED
+
+#56 [padron-electoral compilacion  8/10] COPY compartido/contratos/grpc/padron-v1.proto ./padron-v1.proto
+#56 CACHED
+
+#57 [padron-electoral compilacion  9/10] COPY microservicios/padron-electoral/pruebas ./pruebas
+#57 CACHED
+
+#58 [padron-electoral ejecucion 6/7] COPY --from=compilacion /app/contrato.yaml ./contrato.yaml
+#58 CACHED
+
+#59 [padron-electoral compilacion  7/10] COPY compartido/contratos/openapi/padron-electoral.yaml ./contrato.yaml
+#59 CACHED
+
+#60 [padron-electoral compilacion  3/10] COPY microservicios/padron-electoral/package.json microservicios/padron-electoral/package-lock.json ./
+#60 CACHED
+
+#61 [padron-electoral compilacion  4/10] RUN npm ci --no-audit --no-fund
+#61 CACHED
+
+#62 [padron-electoral compilacion  5/10] COPY microservicios/padron-electoral/tsconfig.json ./tsconfig.json
+#62 CACHED
+
+#63 [padron-electoral compilacion  6/10] COPY microservicios/padron-electoral/src ./src
+#63 CACHED
+
+#64 [padron-electoral ejecucion 4/7] RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
+#64 CACHED
+
+#52 [identidad] exporting to image
+#52 exporting manifest sha256:03337903935740aebbc80c9affe95e8610b14a995b1802eca829367aad1e1e90 0.1s done
+#52 exporting config sha256:7d6554ca275b2a4687287b1a7919b6df7817789b53257be5a5bf50b0e38a31a4 0.0s done
+#52 ...
+
+#65 [elecciones compilacion  3/10] COPY microservicios/elecciones/package.json microservicios/elecciones/package-lock.json ./
+#65 CACHED
+
+#66 [elecciones compilacion  6/10] COPY microservicios/elecciones/src ./src
+#66 CACHED
+
+#67 [elecciones compilacion  9/10] COPY microservicios/elecciones/pruebas ./pruebas
+#67 CACHED
+
+#68 [elecciones compilacion  7/10] COPY compartido/contratos/openapi/elecciones.yaml ./contrato.yaml
+#68 CACHED
+
+#69 [elecciones compilacion  8/10] COPY compartido/contratos/grpc/padron-v1.proto ./padron-v1.proto
+#69 CACHED
+
+#70 [elecciones compilacion  5/10] COPY microservicios/elecciones/tsconfig.json ./tsconfig.json
+#70 CACHED
+
+#71 [elecciones ejecucion 5/7] COPY --from=compilacion /app/dist ./dist
+#71 CACHED
+
+#72 [elecciones ejecucion 6/7] COPY --from=compilacion /app/contrato.yaml ./contrato.yaml
+#72 CACHED
+
+#73 [elecciones compilacion  4/10] RUN npm ci --no-audit --no-fund
+#73 CACHED
+
+#74 [elecciones compilacion 10/10] RUN npm run compilar && npm run probar-grpc
+#74 CACHED
+
+#75 [elecciones ejecucion 4/7] RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
+#75 CACHED
+
+#32 [elecciones compilacion 2/8] WORKDIR /app
+#32 CACHED
+
+#52 [identidad] exporting to image
+#52 exporting attestation manifest sha256:0cdca6fad2343e84378981e205f4b89b4cb82ddb9fa68ad8bba5065134f9a2b8
+#52 ...
+
+#76 [padron-electoral ejecucion 7/7] COPY --from=compilacion /app/padron-v1.proto ./padron-v1.proto
+#76 CACHED
+
+#52 [identidad] exporting to image
+#52 exporting attestation manifest sha256:0cdca6fad2343e84378981e205f4b89b4cb82ddb9fa68ad8bba5065134f9a2b8 0.2s done
+#52 exporting manifest list sha256:e221626163cc93fc8fbdfb6647a6317d8da6566369450e32c8ca11365a8a8db2
+#52 ...
+
+#77 [elecciones ejecucion 7/7] COPY --from=compilacion /app/padron-v1.proto ./padron-v1.proto
+#77 CACHED
+
+#23 [resultados internal] load build context
+#23 transferring context: 14.89kB 0.1s done
+#23 DONE 0.3s
+
+#78 [resultados 4/8] RUN pip install --no-cache-dir -r requirements.txt
+#78 CACHED
+
+#79 [resultados 5/8] COPY microservicios/resultados/app ./app
+#79 CACHED
+
+#80 [resultados 7/8] COPY compartido/contratos/openapi/resultados.yaml ./contrato.yaml
+#80 CACHED
+
+#81 [resultados 3/8] COPY microservicios/resultados/requirements.txt .
+#81 CACHED
+
+#82 [resultados 6/8] COPY compartido/contratos/eventos/voto.registrado.v1.schema.json ./evento.schema.json
+#82 CACHED
+
+#83 [resultados 8/8] RUN groupadd --system sigape && useradd --system --gid sigape --home-dir /app sigape
+#83 CACHED
+
+#84 [candidaturas internal] load build context
+#84 transferring context: 14.92kB 0.0s done
+#84 DONE 0.3s
+
+#85 [votacion internal] load build context
+#85 transferring context: 18.54kB 0.0s done
+#85 DONE 0.3s
+
+#86 [candidaturas dependencias 3/4] COPY microservicios/candidaturas/requirements.txt ./requirements.txt
+#86 CACHED
+
+#87 [candidaturas ejecucion 3/6] COPY --from=dependencias /opt/entorno /opt/entorno
+#87 CACHED
+
+#88 [candidaturas 2/8] WORKDIR /app
+#88 CACHED
+
+#89 [candidaturas ejecucion 4/6] COPY microservicios/candidaturas/app ./app
+#89 CACHED
+
+#90 [candidaturas ejecucion 5/6] COPY compartido/contratos/openapi/candidaturas.yaml ./contrato.yaml
+#90 CACHED
+
+#91 [candidaturas dependencias 4/4] RUN python -m venv /opt/entorno && /opt/entorno/bin/pip install --no-cache-dir -r requirements.txt
+#91 CACHED
+
+#92 [candidaturas ejecucion 6/6] RUN groupadd --system sigape && useradd --system --gid sigape --home-dir /app sigape
+#92 CACHED
+
+#93 [candidaturas] exporting to image
+#93 exporting layers done
+#93 exporting manifest sha256:705fe0de9290a0995ca752593e661abea7d1da921bb7a2d898e05220733f58fa
+#93 exporting manifest sha256:705fe0de9290a0995ca752593e661abea7d1da921bb7a2d898e05220733f58fa 0.1s done
+#93 exporting config sha256:b8768eff78e6fd54b8313d80a2e4676842cea476a773a6ca16dd09490937d973
+#93 ...
+
+#94 [votacion stage-1 1/5] FROM docker.io/library/alpine:3.21@sha256:bc21487101ae47172509130ee1092cc273a831968d64b617776d1f69c81e42ab
+#94 resolve docker.io/library/alpine:3.21@sha256:bc21487101ae47172509130ee1092cc273a831968d64b617776d1f69c81e42ab 0.5s done
+#94 DONE 0.5s
+
+#95 [votacion construccion 1/6] FROM docker.io/library/golang:1.23-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f
+#95 resolve docker.io/library/golang:1.23-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f 0.5s done
+#95 DONE 0.6s
+
+#93 [candidaturas] exporting to image
+#93 exporting config sha256:b8768eff78e6fd54b8313d80a2e4676842cea476a773a6ca16dd09490937d973 0.1s done
+#93 exporting attestation manifest sha256:50ff382709e8936c1a4f046cd03c3f746f4b4a0096e0a4d2e30c153251ee4fd6
+#93 ...
+
+#96 [gateway-graphql] exporting to image
+#96 exporting layers 0.0s done
+#96 exporting manifest sha256:8a2b9a332000c93fcd267fe79f4f9136a363c4bd54c08a27138ddcdd53edfcc0 0.1s done
+#96 exporting config sha256:6943267f4e6ad216b0f31ad7f0c0e5898136a26329f4933058b3c038709a38f5 0.0s done
+#96 exporting attestation manifest sha256:ef3050df5bc2c72b5679d59c00eb624470eb6c765efb7118f6aa008e856c8842 0.1s done
+#96 exporting manifest list sha256:e01a50fdcee07bb3fba4881f7589d5f0d5619496474d60a8eb9867e2e945362e 0.1s done
+#96 naming to docker.io/library/sigape-cierre-p1-16b6533d-gateway-graphql:latest 0.1s done
+#96 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-gateway-graphql:latest 0.3s done
+#96 DONE 1.8s
+
+#97 [resultados] exporting to image
+#97 exporting layers 0.0s done
+#97 exporting manifest sha256:d18e994d1d1cff8c0fa63003ed7505a21e2b7d822b2b1c1a85f397d334bca1fc 0.1s done
+#97 exporting config sha256:24cb8d1a58ff0fdec4f5a0c064f28b30bd942a8c3d0ffb7caa1c2edb2b058ad0 0.1s done
+#97 exporting attestation manifest sha256:266af00d65d1e5090a7f793b2d5eaadb64d1197c6d98d6dc22b7ddab2a5ce9fd
+#97 ...
+
+#98 [votacion stage-1 2/5] RUN addgroup -S sigape && adduser -S -G sigape sigape
+#98 CACHED
+
+#99 [votacion stage-1 3/5] WORKDIR /app
+#99 CACHED
+
+#100 [votacion construccion 3/6] COPY microservicios/votacion/go.mod microservicios/votacion/go.sum ./
+#100 CACHED
+
+#101 [votacion construccion 4/6] RUN go mod download
+#101 CACHED
+
+#102 [votacion construccion 6/6] RUN go test ./... && CGO_ENABLED=0 go build -trimpath -o /votacion .
+#102 CACHED
+
+#103 [votacion construccion 5/6] COPY microservicios/votacion/*.go ./
+#103 CACHED
+
+#104 [votacion stage-1 4/5] COPY --from=construccion /votacion /app/votacion
+#104 CACHED
+
+#105 [votacion construccion 2/6] WORKDIR /codigo
+#105 CACHED
+
+#106 [votacion stage-1 5/5] COPY compartido/contratos/openapi/votacion.yaml /app/contrato.yaml
+#106 CACHED
+
+#52 [identidad] exporting to image
+#52 exporting manifest list sha256:e221626163cc93fc8fbdfb6647a6317d8da6566369450e32c8ca11365a8a8db2 0.2s done
+#52 naming to docker.io/library/sigape-cierre-p1-16b6533d-identidad:latest 0.0s done
+#52 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-identidad:latest 0.5s done
+#52 DONE 2.0s
+
+#107 [frontend] exporting to image
+#107 exporting layers 0.1s done
+#107 exporting manifest sha256:ccb38f22ad980a42e106c3838a9f921648795446aa799ff9a567c54c116510e4 0.0s done
+#107 exporting config sha256:8e05bb7097ada6eac754d6b15d054823bce2b6505cd534fed5e4e7461a6c1c22 0.0s done
+#107 exporting attestation manifest sha256:4d9f94888eda02e7a040b467a87653320cfda59e47e0d27dea5dada5a74495e8 0.5s done
+#107 exporting manifest list sha256:953fd085865e94d1cb591364183435f3bf1863c06c15ce17b405764cec4ce501 0.6s done
+#107 naming to docker.io/library/sigape-cierre-p1-16b6533d-frontend:latest
+#107 naming to docker.io/library/sigape-cierre-p1-16b6533d-frontend:latest 0.1s done
+#107 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-frontend:latest
+#107 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-frontend:latest 0.3s done
+#107 DONE 3.0s
+
+#108 [votacion] exporting to image
+#108 exporting layers 0.0s done
+#108 exporting manifest sha256:d82a670487da3a6def5249095b6372c92b01f38508456a995f6662f538203e39 0.1s done
+#108 exporting config sha256:9b5b06097298a94a178a454fb2f6efc1f2e7d183119a5f5bc58cb42859bdd870 0.1s done
+#108 exporting attestation manifest sha256:f9a17a9c8485dbfaf7980832581bddd0ef915ba9b86bb13bb17ad968e02a2cf2 0.3s done
+#108 exporting manifest list sha256:e3133b43db2ef365db2acea8040d11e7fd184c7a979cf54d77f750a4498a5a4d 0.2s done
+#108 naming to docker.io/library/sigape-cierre-p1-16b6533d-votacion:latest 0.1s done
+#108 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-votacion:latest
+#108 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-votacion:latest 0.2s done
+#108 ...
+
+#109 [padron-electoral] exporting to image
+#109 exporting layers 0.2s done
+#109 exporting manifest sha256:37fdd4148ea02f8d7631801efedc98fd2f4159b3421a4e41be600df0d7c03c26 0.0s done
+#109 exporting config sha256:437d9a31be11703d8dc24c76879673bfb256f5685893cc6d29f6a88287fe2421 0.1s done
+#109 exporting attestation manifest sha256:4b2235583a42813fd2a82cb6011c269fafbaa58fafda7fc95abcd780421621d3 0.7s done
+#109 exporting manifest list sha256:73f9fae5574f7966b52fd839a90953aeab4beb36fbd458d699ca2cd8023694c7 0.2s done
+#109 naming to docker.io/library/sigape-cierre-p1-16b6533d-padron-electoral:latest 0.1s done
+#109 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-padron-electoral:latest 0.2s done
+#109 DONE 3.2s
+
+#93 [candidaturas] exporting to image
+#93 exporting attestation manifest sha256:50ff382709e8936c1a4f046cd03c3f746f4b4a0096e0a4d2e30c153251ee4fd6 0.5s done
+#93 exporting manifest list sha256:965a5523169092f1882b795190fac1f193af87686f8e030959cfb37dde77cc00 0.3s done
+#93 naming to docker.io/library/sigape-cierre-p1-16b6533d-candidaturas:latest 0.0s done
+#93 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-candidaturas:latest 0.4s done
+#93 DONE 2.9s
+
+#110 [resultados-conteo] exporting to image
+#110 exporting layers 0.0s done
+#110 exporting manifest sha256:7b01bbebab708470f17a0ebd9d7051c88bd16dd5b629296ca1d9a0a2d5ecd259 0.1s done
+#110 exporting config sha256:fddd80b3dc77f95ec61940f93924c4d14f8707bb8414c82dd1ec670700a0a44c 0.1s done
+#110 exporting attestation manifest sha256:350ad9575b85d88b6c364cbdb9e1d11f795179b383b0fbeb763b75bb1afc389a 0.7s done
+#110 exporting manifest list sha256:783fa87244baa11e27a19e91079d2aefa373f2260fb9d62cce3088dc55a52103 0.3s done
+#110 naming to docker.io/library/sigape-cierre-p1-16b6533d-resultados-conteo:latest 0.1s done
+#110 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-resultados-conteo:latest 0.4s done
+#110 DONE 3.0s
+
+#111 [resultados-auditoria] exporting to image
+#111 exporting layers 0.1s done
+#111 exporting manifest sha256:f5ccfe3612346dcd511fc30dfdff52a8d68ba2db23b0a22f2f13561c6a39f974 0.1s done
+#111 exporting config sha256:e5fb9ba2dedf99456a0e938f660a302c20a2b27ac4f4d768dc93e2d3647027d9 0.1s done
+#111 exporting attestation manifest sha256:19c46804391899e1e4195f83e994084f2ae8a449982aadfed6c0a879b2a9d725 0.7s done
+#111 exporting manifest list sha256:19dc4edc56cee33d475ebf9749d5baeb5f7348e0a056b92236f17de56df21475 0.3s done
+#111 naming to docker.io/library/sigape-cierre-p1-16b6533d-resultados-auditoria:latest 0.1s done
+#111 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-resultados-auditoria:latest 0.4s done
+#111 DONE 3.0s
+
+#97 [resultados] exporting to image
+#97 exporting attestation manifest sha256:266af00d65d1e5090a7f793b2d5eaadb64d1197c6d98d6dc22b7ddab2a5ce9fd 0.7s done
+#97 exporting manifest list sha256:45f4cb263e38eea8b6bc3461971625f38cdb83641ec250a58850db211851d9bb 0.3s done
+#97 naming to docker.io/library/sigape-cierre-p1-16b6533d-resultados:latest 0.1s done
+#97 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-resultados:latest 0.4s done
+#97 DONE 3.0s
+
+#112 [elecciones] exporting to image
+#112 exporting layers 0.1s done
+#112 exporting manifest sha256:adf1a980f60543411197e1ac90183288731bc6bd5ea1b592b66391d81a0fe00c 0.1s done
+#112 exporting config sha256:0fba2341830b2726429a1e8ac3b3d180737af883178d9d9c074b6cd99eaee7e4 0.1s done
+#112 exporting attestation manifest sha256:4cc0ae4cd42dfa92f49273b7fa215a542c32049db26ab7e9e45160ec85caea54 0.6s done
+#112 exporting manifest list sha256:fd8130c4eecce7c19e604993014869f42f0834db84b709460c628fddb80b12c1 0.3s done
+#112 naming to docker.io/library/sigape-cierre-p1-16b6533d-elecciones:latest 0.1s done
+#112 unpacking to docker.io/library/sigape-cierre-p1-16b6533d-elecciones:latest 0.5s done
+#112 DONE 3.1s
+
+#108 [votacion] exporting to image
+#108 DONE 1.8s
+
+#113 [identidad] resolving provenance for metadata file
+#113 DONE 0.0s
+
+#114 [gateway-graphql] resolving provenance for metadata file
+#114 DONE 2.5s
+
+#115 [resultados-conteo] resolving provenance for metadata file
+#115 ...
+
+#116 [candidaturas] resolving provenance for metadata file
+#116 DONE 2.3s
+
+#117 [votacion] resolving provenance for metadata file
+#117 DONE 1.8s
+
+#118 [resultados] resolving provenance for metadata file
+#118 DONE 1.6s
+
+#119 [frontend] resolving provenance for metadata file
+#119 DONE 0.6s
+
+#120 [resultados-auditoria] resolving provenance for metadata file
+#120 DONE 0.8s
+
+#121 [padron-electoral] resolving provenance for metadata file
+#121 DONE 0.2s
+
+#122 [elecciones] resolving provenance for metadata file
+#122 DONE 0.3s
+
+#115 [resultados-conteo] resolving provenance for metadata file
+#115 DONE 1.1s
+ Image sigape-cierre-p1-16b6533d-elecciones Built 
+ Image sigape-cierre-p1-16b6533d-gateway-graphql Built 
+ Image sigape-cierre-p1-16b6533d-frontend Built 
+ Image sigape-cierre-p1-16b6533d-resultados-auditoria Built 
+ Image sigape-cierre-p1-16b6533d-candidaturas Built 
+ Image sigape-cierre-p1-16b6533d-votacion Built 
+ Image sigape-cierre-p1-16b6533d-identidad Built 
+ Image sigape-cierre-p1-16b6533d-resultados-conteo Built 
+ Image sigape-cierre-p1-16b6533d-resultados Built 
+ Image sigape-cierre-p1-16b6533d-padron-electoral Built 
+ Container sigape-cierre-p1-16b6533d-gateway-graphql-1 Running 
+ Container sigape-cierre-p1-16b6533d-elecciones-1 Running 
+ Container sigape-cierre-p1-16b6533d-base-mongodb-1 Running 
+ Container sigape-cierre-p1-16b6533d-resultados-auditoria-1 Running 
+ Container sigape-cierre-p1-16b6533d-mensajeria-rabbitmq-1 Running 
+ Container sigape-cierre-p1-16b6533d-resultados-conteo-1 Running 
+ Container sigape-cierre-p1-16b6533d-padron-electoral-1 Running 
+ Container sigape-cierre-p1-16b6533d-base-postgres-1 Running 
+ Container sigape-cierre-p1-16b6533d-cache-redis-1 Running 
+ Container sigape-cierre-p1-16b6533d-votacion-1 Running 
+ Container sigape-cierre-p1-16b6533d-resultados-1 Running 
+ Container sigape-cierre-p1-16b6533d-identidad-1 Running 
+ Container sigape-cierre-p1-16b6533d-candidaturas-1 Running 
+ Container sigape-cierre-p1-16b6533d-entrada-nginx-1 Running 
+ Container sigape-cierre-p1-16b6533d-frontend-1 Running 
+ Container sigape-cierre-p1-16b6533d-base-postgres-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-base-mongodb-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-base-mongodb-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-mensajeria-rabbitmq-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-mensajeria-rabbitmq-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-base-postgres-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-cache-redis-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-mensajeria-rabbitmq-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-mensajeria-rabbitmq-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-base-mongodb-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-base-postgres-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-base-postgres-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-base-postgres-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-mensajeria-rabbitmq-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-base-postgres-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-base-mongodb-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-elecciones-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-candidaturas-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-padron-electoral-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-cache-redis-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-base-postgres-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-mensajeria-rabbitmq-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-mensajeria-rabbitmq-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-configurar-mensajeria-1 Starting 
+ Container sigape-cierre-p1-16b6533d-base-mongodb-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-base-postgres-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-base-mongodb-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-mensajeria-rabbitmq-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-resultados-conteo-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-resultados-auditoria-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-base-mongodb-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-padron-electoral-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-elecciones-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-candidaturas-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-gateway-graphql-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-base-mongodb-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-resultados-auditoria-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-resultados-conteo-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-gateway-graphql-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-elecciones-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-padron-electoral-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-resultados-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-gateway-graphql-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-candidaturas-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-frontend-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-identidad-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-votacion-1 Waiting 
+ Container sigape-cierre-p1-16b6533d-configurar-mensajeria-1 Started 
+ Container sigape-cierre-p1-16b6533d-resultados-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-votacion-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-gateway-graphql-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-padron-electoral-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-identidad-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-elecciones-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-candidaturas-1 Healthy 
+ Container sigape-cierre-p1-16b6533d-frontend-1 Healthy 

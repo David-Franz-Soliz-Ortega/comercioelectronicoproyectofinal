@@ -138,14 +138,29 @@ components:
         idEleccion: { type: string, format: uuid }
         elegible: { type: boolean }
     Inscripcion:
-      allOf:
-        - $ref: "#/components/schemas/NuevaInscripcion"
-        - type: object
-          required: [idInscripcion, creadoEn, actualizadoEn]
-          properties:
-            idInscripcion: { type: string, format: uuid }
-            creadoEn: { type: string, format: date-time }
-            actualizadoEn: { type: string, format: date-time }
+      type: object
+      additionalProperties: false
+      required:
+      - idEleccion
+      - elegible
+      - idInscripcion
+      - creadoEn
+      - actualizadoEn
+      properties:
+        idEleccion:
+          type: string
+          format: uuid
+        elegible:
+          type: boolean
+        idInscripcion:
+          type: string
+          format: uuid
+        creadoEn:
+          type: string
+          format: date-time
+        actualizadoEn:
+          type: string
+          format: date-time
     PaginaInscripciones:
       type: object
       required: [elementos, pagina, limite, total]

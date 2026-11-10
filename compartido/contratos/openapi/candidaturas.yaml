@@ -37,6 +37,8 @@ paths:
               schema: { $ref: "#/components/schemas/PaginaCandidaturas" }
         "400":
           $ref: "#/components/responses/ErrorValidacion"
+        "422":
+          $ref: "#/components/responses/ErrorValidacion"
     post:
       operationId: crearCandidatura
       summary: Crear una postulación de demostración
@@ -120,14 +122,46 @@ components:
         tipo: { type: string, enum: [individual, lista] }
         estado: { type: string, enum: [borrador, pendiente, aprobada, rechazada, retirada] }
     Candidatura:
-      allOf:
-        - $ref: "#/components/schemas/NuevaCandidatura"
-        - type: object
-          required: [idCandidatura, creadoEn, actualizadoEn]
-          properties:
-            idCandidatura: { type: string, format: uuid }
-            creadoEn: { type: string, format: date-time }
-            actualizadoEn: { type: string, format: date-time }
+      type: object
+      additionalProperties: false
+      required:
+      - idEleccion
+      - nombre
+      - tipo
+      - estado
+      - idCandidatura
+      - creadoEn
+      - actualizadoEn
+      properties:
+        idEleccion:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 120
+        tipo:
+          type: string
+          enum:
+          - individual
+          - lista
+        estado:
+          type: string
+          enum:
+          - borrador
+          - pendiente
+          - aprobada
+          - rechazada
+          - retirada
+        idCandidatura:
+          type: string
+          format: uuid
+        creadoEn:
+          type: string
+          format: date-time
+        actualizadoEn:
+          type: string
+          format: date-time
     PaginaCandidaturas:
       type: object
       required: [elementos, pagina, limite, total]

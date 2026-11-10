@@ -113,14 +113,33 @@ components:
         nombre: { type: string, minLength: 1, maxLength: 120 }
         estado: { type: string, enum: [activa, suspendida] }
     Identidad:
-      allOf:
-        - $ref: "#/components/schemas/NuevaIdentidad"
-        - type: object
-          required: [idIdentidad, creadoEn, actualizadoEn]
-          properties:
-            idIdentidad: { type: string, format: uuid }
-            creadoEn: { type: string, format: date-time }
-            actualizadoEn: { type: string, format: date-time }
+      type: object
+      additionalProperties: false
+      required:
+      - nombre
+      - estado
+      - idIdentidad
+      - creadoEn
+      - actualizadoEn
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 120
+        estado:
+          type: string
+          enum:
+          - activa
+          - suspendida
+        idIdentidad:
+          type: string
+          format: uuid
+        creadoEn:
+          type: string
+          format: date-time
+        actualizadoEn:
+          type: string
+          format: date-time
     PaginaIdentidades:
       type: object
       required: [elementos, pagina, limite, total]

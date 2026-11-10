@@ -1,0 +1,65 @@
+{
+  "correcto": true,
+  "contenedores": [
+    {
+      "servicio": "base-mongodb",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "base-postgres",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "cache-redis",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "candidaturas",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "elecciones",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "entrada-nginx",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "frontend",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "gateway-graphql",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "identidad",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "mensajeria-rabbitmq",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "padron-electoral",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "resultados",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "resultados-auditoria",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "resultados-conteo",
+      "salud": "healthy"
+    },
+    {
+      "servicio": "votacion",
+      "salud": "healthy"
+    }
+  ]
+}

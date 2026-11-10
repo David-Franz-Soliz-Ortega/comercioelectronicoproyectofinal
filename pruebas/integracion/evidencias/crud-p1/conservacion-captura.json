@@ -1,0 +1,24 @@
+{
+  "identidades": {
+    "total": 1,
+    "sha256": "1e17fafd7398a42afd76317dae098a18034b7edeb042f85eaea5b8495cfe37d1"
+  },
+  "elecciones": {
+    "total": 10006,
+    "sha256": "5edd861e67befd30d0d84898fa213df96344b403b5f34c86847f205fbe038c2c"
+  },
+  "candidaturas": {
+    "total": 2,
+    "sha256": "94c8462aa5908b4085a834fa0d85e67b818233be488e4fd7fab2127479fb7ed3"
+  },
+  "inscripciones": {
+    "total": 4,
+    "sha256": "1280a2ebf991b0b81b4e4d909f0d76982d39f75f93a524beab82e285f88e917f"
+  },
+  "almacenes_y_volumenes": [
+    "/sigape-base-postgres-1 73ee97d16bf7f5d7917dfc298da3100d4af3a89e278d286b4fc7daf739da2e7a sigape_datos_postgres ",
+    "/sigape-base-mongodb-1 8bee15f741fe75f208609058834953b3a54a2bb9faee5b15c46587d39cd9451f 91ed977e9bbb43abe52a8a8206b047f178f0ba46832b4004bb0f5ae4438862f7 sigape_datos_mongodb ",
+    "/sigape-cache-redis-1 cae23bbec4df55585772a10c1bd690cd1d720b792174670a637b710654ffdb70 sigape_datos_redis ",
+    "/sigape-mensajeria-rabbitmq-1 f2eba6ad649c9bbd5adb387b3890298dc28ec3857b41345befd6c8ca950c7491 sigape_datos_rabbitmq"
+  ]
+}

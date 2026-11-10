@@ -6,18 +6,20 @@ import swaggerUi from "swagger-ui-express";
 import { parse } from "yaml";
 import { z } from "zod";
 
+import { iniciarGrpc } from "./servidor-grpc.js";
+
 const puerto = Number(process.env.PORT ?? 3000);
 const pool = new Pool({ host: process.env.DB_HOST, port: Number(process.env.DB_PORT ?? 5432), database: process.env.DB_NAME ?? "padron_electoral_db", user: process.env.DB_USER, password: process.env.DB_PASSWORD, max: 10 });
 const esquemaEntrada = z.object({ idEleccion: z.string().uuid(), elegible: z.boolean() }).strict();
 const esquemaUuid = z.string().uuid();
 const app = express();
 app.disable("x-powered-by");
-app.use(express.json({ limit: "32kb" }));
 app.use((solicitud, respuesta, siguiente) => {
   respuesta.setHeader("X-Correlation-ID", solicitud.header("X-Correlation-ID")?.slice(0, 128) || randomUUID());
   if (solicitud.url.startsWith("/api/v1/")) solicitud.url = solicitud.url.slice("/api/v1".length);
   siguiente();
 });
+app.use(express.json({ limit: "32kb" }));
 
 function problema(respuesta: Response, estado: number, titulo: string, detalle: string): void {
   respuesta.status(estado).type("application/problem+json").json({ type: `https://sigape.local/problemas/${estado}`, title: titulo, status: estado, detail: detalle, instance: respuesta.req.originalUrl, idCorrelacion: respuesta.getHeader("X-Correlation-ID") });
@@ -60,10 +62,10 @@ app.get("/openapi.yaml", async (_solicitud, respuesta, siguiente) => {
   try { respuesta.type("application/yaml").send(await readFile(new URL("../contrato.yaml", import.meta.url), "utf8")); }
   catch (error) { siguiente(error); }
 });
-app.get("/docs", async (_solicitud, respuesta, siguiente) => {
-  try { respuesta.send(swaggerUi.generateHTML(parse(await readFile(new URL("../contrato.yaml", import.meta.url), "utf8")))); }
-  catch (error) { siguiente(error); }
-});
+// Servir HTML, inicializador y assets bajo el mismo prefijo canónico.
+const contratoDocumentacion = parse(await readFile(new URL("../contrato.yaml", import.meta.url), "utf8"));
+const opcionesDocumentacion = { swaggerOptions: { validatorUrl: null }, customSiteTitle: "API de padron-electoral SIGAPE" };
+app.use("/docs", swaggerUi.serveFiles(contratoDocumentacion, opcionesDocumentacion), swaggerUi.setup(contratoDocumentacion, opcionesDocumentacion));
 
 app.get("/inscripciones", async (solicitud, respuesta) => {
   const pagina = validarPagina(solicitud, respuesta);
@@ -140,4 +142,9 @@ app.use((_solicitud, respuesta) => problema(respuesta, 404, "No encontrado", "La
 const errores: ErrorRequestHandler = (error, _solicitud, respuesta, _siguiente) => problema(respuesta, error instanceof SyntaxError ? 400 : 500, "Solicitud inválida", error instanceof SyntaxError ? "El cuerpo debe contener JSON válido." : "Ocurrió un error inesperado.");
 app.use(errores);
 await inicializar();
-app.listen(puerto, "0.0.0.0", () => console.log(`Servicio padrón electoral disponible en puerto ${puerto}`));
+const servidorGrpc = await iniciarGrpc(pool);
+const servidorHttp = app.listen(puerto, "0.0.0.0", () => console.log(`Servicio padrón electoral disponible en puerto ${puerto}`));
+for (const senal of ["SIGTERM", "SIGINT"]) process.once(senal, () => {
+  const forzar = setTimeout(() => { servidorGrpc.forceShutdown(); process.exit(1); }, 10000).unref();
+  servidorHttp.close(() => servidorGrpc.tryShutdown(() => { void pool.end().finally(() => clearTimeout(forzar)); }));
+});

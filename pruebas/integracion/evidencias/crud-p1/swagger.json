@@ -1,0 +1,42 @@
+{
+  "base": "http://127.0.0.1:32770",
+  "fecha": "2026-11-10T21:43:37.336Z",
+  "resultados": [
+    {
+      "servicio": "identidad",
+      "url": "http://127.0.0.1:32770/documentacion/identidad/#/default/listarIdentidades",
+      "operaciones": 6,
+      "erroresJavascript": [],
+      "getEjecutado": "http://127.0.0.1:32770/api/v1/identidades?pagina=1&limite=20",
+      "http": 200,
+      "correcto": true
+    },
+    {
+      "servicio": "elecciones",
+      "url": "http://127.0.0.1:32770/documentacion/elecciones/#/default/listarElecciones",
+      "operaciones": 7,
+      "erroresJavascript": [],
+      "getEjecutado": "http://127.0.0.1:32770/api/v1/elecciones?pagina=1&limite=20",
+      "http": 200,
+      "correcto": true
+    },
+    {
+      "servicio": "candidaturas",
+      "url": "http://127.0.0.1:32770/documentacion/candidaturas#/default/listarCandidaturas",
+      "operaciones": 6,
+      "erroresJavascript": [],
+      "getEjecutado": "http://127.0.0.1:32770/api/v1/candidaturas?pagina=1&limite=20",
+      "http": 200,
+      "correcto": true
+    },
+    {
+      "servicio": "padron-electoral",
+      "url": "http://127.0.0.1:32770/documentacion/padron-electoral/#/default/listarInscripciones",
+      "operaciones": 7,
+      "erroresJavascript": [],
+      "getEjecutado": "http://127.0.0.1:32770/api/v1/inscripciones?pagina=1&limite=20",
+      "http": 200,
+      "correcto": true
+    }
+  ]
+}

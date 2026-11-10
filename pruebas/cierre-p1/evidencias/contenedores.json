@@ -1,0 +1,98 @@
+[
+  {
+    "servicio": "base-mongodb",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "base-postgres",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "cache-redis",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "candidaturas",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "configurar-mensajeria",
+    "estado": "exited",
+    "salud": "",
+    "salida": 0
+  },
+  {
+    "servicio": "elecciones",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "entrada-nginx",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "frontend",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "gateway-graphql",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "identidad",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "mensajeria-rabbitmq",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "padron-electoral",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "resultados",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "resultados-auditoria",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "resultados-conteo",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  },
+  {
+    "servicio": "votacion",
+    "estado": "running",
+    "salud": "healthy",
+    "salida": 0
+  }
+]

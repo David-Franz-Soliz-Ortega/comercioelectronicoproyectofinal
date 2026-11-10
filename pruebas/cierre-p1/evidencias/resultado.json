@@ -1,0 +1,10 @@
+{
+  "correcto": true,
+  "configuracion_valida": true,
+  "contenedores_saludables": 15,
+  "tarea_rabbitmq_salida": 0,
+  "base": "http://127.0.0.1:32771",
+  "alcance": "HEAD clonado más archivos locales publicables; imágenes compiladas y bases nuevas, sin node_modules ni .env del original",
+  "principal_sin_cambios": true,
+  "datos_principal_conservados": true
+}

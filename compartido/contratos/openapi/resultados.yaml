@@ -1,0 +1,56 @@
+openapi: 3.0.3
+info:
+  title: SIGAPE resultados sintéticos
+  version: 1.0.0
+  description: Propuesta académica pendiente de revisión. Cuenta registros por elección, sin resultados por candidatura ni autenticación.
+x-estado-propuesta: pendiente-de-aprobacion
+paths:
+  /api/v1/resultados/{idEleccion}:
+    get:
+      summary: Consultar total de eventos únicos del consumidor de conteo
+      parameters:
+        - {$ref: '#/components/parameters/Eleccion'}
+      responses:
+        '200':
+          description: Conteo eventualmente consistente; cero si no hay registros
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [idEleccion, totalRegistros]
+                properties:
+                  idEleccion: {type: string, format: uuid}
+                  totalRegistros: {type: integer, minimum: 0}
+        '422': {description: UUID inválido}
+        '503': {description: MongoDB no disponible}
+  /api/v1/resultados/{idEleccion}/auditoria:
+    get:
+      summary: Consultar total de eventos únicos del consumidor independiente de auditoría
+      parameters:
+        - {$ref: '#/components/parameters/Eleccion'}
+      responses:
+        '200':
+          description: Conteo independiente de auditoría técnica
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [idEleccion, totalEventosAuditados]
+                properties:
+                  idEleccion: {type: string, format: uuid}
+                  totalEventosAuditados: {type: integer, minimum: 0}
+        '422': {description: UUID inválido}
+        '503': {description: MongoDB no disponible}
+  /api/v1/salud:
+    get:
+      summary: Comprobar MongoDB y latidos de ambos consumidores
+      responses:
+        '200': {description: Base disponible y dos consumidores activos en los últimos 15 segundos}
+        '503': {description: Base o consumidor no disponible}
+components:
+  parameters:
+    Eleccion:
+      in: path
+      name: idEleccion
+      required: true
+      schema: {type: string, format: uuid}

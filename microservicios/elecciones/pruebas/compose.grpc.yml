@@ -1,0 +1,9 @@
+# Combinar con el Compose principal; sin puertos públicos ni volúmenes de datos.
+services:
+  padron-grpc-pruebas:
+    image: sigape-elecciones
+    profiles: [pruebas-grpc]
+    command: [node, /pruebas/doble-padron.mjs]
+    volumes:
+      - ./microservicios/elecciones/pruebas:/pruebas:ro
+    networks: [red_interna]

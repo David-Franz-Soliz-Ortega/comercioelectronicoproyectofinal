@@ -1,0 +1,107 @@
+{
+  "fecha": "2026-11-10T21:44:07.409553+00:00",
+  "base": "http://127.0.0.1:32770",
+  "prefijo": "CRUD P1 2076b854-9841-481c-9890-64223543df8f",
+  "correcto": true,
+  "error": null,
+  "contratos_validados": [
+    "identidades",
+    "elecciones",
+    "candidaturas",
+    "inscripciones"
+  ],
+  "casos": [
+    {
+      "servicio": "identidades",
+      "metodo": "GET",
+      "ruta": "identidades/dd9e9b3b-07b7-4b59-b588-057a961b2207",
+      "esperado": 200,
+      "recibido": 200,
+      "ms": 34.4,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "elecciones",
+      "metodo": "GET",
+      "ruta": "elecciones/180f3883-850a-4806-bf96-e57bfee07ba6",
+      "esperado": 200,
+      "recibido": 200,
+      "ms": 34.05,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "candidaturas",
+      "metodo": "GET",
+      "ruta": "candidaturas/f311c3a1-1640-48a2-8048-93ab45c3a27f",
+      "esperado": 200,
+      "recibido": 200,
+      "ms": 16.26,
+      "tipo": "application/json",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "inscripciones",
+      "metodo": "GET",
+      "ruta": "inscripciones/b53747a9-bb91-4684-88a3-e8b7623f78bc",
+      "esperado": 200,
+      "recibido": 200,
+      "ms": 87.52,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    }
+  ],
+  "preservados": {
+    "identidades": {
+      "id": "dd9e9b3b-07b7-4b59-b588-057a961b2207",
+      "modelo": "Identidad",
+      "registro": {
+        "idIdentidad": "dd9e9b3b-07b7-4b59-b588-057a961b2207",
+        "nombre": "CRUD P1 bb469a8d-9589-4670-92ea-1063cc25ac63 identidades 2",
+        "estado": "activa",
+        "creadoEn": "2026-11-10T21:39:37.913Z",
+        "actualizadoEn": "2026-11-10T21:39:37.913Z"
+      }
+    },
+    "elecciones": {
+      "id": "180f3883-850a-4806-bf96-e57bfee07ba6",
+      "modelo": "Eleccion",
+      "registro": {
+        "idEleccion": "180f3883-850a-4806-bf96-e57bfee07ba6",
+        "nombre": "CRUD P1 bb469a8d-9589-4670-92ea-1063cc25ac63 elecciones 2",
+        "estado": "borrador",
+        "creadoEn": "2026-11-10T21:39:38.252Z",
+        "actualizadoEn": "2026-11-10T21:39:38.252Z"
+      }
+    },
+    "candidaturas": {
+      "id": "f311c3a1-1640-48a2-8048-93ab45c3a27f",
+      "modelo": "Candidatura",
+      "registro": {
+        "idCandidatura": "f311c3a1-1640-48a2-8048-93ab45c3a27f",
+        "idEleccion": "180f3883-850a-4806-bf96-e57bfee07ba6",
+        "nombre": "CRUD P1 bb469a8d-9589-4670-92ea-1063cc25ac63 candidaturas 2",
+        "tipo": "individual",
+        "estado": "borrador",
+        "creadoEn": "2026-11-10T21:39:38.596+00:00",
+        "actualizadoEn": "2026-11-10T21:39:38.596+00:00"
+      }
+    },
+    "inscripciones": {
+      "id": "b53747a9-bb91-4684-88a3-e8b7623f78bc",
+      "modelo": "Inscripcion",
+      "registro": {
+        "idInscripcion": "b53747a9-bb91-4684-88a3-e8b7623f78bc",
+        "idEleccion": "180f3883-850a-4806-bf96-e57bfee07ba6",
+        "elegible": false,
+        "creadoEn": "2026-11-10T21:39:39.161Z",
+        "actualizadoEn": "2026-11-10T21:39:39.161Z"
+      }
+    }
+  }
+}

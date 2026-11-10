@@ -24,13 +24,13 @@ const esquemaEntrada = z.object({
 const esquemaUuid = z.string().uuid();
 const app = express();
 app.disable("x-powered-by");
-app.use(express.json({ limit: "32kb" }));
 app.use((solicitud, respuesta, siguiente) => {
   const id = solicitud.header("X-Correlation-ID")?.slice(0, 128) || randomUUID();
   respuesta.setHeader("X-Correlation-ID", id);
   if (solicitud.url.startsWith("/api/v1/")) solicitud.url = solicitud.url.slice("/api/v1".length);
   siguiente();
 });
+app.use(express.json({ limit: "32kb" }));
 
 function problema(respuesta: Response, estado: number, titulo: string, detalle: string): void {
   respuesta.status(estado).type("application/problem+json").json({
@@ -90,14 +90,10 @@ app.get("/openapi.yaml", async (_solicitud, respuesta, siguiente) => {
   }
 });
 
-app.get("/docs", async (_solicitud, respuesta, siguiente) => {
-  try {
-    const contrato = parse(await readFile(new URL("../contrato.yaml", import.meta.url), "utf8"));
-    respuesta.send(swaggerUi.generateHTML(contrato));
-  } catch (error) {
-    siguiente(error);
-  }
-});
+// Servir HTML, inicializador y assets bajo el mismo prefijo canónico.
+const contratoDocumentacion = parse(await readFile(new URL("../contrato.yaml", import.meta.url), "utf8"));
+const opcionesDocumentacion = { swaggerOptions: { validatorUrl: null }, customSiteTitle: "API de identidad SIGAPE" };
+app.use("/docs", swaggerUi.serveFiles(contratoDocumentacion, opcionesDocumentacion), swaggerUi.setup(contratoDocumentacion, opcionesDocumentacion));
 
 app.get("/identidades", async (solicitud, respuesta) => {
   const paginacion = validarPagina(solicitud, respuesta);

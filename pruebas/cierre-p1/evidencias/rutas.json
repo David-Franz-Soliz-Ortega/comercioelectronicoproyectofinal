@@ -1,0 +1,207 @@
+{
+  "correcto": true,
+  "casos": [
+    {
+      "ruta": "/",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/salud/identidad",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/salud/elecciones",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/salud/candidaturas",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/salud/padron-electoral",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/salud/votacion",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/salud/resultados",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/salud/graphql",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/salud/frontend",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/identidades?limite=1",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/elecciones?limite=1",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/candidaturas?limite=1",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/inscripciones?limite=1",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/graphql",
+      "metodo": "POST",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/graphql",
+      "metodo": "POST",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/graphql",
+      "metodo": "POST",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/identidades",
+      "metodo": "POST",
+      "esperado": 201,
+      "recibido": 201,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/identidades/8d9345c8-cb8b-4992-90d3-93802d9ca492",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/graphql",
+      "metodo": "POST",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/elecciones/b7fb54b1-6fba-482c-8471-c8ddae7d4c4f/inscripciones/f01df408-9a36-4364-8a34-7dd9e96eb2e4/elegibilidad",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/elecciones/b7fb54b1-6fba-482c-8471-c8ddae7d4c4f/inscripciones/d46d7cec-5c45-4d18-bc3e-47423f93c190/elegibilidad",
+      "metodo": "GET",
+      "esperado": 404,
+      "recibido": 404,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/elecciones?limite=1",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/candidaturas?limite=1",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    },
+    {
+      "ruta": "/api/v1/inscripciones?limite=1",
+      "metodo": "GET",
+      "esperado": 200,
+      "recibido": 200,
+      "correcto": true
+    }
+  ],
+  "graphql": {
+    "eleccion": {
+      "idEleccion": "b7fb54b1-6fba-482c-8471-c8ddae7d4c4f",
+      "candidaturas": {
+        "total": 1,
+        "elementos": [
+          {
+            "idCandidatura": "88b963ff-0c23-476e-9249-06794af9a525",
+            "eleccion": {
+              "idEleccion": "b7fb54b1-6fba-482c-8471-c8ddae7d4c4f"
+            }
+          }
+        ]
+      },
+      "inscripciones": {
+        "total": 1,
+        "elementos": [
+          {
+            "idInscripcion": "f01df408-9a36-4364-8a34-7dd9e96eb2e4",
+            "eleccion": {
+              "idEleccion": "b7fb54b1-6fba-482c-8471-c8ddae7d4c4f"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "grpc": {
+    "idEleccion": "b7fb54b1-6fba-482c-8471-c8ddae7d4c4f",
+    "idInscripcion": "f01df408-9a36-4364-8a34-7dd9e96eb2e4",
+    "elegible": true,
+    "idCorrelacion": "cierre-p1-sigape-cierre-p1-16b6533d"
+  },
+  "alcance": "Bases nuevas; mutations GraphQL y lecturas REST/gRPC; datos sintéticos conservados"
+}

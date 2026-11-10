@@ -1,0 +1,9 @@
+{
+  "name": "sigape-gateway-graphql",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=24"},
+  "scripts": {"iniciar": "node src/servidor.js", "verificar": "node --test pruebas/*.test.js"},
+  "dependencies": {"dataloader": "2.2.3", "graphql": "16.11.0"}
+}

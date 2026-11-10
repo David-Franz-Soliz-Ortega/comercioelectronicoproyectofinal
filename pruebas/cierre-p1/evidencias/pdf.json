@@ -1,0 +1,12 @@
+{
+  "correcto": true,
+  "paginas": 8,
+  "verificacion": "Texto actual de R3, candidato aislado y pendiente de commit definitivo presente; ocho secciones en ocho páginas",
+  "sha256": {
+    "docs/arquitectura-p1.md": "57450d54e4fb9a515b12862f02062e11cb59c26779029a170fa29c45b81133c9",
+    "docs/arquitectura-p1.pdf": "fe9a77f020969d69166678adcbd148c7a5a36becf2e9cfebe0a0ebead173f4f8",
+    "docs/diagramas-p1/contenedores.svg": "44f0aa0d9378fb1c430f3233e26f36db3628d7975e5f5d4b51cb317acbdbbd2f",
+    "docs/diagramas-p1/contexto.svg": "99cc57cf0797b1421df5189b60a21747e1a4896ee3c7859cc8cbc944501f5da1"
+  },
+  "diagramas_locales": true
+}

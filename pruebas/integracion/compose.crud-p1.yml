@@ -1,0 +1,14 @@
+# Se combina con el Compose principal usando un proyecto y entorno nuevos.
+# Solo inicia cuatro CRUD, PostgreSQL, MongoDB y NGINX; conserva volúmenes.
+services:
+  candidaturas:
+    healthcheck:
+      start_period: 40s
+  entrada-nginx:
+    ports: !override
+      - "127.0.0.1::80"
+    depends_on: !override
+      identidad: {condition: service_healthy}
+      elecciones: {condition: service_healthy}
+      candidaturas: {condition: service_healthy}
+      padron-electoral: {condition: service_healthy}

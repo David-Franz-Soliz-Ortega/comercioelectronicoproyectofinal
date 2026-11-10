@@ -1,0 +1,126 @@
+{
+  "fecha": "2026-11-10T21:37:25.418476+00:00",
+  "base": "http://127.0.0.1:32769",
+  "prefijo": "CRUD P1 2ca87986-58f0-496e-93f1-10db8b2ca757",
+  "correcto": false,
+  "error": "",
+  "contratos_validados": [
+    "identidades",
+    "elecciones",
+    "candidaturas",
+    "inscripciones"
+  ],
+  "casos": [
+    {
+      "servicio": "identidades",
+      "metodo": "POST",
+      "ruta": "identidades",
+      "esperado": 201,
+      "recibido": 201,
+      "ms": 34.66,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "identidades",
+      "metodo": "POST",
+      "ruta": "identidades",
+      "esperado": 201,
+      "recibido": 201,
+      "ms": 6.25,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "identidades",
+      "metodo": "POST",
+      "ruta": "identidades",
+      "esperado": 201,
+      "recibido": 201,
+      "ms": 5.46,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "identidades",
+      "metodo": "GET",
+      "ruta": "identidades/743a6f97-ac3e-4d4a-b534-02af6b5167a1",
+      "esperado": 200,
+      "recibido": 200,
+      "ms": 5.24,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "identidades",
+      "metodo": "PUT",
+      "ruta": "identidades/743a6f97-ac3e-4d4a-b534-02af6b5167a1",
+      "esperado": 200,
+      "recibido": 200,
+      "ms": 7.4,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "identidades",
+      "metodo": "GET",
+      "ruta": "identidades/743a6f97-ac3e-4d4a-b534-02af6b5167a1",
+      "esperado": 200,
+      "recibido": 200,
+      "ms": 3.35,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "identidades",
+      "metodo": "GET",
+      "ruta": "identidades?pagina=1&limite=1",
+      "esperado": 200,
+      "recibido": 200,
+      "ms": 9.83,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "identidades",
+      "metodo": "GET",
+      "ruta": "identidades?pagina=2&limite=1",
+      "esperado": 200,
+      "recibido": 200,
+      "ms": 3.74,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "identidades",
+      "metodo": "GET",
+      "ruta": "identidades?estado=suspendida",
+      "esperado": 200,
+      "recibido": 200,
+      "ms": 6.99,
+      "tipo": "application/json; charset=utf-8",
+      "correlacion_preservada": true,
+      "correcto": true
+    },
+    {
+      "servicio": "identidades",
+      "metodo": "POST",
+      "ruta": "identidades",
+      "esperado": 400,
+      "recibido": 400,
+      "ms": 4.81,
+      "tipo": "application/problem+json; charset=utf-8",
+      "correlacion_preservada": false,
+      "correcto": false
+    }
+  ],
+  "preservados": {}
+}

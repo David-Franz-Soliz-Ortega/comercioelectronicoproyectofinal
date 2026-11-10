@@ -101,6 +101,40 @@ paths:
           $ref: "#/components/responses/NoEncontrado"
         "409":
           description: Solo se pueden eliminar elecciones en borrador.
+  /elecciones/{idEleccion}/inscripciones/{idInscripcion}/elegibilidad:
+    get:
+      operationId: consultarElegibilidadDesdeElecciones
+      summary: Consultar al padrón mediante gRPC con deadline
+      description: Comprueba la elección propia y delega la inscripción al padrón. No accede a bases ajenas.
+      parameters:
+        - name: idEleccion
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: idInscripcion
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Elegibilidad sintética consultada por gRPC.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [idEleccion, idInscripcion, elegible, idCorrelacion]
+                properties:
+                  idEleccion: { type: string, format: uuid }
+                  idInscripcion: { type: string, format: uuid }
+                  elegible: { type: boolean }
+                  idCorrelacion: { type: string }
+        "400": { description: UUID inválido o INVALID_ARGUMENT del padrón. }
+        "404": { description: Elección o inscripción inexistente. }
+        "408": { description: CANCELLED del padrón. }
+        "409": { description: FAILED_PRECONDITION; inscripción de otra elección. }
+        "502": { description: Error inesperado o respuesta gRPC inválida. }
+        "503": { description: "UNAVAILABLE, RESOURCE_EXHAUSTED o persistencia local no disponible." }
+        "504": { description: DEADLINE_EXCEEDED; plazo gRPC agotado. }
 components:
   parameters:
     Pagina:
@@ -120,14 +154,36 @@ components:
         nombre: { type: string, minLength: 1, maxLength: 120 }
         estado: { type: string, enum: [borrador, programada, en_curso, finalizada, anulada] }
     Eleccion:
-      allOf:
-        - $ref: "#/components/schemas/NuevaEleccion"
-        - type: object
-          required: [idEleccion, creadoEn, actualizadoEn]
-          properties:
-            idEleccion: { type: string, format: uuid }
-            creadoEn: { type: string, format: date-time }
-            actualizadoEn: { type: string, format: date-time }
+      type: object
+      additionalProperties: false
+      required:
+      - nombre
+      - estado
+      - idEleccion
+      - creadoEn
+      - actualizadoEn
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 120
+        estado:
+          type: string
+          enum:
+          - borrador
+          - programada
+          - en_curso
+          - finalizada
+          - anulada
+        idEleccion:
+          type: string
+          format: uuid
+        creadoEn:
+          type: string
+          format: date-time
+        actualizadoEn:
+          type: string
+          format: date-time
     PaginaElecciones:
       type: object
       required: [elementos, pagina, limite, total]
@@ -148,6 +204,8 @@ components:
         detail: { type: string }
         instance: { type: string, format: uri-reference }
         idCorrelacion: { type: string }
+        codigoGrpc: { type: integer, description: Código gRPC opcional de elegibilidad. }
+        estadoGrpc: { type: string, description: Nombre del estado gRPC. }
   responses:
     NoEncontrado:
       description: Elección no encontrada.

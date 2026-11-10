@@ -6,6 +6,11 @@ option go_package = "sigape/compartido/contratos/grpc/padronv1";
 
 // Propuesta pendiente de aprobación entre elecciones (cliente) y padrón electoral (servidor).
 service ServicioPadron {
+  // Consulta sintética de solo lectura. El cliente envía deadline y correlación.
+  // INVALID_ARGUMENT: UUID o correlación inválidos; NOT_FOUND: inscripción ausente.
+  // FAILED_PRECONDITION: inscripción asociada a otra elección.
+  // DEADLINE_EXCEEDED: plazo agotado; UNAVAILABLE: dependencia no disponible.
+  // RESOURCE_EXHAUSTED: capacidad agotada; INTERNAL: error inesperado.
   rpc ConsultarElegibilidad (SolicitudElegibilidad) returns (RespuestaElegibilidad);
 }
 

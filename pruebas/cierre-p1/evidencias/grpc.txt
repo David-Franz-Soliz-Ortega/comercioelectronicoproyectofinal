@@ -1,0 +1,7 @@
+elecciones-1  | Servicio elecciones disponible en puerto 3000
+elecciones-1  | {"evento":"cliente_padron_grpc","idCorrelacion":"cierre-p1-sigape-cierre-p1-16b6533d","codigoGrpc":0}
+elecciones-1  | {"evento":"cliente_padron_grpc","idCorrelacion":"cierre-p1-sigape-cierre-p1-16b6533d","codigoGrpc":5}
+padron-electoral-1  | Servidor gRPC del padrón disponible
+padron-electoral-1  | Servicio padrón electoral disponible en puerto 3000
+padron-electoral-1  | {"evento":"consulta_padron_grpc","idCorrelacion":"cierre-p1-sigape-cierre-p1-16b6533d","codigoGrpc":0}
+padron-electoral-1  | {"evento":"consulta_padron_grpc","idCorrelacion":"cierre-p1-sigape-cierre-p1-16b6533d","codigoGrpc":5}

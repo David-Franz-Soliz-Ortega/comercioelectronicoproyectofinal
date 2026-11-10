@@ -1,0 +1,149 @@
+[
+  {
+    "nombre": "/sigape-base-mongodb-1",
+    "id": "8bee15f741fe75f208609058834953b3a54a2bb9faee5b15c46587d39cd9451f",
+    "inicio": "2026-11-09T05:38:28.998195917Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": [
+      "91ed977e9bbb43abe52a8a8206b047f178f0ba46832b4004bb0f5ae4438862f7",
+      "sigape_datos_mongodb"
+    ]
+  },
+  {
+    "nombre": "/sigape-base-postgres-1",
+    "id": "73ee97d16bf7f5d7917dfc298da3100d4af3a89e278d286b4fc7daf739da2e7a",
+    "inicio": "2026-11-09T05:38:28.994989379Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": [
+      "sigape_datos_postgres"
+    ]
+  },
+  {
+    "nombre": "/sigape-cache-redis-1",
+    "id": "cae23bbec4df55585772a10c1bd690cd1d720b792174670a637b710654ffdb70",
+    "inicio": "2026-11-09T05:29:45.681516533Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": [
+      "sigape_datos_redis"
+    ]
+  },
+  {
+    "nombre": "/sigape-candidaturas-1",
+    "id": "dd6864d376a1786ee9dac568ea370827b33bfb3170248f0d86f2b0e94241e501",
+    "inicio": "2026-11-10T21:42:51.956457557Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": []
+  },
+  {
+    "nombre": "/sigape-configurar-mensajeria-1",
+    "id": "10c399f3af4114aa307624a733c378224a511a4e765f0abfdb3b0a9868ed98a1",
+    "inicio": "2026-11-10T16:15:09.531728538Z",
+    "estado": "exited",
+    "reinicios": 0,
+    "volumenes": [
+      "8810ecbfe5db6c95e20237a21f3f6d9113d1ae6c9a9e0091978f278e4df4edb7"
+    ]
+  },
+  {
+    "nombre": "/sigape-elecciones-1",
+    "id": "6b139a93d4f9f66d6c81ad0ff05d30e3e8ae33eaf408c0d6131c525974e42393",
+    "inicio": "2026-11-10T21:42:51.942831342Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": []
+  },
+  {
+    "nombre": "/sigape-entrada-nginx-1",
+    "id": "54c1cacae9a9e574e12f7acf4e95e15fc6c5196de86a8e6f130d247932767a32",
+    "inicio": "2026-11-10T14:08:22.49260392Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": []
+  },
+  {
+    "nombre": "/sigape-frontend-1",
+    "id": "09497dcca07111cba3d19f69e8edc2559f1f9469dc4e9c74a05000bae6e5f25d",
+    "inicio": "2026-11-10T20:36:37.712654538Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": []
+  },
+  {
+    "nombre": "/sigape-gateway-graphql-1",
+    "id": "921d51ad29e40c47218f07fa1a3eb68888a939567db421321570e8054d5ddf27",
+    "inicio": "2026-11-10T16:47:01.197670055Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": []
+  },
+  {
+    "nombre": "/sigape-identidad-1",
+    "id": "1ec63a8d65d418e682757146f3679be8303d591863c4524451de52133213d5a1",
+    "inicio": "2026-11-10T21:42:51.975916531Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": []
+  },
+  {
+    "nombre": "/sigape-mensajeria-rabbitmq-1",
+    "id": "f2eba6ad649c9bbd5adb387b3890298dc28ec3857b41345befd6c8ca950c7491",
+    "inicio": "2026-11-09T05:38:29.011963603Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": [
+      "sigape_datos_rabbitmq"
+    ]
+  },
+  {
+    "nombre": "/sigape-padron-electoral-1",
+    "id": "ae8757205432460b31212a0e5b7930f4d0dd1f665e8b9f019401dfc4d7e2ce0b",
+    "inicio": "2026-11-10T21:42:51.925450311Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": []
+  },
+  {
+    "nombre": "/sigape-padron-grpc-pruebas-1",
+    "id": "d4c1984af70d27d27f4429f327152ed4e0c968ee0d2dbc6a8c8789972e838eb1",
+    "inicio": "2026-11-10T17:17:50.040296613Z",
+    "estado": "exited",
+    "reinicios": 0,
+    "volumenes": []
+  },
+  {
+    "nombre": "/sigape-resultados-1",
+    "id": "4d651c0897487d2a9fa74f3eb15fa149e7571b91ce04966a2a937b26b6a60d39",
+    "inicio": "2026-11-10T16:15:21.788871429Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": []
+  },
+  {
+    "nombre": "/sigape-resultados-auditoria-1",
+    "id": "555b90a937628e3263ec0cb0bc75341f660db69974fb2550289980287d592c77",
+    "inicio": "2026-11-10T16:15:09.546832815Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": []
+  },
+  {
+    "nombre": "/sigape-resultados-conteo-1",
+    "id": "2bd4084652267d58b561a73eca2d4e72404da7eda7130215ace4e9d944293588",
+    "inicio": "2026-11-10T16:15:09.515510299Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": []
+  },
+  {
+    "nombre": "/sigape-votacion-1",
+    "id": "c267b8484e41b61801b2370f241c56378863c08117454467fcb46c490171fb79",
+    "inicio": "2026-11-10T16:15:09.537473152Z",
+    "estado": "running",
+    "reinicios": 0,
+    "volumenes": []
+  }
+]

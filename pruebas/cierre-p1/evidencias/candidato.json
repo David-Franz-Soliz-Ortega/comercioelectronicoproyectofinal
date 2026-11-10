@@ -1,0 +1,657 @@
+{
+  "fecha": "2026-11-10T21:51:29.584171+00:00",
+  "proyecto": "sigape-cierre-p1-16b6533d",
+  "carpeta": "/tmp/sigape-cierre-p1-kj1pnii0",
+  "clon": "/tmp/sigape-cierre-p1-kj1pnii0/candidato",
+  "override": "/tmp/sigape-cierre-p1-kj1pnii0/compose.aislado.yml",
+  "evidencia": "/tmp/sigape-cierre-p1-kj1pnii0/evidencias",
+  "head": "49a49e0a52372785369861da79db0c496afa0f54",
+  "rama": "main",
+  "remotos": "origin\thttps://github.com/David-Franz-Soliz-Ortega/comercioelectronicoproyectofinal.git (fetch)\norigin\thttps://github.com/David-Franz-Soliz-Ortega/comercioelectronicoproyectofinal.git (push)\n",
+  "estado_git": " M .dockerignore\n M README.md\n M compartido/contratos/README.md\n M compartido/contratos/grpc/padron-v1.proto\n M compartido/contratos/openapi/candidaturas.yaml\n M compartido/contratos/openapi/elecciones.yaml\n M compartido/contratos/openapi/identidad.yaml\n M compartido/contratos/openapi/padron-electoral.yaml\n M docker-compose.yml\n M infraestructura/docker/nginx.conf\n M microservicios/candidaturas/app/servidor.py\n M microservicios/elecciones/Dockerfile\n M microservicios/elecciones/package-lock.json\n M microservicios/elecciones/package.json\n M microservicios/elecciones/src/servidor.ts\n M microservicios/identidad/src/servidor.ts\n M microservicios/padron-electoral/Dockerfile\n M microservicios/padron-electoral/package-lock.json\n M microservicios/padron-electoral/package.json\n M microservicios/padron-electoral/src/servidor.ts\n?? compartido/contratos/graphql/esquema.graphql\n?? compartido/contratos/openapi/resultados.yaml\n?? compartido/contratos/openapi/votacion.yaml\n?? docs/arquitectura-p1.md\n?? docs/arquitectura-p1.pdf\n?? docs/diagramas-p1/contenedores.mmd\n?? docs/diagramas-p1/contenedores.py\n?? docs/diagramas-p1/contenedores.svg\n?? docs/diagramas-p1/contexto.mmd\n?? docs/diagramas-p1/contexto.svg\n?? frontend/Dockerfile\n?? frontend/README.md\n?? frontend/index.html\n?? frontend/nginx.conf\n?? frontend/package-lock.json\n?? frontend/package.json\n?? frontend/pruebas/ejecutar.sh\n?? frontend/pruebas/navegador.mjs\n?? frontend/pruebas/resultados-pruebas.md\n?? frontend/public/simbolo.svg\n?? frontend/src/Aplicacion.jsx\n?? frontend/src/estilos.css\n?? frontend/src/graphql.js\n?? frontend/src/principal.jsx\n?? frontend/vite.config.js\n?? gateway/graphql/Dockerfile\n?? gateway/graphql/README.md\n?? gateway/graphql/package-lock.json\n?? gateway/graphql/package.json\n?? gateway/graphql/pruebas/agregacion.test.js\n?? gateway/graphql/pruebas/principal.py\n?? gateway/graphql/pruebas/resultados-pruebas.md\n?? gateway/graphql/src/agregacion.js\n?? gateway/graphql/src/servidor.js\n?? microservicios/elecciones/README.md\n?? microservicios/elecciones/pruebas/cliente-padron.test.mjs\n?? microservicios/elecciones/pruebas/compose.grpc.yml\n?? microservicios/elecciones/pruebas/doble-padron.mjs\n?? microservicios/elecciones/pruebas/entre-contenedores.mjs\n?? microservicios/elecciones/pruebas/grpc-principal.py\n?? microservicios/elecciones/pruebas/resultados-grpc.md\n?? microservicios/elecciones/src/cliente-padron.ts\n?? microservicios/padron-electoral/README.md\n?? microservicios/padron-electoral/pruebas/servidor-grpc.test.mjs\n?? microservicios/padron-electoral/src/servidor-grpc.ts\n?? microservicios/resultados/Dockerfile\n?? microservicios/resultados/README.md\n?? microservicios/resultados/app/configuracion.py\n?? microservicios/resultados/app/consumidor.py\n?? microservicios/resultados/app/salud.py\n?? microservicios/resultados/app/servidor.py\n?? microservicios/resultados/pruebas/integracion-principal.md\n?? microservicios/resultados/pruebas/integracion.py\n?? microservicios/resultados/pruebas/principal.py\n?? microservicios/resultados/pruebas/resultados-pruebas.md\n?? microservicios/resultados/requirements.txt\n?? microservicios/votacion/Dockerfile\n?? microservicios/votacion/README.md\n?? microservicios/votacion/go.mod\n?? microservicios/votacion/go.sum\n?? microservicios/votacion/pruebas/compose.yml\n?? microservicios/votacion/pruebas/ejecutar.sh\n?? microservicios/votacion/servidor.go\n?? microservicios/votacion/servidor_test.go\n?? pruebas/cierre-p1/ejecutar-candidato.py\n?? pruebas/cierre-p1/preparar-candidato.py\n?? pruebas/cierre-p1/verificar-rutas.py\n?? pruebas/integracion/README-crud-p1.md\n?? pruebas/integracion/compose.crud-p1.yml\n?? pruebas/integracion/conservacion-p1.py\n?? pruebas/integracion/crud-p1.py\n?? pruebas/integracion/ejecutar-crud-p1.py\n?? pruebas/integracion/evidencias/crud-p1/carga-1.txt\n?? pruebas/integracion/evidencias/crud-p1/carga-2.txt\n?? pruebas/integracion/evidencias/crud-p1/carga-tras-reinicio.json\n?? pruebas/integracion/evidencias/crud-p1/carga.json\n?? pruebas/integracion/evidencias/crud-p1/conservacion-captura.json\n?? pruebas/integracion/evidencias/crud-p1/conservacion.json\n?? pruebas/integracion/evidencias/crud-p1/correcto.txt\n?? pruebas/integracion/evidencias/crud-p1/crud.json\n?? pruebas/integracion/evidencias/crud-p1/ejecucion.json\n?? pruebas/integracion/evidencias/crud-p1/fallo-correlacion-previo.json\n?? pruebas/integracion/evidencias/crud-p1/fallo-fechas-previo.json\n?? pruebas/integracion/evidencias/crud-p1/fallo-modelos-previos.json\n?? pruebas/integracion/evidencias/crud-p1/fallo-nombre-previo.json\n?? pruebas/integracion/evidencias/crud-p1/incidencias-ejecucion.json\n?? pruebas/integracion/evidencias/crud-p1/persistencia.json\n?? pruebas/integracion/evidencias/crud-p1/regresion-principal.json\n?? pruebas/integracion/evidencias/crud-p1/resultados.md\n?? pruebas/integracion/evidencias/crud-p1/secretos-valores-locales.json\n?? pruebas/integracion/evidencias/crud-p1/swagger-principal.json\n?? pruebas/integracion/evidencias/crud-p1/swagger.json\n?? pruebas/integracion/regresion-lectura-p1.py\n?? pruebas/integracion/requirements.txt\n?? pruebas/integracion/swagger-p1.mjs\n",
+  "archivos": [
+    {
+      "ruta": ".dockerignore",
+      "sha256": "24c85df3a69c5463763235a712cac2f2450230fb7b6ce2f735c5cc689658c277"
+    },
+    {
+      "ruta": ".env.example",
+      "sha256": "471a4370cebd398bbc85fbb8acc91b0a887a145cde24586d36243374093af0b5"
+    },
+    {
+      "ruta": ".gitignore",
+      "sha256": "f79ee863e2e0d661bc121722ebff685781c73ca14d876666a72d1cf9ed35b0e7"
+    },
+    {
+      "ruta": "AGENTS.md",
+      "sha256": "12e776272798f6084a9b023b8807b615c0d7b28d452665453506b976ca075080"
+    },
+    {
+      "ruta": "README.md",
+      "sha256": "628af784349e5240a03e2fd1f3d7962adbbae4ba926e966f8b5f8a5ba5f55139"
+    },
+    {
+      "ruta": "compartido/contratos/README.md",
+      "sha256": "27a3945e4c5608b4ab911ea1e56760c3c1453ee7fb2d2fcf708fe2f6d3093ed4"
+    },
+    {
+      "ruta": "compartido/contratos/eventos/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "compartido/contratos/eventos/voto.registrado.v1.schema.json",
+      "sha256": "c0696dbec7a661fc71f250afe64994327abb03062163a5f1a167b65bb8e6d54c"
+    },
+    {
+      "ruta": "compartido/contratos/graphql/esquema.graphql",
+      "sha256": "dd273010bd1403faed1f36e6c4c3f5555336804c89455fc8a4d0cf441b6291e9"
+    },
+    {
+      "ruta": "compartido/contratos/grpc/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "compartido/contratos/grpc/padron-v1.proto",
+      "sha256": "34d3db89cbc7ef3d06c555d0540341c47dc60f0cf7d8eeb69443a2445cf854cb"
+    },
+    {
+      "ruta": "compartido/contratos/openapi/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "compartido/contratos/openapi/candidaturas.yaml",
+      "sha256": "5e5d6d0b4cd1f7e0e93fb76009f82728b6c11caa8837a3fcb836b5aaf0ae39e0"
+    },
+    {
+      "ruta": "compartido/contratos/openapi/elecciones.yaml",
+      "sha256": "e5d95e349266d953e72018938964d1686cb38b39670023e479bfae2faec22d24"
+    },
+    {
+      "ruta": "compartido/contratos/openapi/identidad.yaml",
+      "sha256": "c418eaff7e3888099683c8fa5e4b924f4db435cb3e0e6060dcd2138bb8e22121"
+    },
+    {
+      "ruta": "compartido/contratos/openapi/padron-electoral.yaml",
+      "sha256": "e6dffb5de94100b68b2ac17442ccc2726437ed8621e574bc5355357816decfbd"
+    },
+    {
+      "ruta": "compartido/contratos/openapi/resultados.yaml",
+      "sha256": "e898bef77e07306eca402ea41f629e0d7063723fa9d89fad1c6855ff97295041"
+    },
+    {
+      "ruta": "compartido/contratos/openapi/votacion.yaml",
+      "sha256": "c96fe779ec08dbf4a3a67a72954c1eb217849807bf9f48db010538c406edbb51"
+    },
+    {
+      "ruta": "docker-compose.yml",
+      "sha256": "fcb2d71e82f7f07b6fa206387c9501b73c444657a5cbbfb5b356840355bbb6b0"
+    },
+    {
+      "ruta": "docs/arquitectura-p1.md",
+      "sha256": "9333bb417515b06ccfd648d5ce40a05943974a7c9c06f7252fc6a1b13c8f8da5"
+    },
+    {
+      "ruta": "docs/arquitectura-p1.pdf",
+      "sha256": "56bd7488d5e2aa2a8aa62e896d687991f7443a729a527205a25a5fd779affa09"
+    },
+    {
+      "ruta": "docs/arquitectura.md",
+      "sha256": "cb1e68e35af6d32c5a055d2b31cc91dd5c32d4aadefe5dac0320b4b5861f5525"
+    },
+    {
+      "ruta": "docs/diagramas-p1/contenedores.mmd",
+      "sha256": "9fd5fd35ac21c2b06e5cdb58a78beb5a2ae6029526f471de4727b2d18576f31f"
+    },
+    {
+      "ruta": "docs/diagramas-p1/contenedores.py",
+      "sha256": "107953be0e8abd8a679ddd93c3618e8e006a64103253086b835a9c96eb4ec642"
+    },
+    {
+      "ruta": "docs/diagramas-p1/contenedores.svg",
+      "sha256": "44f0aa0d9378fb1c430f3233e26f36db3628d7975e5f5d4b51cb317acbdbbd2f"
+    },
+    {
+      "ruta": "docs/diagramas-p1/contexto.mmd",
+      "sha256": "a0910198b873376fd9c47b3b5238943d6660e2f1e7dcef56c38eec9d804a9a40"
+    },
+    {
+      "ruta": "docs/diagramas-p1/contexto.svg",
+      "sha256": "99cc57cf0797b1421df5189b60a21747e1a4896ee3c7859cc8cbc944501f5da1"
+    },
+    {
+      "ruta": "docs/guia-colaboracion-ia.md",
+      "sha256": "6454c22eba86a90ba05eeaec529a316998f7c2f6dcae293051520d4f0558efde"
+    },
+    {
+      "ruta": "docs/propuesta-crud-rest-p1.md",
+      "sha256": "10d9e8985e704339724fb3617f53c80006403ae166627c55d0464aa7f1c51343"
+    },
+    {
+      "ruta": "frontend/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "frontend/Dockerfile",
+      "sha256": "692b80eb990e961bac54efe3d268ec451bb98cd11e08803b8af0bb000cfa6dc1"
+    },
+    {
+      "ruta": "frontend/README.md",
+      "sha256": "36a66bf726133628468ef6c8be43bdffd1bb66c15b4bdaa1cfd50ab0254c256c"
+    },
+    {
+      "ruta": "frontend/index.html",
+      "sha256": "cf10f8c641e7d38b2c137038daaf816233c1dfc6f1926c181575766bc6a57420"
+    },
+    {
+      "ruta": "frontend/nginx.conf",
+      "sha256": "331781f5668a49d2ca8159f1401037910d9ec77981a7f4866f86666d2060d7c7"
+    },
+    {
+      "ruta": "frontend/package-lock.json",
+      "sha256": "d2ce4b984b9510867fbea5fa55a323bf475be1d5e858dbda352e7d03397ad81f"
+    },
+    {
+      "ruta": "frontend/package.json",
+      "sha256": "dacbd65091a03d5328d50d27aeaf51ac9fb82ecece65c787e79e3f2d2afab21e"
+    },
+    {
+      "ruta": "frontend/pruebas/ejecutar.sh",
+      "sha256": "d0da75aaf4f6feda7a108ed8cc11673ff7aae09c9e1fe1494cafcb0cd271c18b"
+    },
+    {
+      "ruta": "frontend/pruebas/navegador.mjs",
+      "sha256": "6bf8e0b7edaf7d7a42d4f44bd2a23dc7a87c60c5f25892b4873288881a00a6da"
+    },
+    {
+      "ruta": "frontend/pruebas/resultados-pruebas.md",
+      "sha256": "7111bf23baf71503dc860ab36c4da0c5554194a6df7b0704ea2ef138f3ae528d"
+    },
+    {
+      "ruta": "frontend/public/simbolo.svg",
+      "sha256": "4f7ad2351bf2a645d2a2b9adef17ce165ecd115058274ae5b1865a7d673ca74f"
+    },
+    {
+      "ruta": "frontend/src/Aplicacion.jsx",
+      "sha256": "9761360705eba13e883fe7747f57d4d4c170e9affdc90432d983846c28620f96"
+    },
+    {
+      "ruta": "frontend/src/estilos.css",
+      "sha256": "9d966782ff507dbcf23c5b1ba234d5d193abc0d74094bff241356f90e2c7f3cb"
+    },
+    {
+      "ruta": "frontend/src/graphql.js",
+      "sha256": "49b27075c3caa8897059046619838090b0ab4b77ea71ca84119ddc4e4eb8099a"
+    },
+    {
+      "ruta": "frontend/src/principal.jsx",
+      "sha256": "90a7852665eb49d3523599a3f29a6b01f06b554404620aa033f98e3f49d296fd"
+    },
+    {
+      "ruta": "frontend/vite.config.js",
+      "sha256": "bb9cee13bbbb584a080bf19c8f25b33131eed8655029053cf5cf6d174457aa7c"
+    },
+    {
+      "ruta": "gateway/graphql/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "gateway/graphql/Dockerfile",
+      "sha256": "99646bd8f13ed73c13a03627a07af4cc9adb9ca35a69f03eb95619405c174b3c"
+    },
+    {
+      "ruta": "gateway/graphql/README.md",
+      "sha256": "1a5cc559170c74e1c4074fd450b301da6a2f457be3157f902fc5af824067d3cb"
+    },
+    {
+      "ruta": "gateway/graphql/package-lock.json",
+      "sha256": "924701107d28ecf4a4bdc1bcf33f7ec9a16a653bc44d1e0f30a625944c8fa53f"
+    },
+    {
+      "ruta": "gateway/graphql/package.json",
+      "sha256": "4b18198a4744461834e5997a71daf79211662e758d1c53adc83c32c7ed0a9e53"
+    },
+    {
+      "ruta": "gateway/graphql/pruebas/agregacion.test.js",
+      "sha256": "35f319e884f2d1f1136af1e054272bd2aebd01429f3e29cfe8fc49e7a7bb9eeb"
+    },
+    {
+      "ruta": "gateway/graphql/pruebas/principal.py",
+      "sha256": "6cfe90fb9a2474cbaa0d04b3aeb16adb2cfc9cb31d104cfd275575e01b7eb0ee"
+    },
+    {
+      "ruta": "gateway/graphql/pruebas/resultados-pruebas.md",
+      "sha256": "87dd11917a19018ad508f48f686ac0d10423ec59f01811c57f3b4d50ffabadee"
+    },
+    {
+      "ruta": "gateway/graphql/src/agregacion.js",
+      "sha256": "32e8f6bbb24d43fb02abbbf9a47b99e3392931aea9339bc47d38bcabbddef5d1"
+    },
+    {
+      "ruta": "gateway/graphql/src/servidor.js",
+      "sha256": "12a3daf2434f5ac7532cfcef33c1837639c23bfdc34ea7d3fe2ee47bfc8679f2"
+    },
+    {
+      "ruta": "infraestructura/argocd/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "infraestructura/docker/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "infraestructura/docker/definiciones-rabbitmq.json",
+      "sha256": "89d16e034dc81fba0f5295489cea47c209a6abcf1ab756d2ee8a1e85e842ad35"
+    },
+    {
+      "ruta": "infraestructura/docker/inicializar-mongodb.sh",
+      "sha256": "f9102b47abb352a7e97ebc24ca1d62fa18b8d9edea9520fb3b7851cd9401c063"
+    },
+    {
+      "ruta": "infraestructura/docker/inicializar-postgres.sh",
+      "sha256": "540d42e545e28f64f5599553d6cc76a00a4b97d0a81083be5b14d1c0e5a23c2c"
+    },
+    {
+      "ruta": "infraestructura/docker/nginx.conf",
+      "sha256": "6f243362766a37a7740257f11964c868f0f83b7231032ec251a006e23dad896f"
+    },
+    {
+      "ruta": "infraestructura/docker/rabbitmq.conf",
+      "sha256": "e6d2024df808bbad695eabb8c345c53900e0c20a4381932851e9d6ddd241008e"
+    },
+    {
+      "ruta": "infraestructura/helm/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "infraestructura/kubernetes/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "infraestructura/monitoreo/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "microservicios/candidaturas/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "microservicios/candidaturas/Dockerfile",
+      "sha256": "a70320563ba31bf2296bb347a27eb043c15612dd843c76718fbc75e123b59dba"
+    },
+    {
+      "ruta": "microservicios/candidaturas/app/servidor.py",
+      "sha256": "6c14b5216e721e33eeeebbfeb775356eec43f150217299a5aba886188ec98f53"
+    },
+    {
+      "ruta": "microservicios/candidaturas/pyproject.toml",
+      "sha256": "e84fe18744beb9721d1048615279121df16e7d43b4d91ae5ee634b7b017b2bea"
+    },
+    {
+      "ruta": "microservicios/candidaturas/requirements.txt",
+      "sha256": "582a51c00325e481c946b7ddbf0dc13cd83f9b23b42daeea7bf2659c35c8cc36"
+    },
+    {
+      "ruta": "microservicios/elecciones/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "microservicios/elecciones/Dockerfile",
+      "sha256": "30aa67e2b461fe5686fa5c37f8556e3dc0b06dc487a2d98cc71faf9fc619f857"
+    },
+    {
+      "ruta": "microservicios/elecciones/README.md",
+      "sha256": "5430cd129fba9f5cff070a387277d5642ab22f55a7733c4af4b4879d138ccb9c"
+    },
+    {
+      "ruta": "microservicios/elecciones/package-lock.json",
+      "sha256": "a384a0d3e83644cf44fb4d3b0df11cdf3df3b5e56cc76febce04731b49f92590"
+    },
+    {
+      "ruta": "microservicios/elecciones/package.json",
+      "sha256": "3a9495eaeedc57a3eb468e04df58ebcf609ea33eaab017e722dd5898a5f84f17"
+    },
+    {
+      "ruta": "microservicios/elecciones/pruebas/cliente-padron.test.mjs",
+      "sha256": "a262d0a42d60f955e3aa3f3d2b6cc29628b9dfa4cae30750fd84ffe27a00b84e"
+    },
+    {
+      "ruta": "microservicios/elecciones/pruebas/compose.grpc.yml",
+      "sha256": "5c18ab3eaf60dafeb783a3466ff9bb6ab20746cce91824753afcea2093a56c10"
+    },
+    {
+      "ruta": "microservicios/elecciones/pruebas/doble-padron.mjs",
+      "sha256": "4c141ba464c440e4b28556105eaef345d197a53b914eda156ce773c34978c4fb"
+    },
+    {
+      "ruta": "microservicios/elecciones/pruebas/entre-contenedores.mjs",
+      "sha256": "493a02f1ccf0288d5c7af8bfbf735af48ae203ebb0cffde7d12dc6f0b4d7968b"
+    },
+    {
+      "ruta": "microservicios/elecciones/pruebas/grpc-principal.py",
+      "sha256": "8206a50747bf2e2b188a9a494f53758588186645c34164b3b32d958aeb6546a3"
+    },
+    {
+      "ruta": "microservicios/elecciones/pruebas/resultados-grpc.md",
+      "sha256": "85b81fbdd202092e8a76b1074c43c626378848e04a6d3513c539d6d8722f23df"
+    },
+    {
+      "ruta": "microservicios/elecciones/src/cargar-demostracion.ts",
+      "sha256": "554dbfcd5a5d2fa7484ca88513369f978bca7d5ea8b6662da284960bb8bdd373"
+    },
+    {
+      "ruta": "microservicios/elecciones/src/cliente-padron.ts",
+      "sha256": "165f96dacd5745726d5b66acae74eef975ce1de447d4897ea7e94f895310c061"
+    },
+    {
+      "ruta": "microservicios/elecciones/src/servidor.ts",
+      "sha256": "a525f03a10e6adb62d0df9a8b13b9d96927b4ab26ac4d53201ad6b11c4ec094b"
+    },
+    {
+      "ruta": "microservicios/elecciones/tsconfig.json",
+      "sha256": "f24be7bfda3f0a09c7db60ac0d661ef7b912cea1fbbbb76e64272bd1705b38a8"
+    },
+    {
+      "ruta": "microservicios/identidad/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "microservicios/identidad/Dockerfile",
+      "sha256": "b09e05c902b3c1118d418db05b796ef723dbf2cc43ecccdbaac84d1a03143f38"
+    },
+    {
+      "ruta": "microservicios/identidad/package-lock.json",
+      "sha256": "613d1997355c8cff12a5e5b5cde0e29af5c6d40bc4b1f4b782bb664119dcc397"
+    },
+    {
+      "ruta": "microservicios/identidad/package.json",
+      "sha256": "056ccc2dd5b2973039de981220edb33485b2eddff5512b6ef951c947da6c26b2"
+    },
+    {
+      "ruta": "microservicios/identidad/src/servidor.ts",
+      "sha256": "7b2b7e3bc9b9c9bfafd812028ec90e0a45a0505fb2842fdeae39c30f84309029"
+    },
+    {
+      "ruta": "microservicios/identidad/tsconfig.json",
+      "sha256": "8ea19ab6fa1835a2c57ec8427083b564a0ef527de9f3e5597708738766f83a27"
+    },
+    {
+      "ruta": "microservicios/padron-electoral/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "microservicios/padron-electoral/Dockerfile",
+      "sha256": "35d4292c797557c67fe9006210d4d2576cdef51392e0127042862915321dc3e9"
+    },
+    {
+      "ruta": "microservicios/padron-electoral/README.md",
+      "sha256": "a765a957e4ef9a9ab3420559587bbda1e7d1139a9668d8c07fa0eb7e552eeb99"
+    },
+    {
+      "ruta": "microservicios/padron-electoral/package-lock.json",
+      "sha256": "162a56a65861be47ffc9be3ccb06ba1e53f5cf9ced327011dddde41d1daa4d8e"
+    },
+    {
+      "ruta": "microservicios/padron-electoral/package.json",
+      "sha256": "87079fb32579439bfcd0226206c541b0cfa7fac9c5a002d5d4efa973116e08e7"
+    },
+    {
+      "ruta": "microservicios/padron-electoral/pruebas/servidor-grpc.test.mjs",
+      "sha256": "1201d6e9d446c066fcaae3fd99ba301f947c27b5c5aab958a659cae52ecf4186"
+    },
+    {
+      "ruta": "microservicios/padron-electoral/src/servidor-grpc.ts",
+      "sha256": "9bbbf8ab0a1bfe1799b0734b7925d73d2363cc482dc6baf0ae41ad3f9b09ef5b"
+    },
+    {
+      "ruta": "microservicios/padron-electoral/src/servidor.ts",
+      "sha256": "c703f34160a18af0fef662af6d1cfb69be32a4f242efbf873e573724bd2a0035"
+    },
+    {
+      "ruta": "microservicios/padron-electoral/tsconfig.json",
+      "sha256": "f24be7bfda3f0a09c7db60ac0d661ef7b912cea1fbbbb76e64272bd1705b38a8"
+    },
+    {
+      "ruta": "microservicios/resultados/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "microservicios/resultados/Dockerfile",
+      "sha256": "b3cf2674f5061e2d0993c61add5d3e29f39bfbbd7f013acb1b7195699c45802d"
+    },
+    {
+      "ruta": "microservicios/resultados/README.md",
+      "sha256": "2fda08e86a6747b708efdbdcff4ebde9e52abeef128d94a2208042113ede0664"
+    },
+    {
+      "ruta": "microservicios/resultados/app/configuracion.py",
+      "sha256": "df7c71872ecfd7844cab4ffc4d898067c1dfc4b2cb7dfbdbd6417b1ec0a004c2"
+    },
+    {
+      "ruta": "microservicios/resultados/app/consumidor.py",
+      "sha256": "65912e7223f010d01d4d750ab956d21f148d819fe4dca03783fd8f6c84d2ba1f"
+    },
+    {
+      "ruta": "microservicios/resultados/app/salud.py",
+      "sha256": "e3885063bd821601ee836b9e5337ffdf70fe9d71520ae1afa3a63762245466e7"
+    },
+    {
+      "ruta": "microservicios/resultados/app/servidor.py",
+      "sha256": "7184b93b92ad52cfaa390e5755b123ed60bc311ef3f6e0cfcc75b4f1558c73df"
+    },
+    {
+      "ruta": "microservicios/resultados/pruebas/integracion-principal.md",
+      "sha256": "cff0896375505e5ddbbebf75d1032daa9979c4cb81c8e608a1c7ff0d3bcf962e"
+    },
+    {
+      "ruta": "microservicios/resultados/pruebas/integracion.py",
+      "sha256": "c1f9bf1002a937ffa68d7daba660620b23e4d08f3fa7c48361358c8ceba0bcd0"
+    },
+    {
+      "ruta": "microservicios/resultados/pruebas/principal.py",
+      "sha256": "42b82b7b0c3125af1952669391757371f8f8e2980ff42e6be7cca60b1e52ecc5"
+    },
+    {
+      "ruta": "microservicios/resultados/pruebas/resultados-pruebas.md",
+      "sha256": "f84fb86fe4ce7eb964e49f7f22c342b7ac0cff4bedece03a131c831d78f7bbf4"
+    },
+    {
+      "ruta": "microservicios/resultados/requirements.txt",
+      "sha256": "861b0ede75e4f40c3561f10e13ac917754312e466a712c6136e8618699a8d676"
+    },
+    {
+      "ruta": "microservicios/votacion/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "microservicios/votacion/Dockerfile",
+      "sha256": "5a7f030ca946268830b932d02c6248096825a913683bdc17837fd5538357bc07"
+    },
+    {
+      "ruta": "microservicios/votacion/README.md",
+      "sha256": "b5fece290662a533d512b3794854c1133c8480cae48ef42c40a7bba7822c88bb"
+    },
+    {
+      "ruta": "microservicios/votacion/go.mod",
+      "sha256": "57fb3e4c8ee473e9396ff59872e9539ba5ee763a948890a91954fd5cd66434bc"
+    },
+    {
+      "ruta": "microservicios/votacion/go.sum",
+      "sha256": "c7a7eed3418b0ebf9b338a9d1ca079eeb9d3bab61f433266483e791d80f02552"
+    },
+    {
+      "ruta": "microservicios/votacion/pruebas/compose.yml",
+      "sha256": "e5f1273ff96f74b36d7b0dc3c1f6335c8af73d6a1c141d040fb71768c5aed466"
+    },
+    {
+      "ruta": "microservicios/votacion/pruebas/ejecutar.sh",
+      "sha256": "7cca9873b3f57654acc797d25c734036383ae5ab09b7c446e8db6c96c567f984"
+    },
+    {
+      "ruta": "microservicios/votacion/servidor.go",
+      "sha256": "0ba866b6fdf0ecb495573afc13da7b2a64543f4e75d06f2f89dac49f53828d63"
+    },
+    {
+      "ruta": "microservicios/votacion/servidor_test.go",
+      "sha256": "0726bdcb7867bd6f03067a689e30bed260de9cdd4ae230415f06eff2756eab1b"
+    },
+    {
+      "ruta": "pruebas/cierre-p1/ejecutar-candidato.py",
+      "sha256": "cdb9d4233f363901719cabc10c808cf7cde161c9c6f316431e610e3b0a94f3df"
+    },
+    {
+      "ruta": "pruebas/cierre-p1/preparar-candidato.py",
+      "sha256": "8ea6f765b5185a8c42e8cd97cd7e1079f0755d9ce27f0b2e7d59f778befe3089"
+    },
+    {
+      "ruta": "pruebas/cierre-p1/verificar-rutas.py",
+      "sha256": "7213c7be9f69a2be7022c367c9ab0f67865fee4853335deaa8cfdd8924cd929d"
+    },
+    {
+      "ruta": "pruebas/integracion/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    },
+    {
+      "ruta": "pruebas/integracion/README-crud-p1.md",
+      "sha256": "cf8424c758a2d7de5186738e8bfaad2e21ff5c9a4d96ef56d6c6ec4f787e84c6"
+    },
+    {
+      "ruta": "pruebas/integracion/compose.crud-p1.yml",
+      "sha256": "9a4080368f1914de83682d637ff1a0830f6f702af6c6d1bddb9c563874af8b8f"
+    },
+    {
+      "ruta": "pruebas/integracion/conservacion-p1.py",
+      "sha256": "3cd843a505d5d464681f873e5a5fb7663a5d9d4d6e36bd077f584828da194488"
+    },
+    {
+      "ruta": "pruebas/integracion/crud-p1.py",
+      "sha256": "0a0a794c2e6294eb38ff65993008c22136cecf04dd9d9e54f8cce48b25e271e2"
+    },
+    {
+      "ruta": "pruebas/integracion/ejecutar-crud-p1.py",
+      "sha256": "22d2b836b831a787c27dc68064ddd4fdbeafd06f1367ddd9e71a248c4a267a88"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/carga-1.txt",
+      "sha256": "6c4f70072383e70b1dbf2bca0161dd820b2040611ac42d2bd634259f9c5aaaad"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/carga-2.txt",
+      "sha256": "17515aa0e0d1b42b653525199f2887556aa818ac67116d276e304201000da1cd"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/carga-tras-reinicio.json",
+      "sha256": "d7f9af8b1c4fbe09227574d59be3e5d478268ac4d37bb28e0085082284fc130f"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/carga.json",
+      "sha256": "45ddc34fc8be118fb6db08b34572142ce39bc1e01d4cc7dc2dee78d4a454376c"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/conservacion-captura.json",
+      "sha256": "b26669ba40ca5c9c3c23a15a8d47a901d18f35810d8e9d5a3c91d7b1754a1b96"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/conservacion.json",
+      "sha256": "f0e160a846ddc86266088e9fb0e64bfe895f7289d1b69e161af755f2545ba9a7"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/correcto.txt",
+      "sha256": "3386b17791e897d37cdba1b0f7ef89d3138e784f1521135cd8fccaebfa33ed06"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/crud.json",
+      "sha256": "e2bea25f7d517db475a877264a6461b3c27b3d0ef711eafb638d5ff4e788d5be"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/ejecucion.json",
+      "sha256": "aef5a14452f73b377c5d9dbeaaa22722d20418e72c576d5f9d0ed72f1bc3edd2"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/fallo-correlacion-previo.json",
+      "sha256": "8d511eab9c3a348d432054d69d837e97f8266cd9201cb8570f7dd9e4720c82ea"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/fallo-fechas-previo.json",
+      "sha256": "492cc13e019877a51d672715f9b2d7571c144a99302a53f94deb5897f467f1cc"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/fallo-modelos-previos.json",
+      "sha256": "2d3c8bbbce7a97d57acde4ff534b2214e5f4a9852de8f126e207fe395a547b6b"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/fallo-nombre-previo.json",
+      "sha256": "ae2e77494b599bc16401c4936d2544e4a72544085ffd4855c66745415f66a5c8"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/incidencias-ejecucion.json",
+      "sha256": "8a777574c4d8c99d08ddd07ec36d611adedea28698ad8939622a7984d86d76d4"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/persistencia.json",
+      "sha256": "ee558dc58e67f79e675ff97ec37e771fa03c85d0e16509dca87382a003af4bd3"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/regresion-principal.json",
+      "sha256": "9b0267368d5f0299ccc7915a52a8ad7c6fa55c4dfb7f9c754eb1258507947399"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/resultados.md",
+      "sha256": "3101029fcc570a97f4f78126a5e3d80a55f979f586213bceb0901753b258f77d"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/secretos-valores-locales.json",
+      "sha256": "515821b55601312b0a04e755a3fcdf362b334d0663112e14202561b93d815f5c"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/swagger-principal.json",
+      "sha256": "5b29e0ccb1922881e292282056f84b64f2462197982141ebd8d37d2c3e7b0987"
+    },
+    {
+      "ruta": "pruebas/integracion/evidencias/crud-p1/swagger.json",
+      "sha256": "222fa0ab9f67619735e04691d798df612429496c8e30d63239975b81fcbaa7ba"
+    },
+    {
+      "ruta": "pruebas/integracion/probar-crud-p1.sh",
+      "sha256": "c6e4ba77accc003a4152d3be1cbfae0ac9209c798d9a15976ef1d60e2f6423fe"
+    },
+    {
+      "ruta": "pruebas/integracion/regresion-lectura-p1.py",
+      "sha256": "e858019282cd9d950980c43902ad024bd566a5ef09088927d6dcf5f3c00952a3"
+    },
+    {
+      "ruta": "pruebas/integracion/requirements.txt",
+      "sha256": "ad7bcd30514fdc42f0b783c4efc0619c7793df386e20631f7e0b3c706eeb1b8f"
+    },
+    {
+      "ruta": "pruebas/integracion/solicitudes-p1.http",
+      "sha256": "408bc26552985464a7d35d58696c15b95a407a83ee62340104ffcdee833c5a42"
+    },
+    {
+      "ruta": "pruebas/integracion/swagger-p1.mjs",
+      "sha256": "701e5c79be0b670cb3e7a015e75b437baf2c022671bb1aaafb89537ff83c28e1"
+    },
+    {
+      "ruta": "pruebas/rendimiento/.gitkeep",
+      "sha256": "0fd029ddc6fbad4de94b3ff9faa77ab62cd3abc2dbd8f843e987d18817e1989b"
+    }
+  ],
+  "secretos": {
+    "archivos_revisados": 156,
+    "coincidencias": [],
+    "limite": "Valores locales y patrones seleccionados; no certifica ausencia absoluta ni examina remoto."
+  },
+  "alcance": "Clon local de HEAD más superposición exacta de archivos publicables locales; no equivale a clon del futuro commit remoto.",
+  "base": "http://127.0.0.1:32771",
+  "ajustes_solo_verificador": [
+    {
+      "ruta": "pruebas/cierre-p1/verificar-rutas.py",
+      "anterior": "94583efc5d45a9454f782f0fa2533533db186fe9641ac8d421621bffdc163c17",
+      "nuevo": "7213c7be9f69a2be7022c367c9ab0f67865fee4853335deaa8cfdd8924cd929d"
+    },
+    {
+      "ruta": "pruebas/cierre-p1/ejecutar-candidato.py",
+      "anterior": "10c444731b7337611bfe15d19cd5180aedd99d0d6b55ac03a82d2919396159ca",
+      "nuevo": "cdb9d4233f363901719cabc10c808cf7cde161c9c6f316431e610e3b0a94f3df"
+    }
+  ]
+}

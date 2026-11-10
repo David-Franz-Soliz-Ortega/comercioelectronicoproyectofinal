@@ -1,0 +1,1 @@
+Registros sintéticos insertados: 0. La carga es idempotente.

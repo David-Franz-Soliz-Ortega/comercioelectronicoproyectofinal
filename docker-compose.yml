@@ -62,6 +62,8 @@ services:
     restart: unless-stopped
     environment:
       PORT: "3000"
+      PADRON_GRPC_DIRECCION: padron-electoral:50051
+      PADRON_GRPC_PLAZO_MS: "1200"
       DB_HOST: base-postgres
       DB_PORT: "5432"
       DB_NAME: elecciones_db
@@ -137,6 +139,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: "3000"
+      GRPC_DIRECCION: 0.0.0.0:50051
       DB_HOST: base-postgres
       DB_PORT: "5432"
       DB_NAME: padron_electoral_db
@@ -217,6 +220,14 @@ services:
         condition: service_healthy
       padron-electoral:
         condition: service_healthy
+      votacion:
+        condition: service_healthy
+      resultados:
+        condition: service_healthy
+      gateway-graphql:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     ports:
       - "${PUERTO_HTTP_PUBLICO:-8080}:80"
     volumes:
@@ -229,6 +240,96 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+  votacion:
+    build:
+      context: .
+      dockerfile: microservicios/votacion/Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_HOST: base-postgres
+      DB_NAME: votacion_db
+      DB_USER: ${VOTACION_DB_USUARIO:?Define VOTACION_DB_USUARIO en .env}
+      DB_PASSWORD: ${VOTACION_DB_CLAVE:?Define VOTACION_DB_CLAVE en .env}
+      REDIS_HOST: cache-redis
+      REDIS_CLAVE: ${REDIS_CLAVE:?Define REDIS_CLAVE en .env}
+      RABBITMQ_HOST: mensajeria-rabbitmq
+      RABBITMQ_USUARIO: ${RABBITMQ_ADMIN_USUARIO:?Define RABBITMQ_ADMIN_USUARIO en .env}
+      RABBITMQ_CLAVE: ${RABBITMQ_ADMIN_CLAVE:?Define RABBITMQ_ADMIN_CLAVE en .env}
+    networks: [red_interna]
+    depends_on:
+      base-postgres: {condition: service_healthy}
+      cache-redis: {condition: service_healthy}
+      mensajeria-rabbitmq: {condition: service_healthy}
+
+  resultados:
+    build: &imagen_resultados
+      context: .
+      dockerfile: microservicios/resultados/Dockerfile
+    restart: unless-stopped
+    environment: &entorno_resultados
+      MONGODB_HOST: base-mongodb
+      MONGODB_DATABASE: resultados_db
+      MONGODB_USERNAME: ${RESULTADOS_DB_USUARIO:?Define RESULTADOS_DB_USUARIO en .env}
+      MONGODB_PASSWORD: ${RESULTADOS_DB_CLAVE:?Define RESULTADOS_DB_CLAVE en .env}
+      MONGODB_AUTH_SOURCE: resultados_db
+      RABBITMQ_HOST: mensajeria-rabbitmq
+      RABBITMQ_USUARIO: ${RABBITMQ_ADMIN_USUARIO:?Define RABBITMQ_ADMIN_USUARIO en .env}
+      RABBITMQ_CLAVE: ${RABBITMQ_ADMIN_CLAVE:?Define RABBITMQ_ADMIN_CLAVE en .env}
+    networks: [red_interna]
+    depends_on:
+      base-mongodb: {condition: service_healthy}
+      resultados-conteo: {condition: service_healthy}
+      resultados-auditoria: {condition: service_healthy}
+
+  resultados-conteo:
+    build: *imagen_resultados
+    restart: unless-stopped
+    command: [python, -m, app.consumidor]
+    environment:
+      <<: *entorno_resultados
+      CONSUMIDOR: conteo
+    networks: [red_interna]
+    depends_on:
+      base-mongodb: {condition: service_healthy}
+      mensajeria-rabbitmq: {condition: service_healthy}
+
+  resultados-auditoria:
+    build: *imagen_resultados
+    restart: unless-stopped
+    command: [python, -m, app.consumidor]
+    environment:
+      <<: *entorno_resultados
+      CONSUMIDOR: auditoria
+    networks: [red_interna]
+    depends_on:
+      base-mongodb: {condition: service_healthy}
+      mensajeria-rabbitmq: {condition: service_healthy}
+
+  gateway-graphql:
+    build:
+      context: .
+      dockerfile: gateway/graphql/Dockerfile
+    restart: unless-stopped
+    environment:
+      ELECCIONES_URL: http://elecciones:3000
+      CANDIDATURAS_URL: http://candidaturas:8000
+      PADRON_URL: http://padron-electoral:3000
+      MAXIMO_PAGINAS_LOTE: "20"
+    networks: [red_interna]
+    depends_on:
+      elecciones: {condition: service_healthy}
+      candidaturas: {condition: service_healthy}
+      padron-electoral: {condition: service_healthy}
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    networks: [red_interna]
+    depends_on:
+      gateway-graphql: {condition: service_healthy}
 
 networks:
   red_entrada:

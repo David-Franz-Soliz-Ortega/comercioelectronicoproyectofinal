@@ -1,0 +1,30 @@
+[
+  {
+    "servicio": "identidad",
+    "modelo_anterior_rechaza_respuesta_real": true,
+    "validadores_que_fallan": [
+      "additionalProperties"
+    ]
+  },
+  {
+    "servicio": "elecciones",
+    "modelo_anterior_rechaza_respuesta_real": true,
+    "validadores_que_fallan": [
+      "additionalProperties"
+    ]
+  },
+  {
+    "servicio": "candidaturas",
+    "modelo_anterior_rechaza_respuesta_real": true,
+    "validadores_que_fallan": [
+      "additionalProperties"
+    ]
+  },
+  {
+    "servicio": "padron-electoral",
+    "modelo_anterior_rechaza_respuesta_real": true,
+    "validadores_que_fallan": [
+      "additionalProperties"
+    ]
+  }
+]

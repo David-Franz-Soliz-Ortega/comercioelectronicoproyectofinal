@@ -1,0 +1,6 @@
+{
+  "correcto": false,
+  "error": "Command '['/usr/bin/python3', '/tmp/sigape-cierre-p1-kj1pnii0/candidato/pruebas/cierre-p1/verificar-rutas.py', '/tmp/sigape-cierre-p1-kj1pnii0/ejecucion.json']' returned non-zero exit status 1.",
+  "principal_sin_cambios": true,
+  "datos_principal_conservados": true
+}
