@@ -1,56 +1,52 @@
 # Contratos compartidos
 
-Este directorio contiene propuestas de integración entre microservicios. Ninguna propuesta se considera contrato aprobado hasta que las personas responsables de los servicios involucrados la revisen y acepten.
+Este directorio contiene contratos y propuestas de integración entre microservicios. Las cuatro API REST CRUD P1 están implementadas coordinadamente con sus productores, pero siguen pendientes de revisión y aprobación por las personas responsables de los servicios.
 
 ## Contenido y estado
 
-- `openapi/identidad.yaml`, `openapi/elecciones.yaml`, `openapi/candidaturas.yaml` y `openapi/padron-electoral.yaml`: propuestas REST mínimas alineadas con las responsabilidades de `docs/arquitectura.md`.
-- `grpc/padron-v1.proto`: propuesta de consulta síncrona de elegibilidad desde `elecciones` hacia `padron-electoral`.
-- `eventos/voto.registrado.v1.schema.json`: propuesta de evento emitido por `votacion` para consumo de `resultados`.
+- `openapi/identidad.yaml`, `openapi/elecciones.yaml`, `openapi/candidaturas.yaml` y `openapi/padron-electoral.yaml`: propuestas REST CRUD P1. Conservan las consultas GET existentes y añaden listado, creación, actualización, eliminación, salud, validación, filtros y paginación.
+- `grpc/padron-v1.proto`: propuesta de consulta síncrona de elegibilidad desde `elecciones` hacia `padron-electoral`; todavía no hay cliente ni servidor implementados.
+- `eventos/voto.registrado.v1.schema.json`: propuesta de evento emitido por `votacion` para `resultados`; no hay productor ni consumidores implementados todavía.
 
-La consulta de elegibilidad y el evento son decisiones de integración pendientes de aprobación de ambos servicios participantes. El evento solo permite contar registros por elección; no define resultados por candidatura. Tal agregación requiere otro contrato revisado que no permita asociar una papeleta con su selección.
+Los campos CRUD son mínimos y demostrativos. El padrón solo almacena `idEleccion` y `elegible`; nunca identidad del elector. No hay autenticación en estas API, así que deben permanecer en un entorno académico aislado. La revisión de contratos por el equipo sigue pendiente.
 
 ## Versionado y cambios
 
-- REST: los documentos OpenAPI describen una versión mayor en la ruta `/api/v1`. Cambios compatibles, como campos opcionales, pueden incorporarse dentro de esa versión tras revisión; eliminar o reinterpretar operaciones/campos requiere una versión mayor nueva, por ejemplo `/api/v2`.
-- gRPC: el paquete incluye la versión mayor (`padron.v1`). No se reutilizan números de campo eliminados; cambios incompatibles requieren un paquete `v2`.
-- Eventos: el nombre y el esquema incluyen la versión (`voto.registrado.v1`). La versión publicada es inmutable; cambios incompatibles requieren un nuevo evento versionado.
-- Toda modificación debe actualizar el contrato, sus consumidores y esta documentación en el mismo cambio. Revisar privacidad, compatibilidad, idempotencia y migración antes de aprobar.
+- REST: los documentos OpenAPI describen la versión mayor `/api/v1`. Cambios compatibles se incorporan tras revisión; eliminar o reinterpretar operaciones o campos requiere una versión mayor nueva, como `/api/v2`.
+- gRPC: el paquete incluye la versión mayor (`padron.v1`). No se reutilizan números de campo eliminados; cambios incompatibles requieren `v2`.
+- Eventos: el nombre y el esquema incluyen la versión (`voto.registrado.v1`). La versión publicada es inmutable; cambios incompatibles requieren otro evento versionado.
+- Actualizar contrato, productores, consumidores y pruebas en el mismo cambio. Revisar privacidad, compatibilidad, idempotencia y migración antes de aprobar.
 
 ## Convenciones propuestas
 
 ### Servicios Docker y puertos
 
-Los nombres técnicos de la infraestructura actual son `base-postgres`, `base-mongodb`, `cache-redis`, `mensajeria-rabbitmq` y `entrada-nginx`. Los futuros servicios de aplicación usarán nombres de dominio en español: `identidad`, `elecciones`, `candidaturas`, `padron-electoral`, `votacion` y `resultados`. La incorporación de sus contenedores requiere revisar esta propuesta y sus puertos.
+Los servicios actuales son `base-postgres`, `base-mongodb`, `cache-redis`, `mensajeria-rabbitmq`, `entrada-nginx`, `identidad`, `elecciones`, `candidaturas` y `padron-electoral`. Los puertos HTTP internos de aplicación son 3000 para Node.js y 8000 para FastAPI. Solo NGINX publica HTTP (8080 en el anfitrión, configurable con `PUERTO_HTTP_PUBLICO`); bases, Redis, RabbitMQ y servicios no publican puertos al anfitrión.
 
 | Componente | Puerto interno | Publicación local |
 | --- | ---: | --- |
-| NGINX | 80 | 8080, configurable con `PUERTO_HTTP_PUBLICO` |
+| NGINX | 80 | 8080 por defecto |
+| Servicios Node.js | 3000 | No |
+| Servicio FastAPI de candidaturas | 8000 | No |
 | PostgreSQL | 5432 | No |
 | MongoDB | 27017 | No |
 | Redis | 6379 | No |
-| RabbitMQ AMQP | 5672 | No |
-| RabbitMQ administración | 15672 | No |
-| Gateway GraphQL, propuesta | 4000 | No |
-| Servicios Node.js, propuesta | 3000 | No |
-| Servicios FastAPI, propuesta | 8000 | No |
-| Servicio Go, propuesta | 8080 | No |
-
-Los puertos de aplicación y los nombres DNS de los futuros contenedores son propuestas pendientes de aprobación por sus integrantes. Las interfaces administrativas y las bases de datos no se publican al anfitrión por defecto.
+| RabbitMQ AMQP y administración | 5672 y 15672 | No |
 
 ### Variables de entorno
 
 - Las variables propias usan mayúsculas y `SNAKE_CASE`, con términos de dominio en español, por ejemplo `IDENTIDAD_DB_USUARIO`.
-- Las variables requeridas por imágenes oficiales conservan sus nombres estándar, como `POSTGRES_USER`, `MONGO_INITDB_ROOT_USERNAME` y `RABBITMQ_DEFAULT_USER`.
-- Las credenciales se obtienen del archivo local `.env`, ignorado por Git. `.env.example` solo contiene valores de reemplazo, nunca contraseñas utilizables.
-- Los usuarios de aplicación reciben permisos únicamente sobre la base lógica de su microservicio. No reutilizar credenciales entre servicios.
+- Las imágenes oficiales conservan variables técnicas estándar, como `POSTGRES_USER`, `MONGO_INITDB_ROOT_USERNAME` y `RABBITMQ_DEFAULT_USER`.
+- Las API reciben `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD` para PostgreSQL; candidaturas recibe `MONGODB_HOST`, `MONGODB_PORT`, `MONGODB_DATABASE`, `MONGODB_USERNAME`, `MONGODB_PASSWORD` y `MONGODB_AUTH_SOURCE`.
+- Las credenciales se obtienen del `.env` local, ignorado por Git y excluido del contexto Docker. `.env.example` solo contiene valores ficticios.
+- Cada usuario de aplicación tiene permisos en su base propia.
 
 ### Errores REST y correlación
 
-- Las respuestas de error usan `application/problem+json` conforme a RFC 9457, con `type`, `title`, `status`, `detail` e `instance` según corresponda. Se puede añadir `idCorrelacion` como extensión.
-- `X-Correlation-ID` identifica una solicitud distribuida. NGINX conserva el valor recibido o genera uno si falta; los servicios deben propagarlo en llamadas salientes y registros, sin incluir datos personales o secretos.
-- No se fija todavía un catálogo común de errores de dominio: cada contrato debe proponerlo y acordarlo con sus consumidores.
+- Los errores usan `application/problem+json` conforme a RFC 9457, con `type`, `title`, `status`, `detail`, `instance` e `idCorrelacion`.
+- `X-Correlation-ID` identifica una solicitud; NGINX conserva el valor recibido o genera uno, y los servicios lo devuelven en la respuesta.
+- Las propuestas CRUD no implementan autenticación ni un catálogo completo de errores de dominio.
 
 ## Contratos pendientes
 
-Antes de implementar las propuestas REST, RPC y de eventos, acordar con las personas responsables: identificadores y sus formatos, estados de dominio, políticas de autorización, tiempos de espera, reintentos, retención y garantías de entrega. No incluir identidad del votante ni información que permita reconstruir su selección en eventos de votación.
+Revisar con las personas responsables los campos y estados mínimos, privacidad, autorización, tiempos de espera y reglas de borrado antes de considerarlos definitivos. No incluir identidad del votante ni datos que permitan reconstruir su selección en eventos de votación.

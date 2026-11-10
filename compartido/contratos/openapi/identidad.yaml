@@ -2,72 +2,153 @@ openapi: 3.1.0
 info:
   title: Propuesta de API de identidad SIGAPE
   version: 1.0.0
-  description: Propuesta pendiente de aprobación; consulta mínima de una identidad, sin exponer atributos personales.
-x-estado-propuesta: pendiente-de-aprobacion
+  description: CRUD académico de identidades. No almacena credenciales ni datos de autenticación.
+x-estado-propuesta: pendiente-de-revision-del-equipo
 servers:
-  - url: http://identidad:3000/api/v1
-    description: Nombre y puerto internos propuestos para desarrollo con Docker.
+  - url: /api/v1
+security: []
 paths:
+  /salud:
+    get:
+      operationId: consultarSaludIdentidad
+      summary: Comprobar servicio y conexión a PostgreSQL
+      responses:
+        "200": { description: Servicio y base disponibles. }
+        "400": { description: Solicitud inválida. }
+        "503": { description: Base de datos no disponible. }
+  /identidades:
+    get:
+      operationId: listarIdentidades
+      summary: Listar identidades con paginación y filtro opcional
+      parameters:
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Limite"
+        - name: estado
+          in: query
+          schema: { type: string, enum: [activa, suspendida] }
+      responses:
+        "200":
+          description: Página de identidades.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginaIdentidades" }
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+    post:
+      operationId: crearIdentidad
+      summary: Crear una identidad de demostración
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NuevaIdentidad" }
+      responses:
+        "201":
+          description: Identidad creada.
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Identidad" }
+        "422":
+          $ref: "#/components/responses/ErrorValidacion"
   /identidades/{idIdentidad}:
+    parameters:
+      - name: idIdentidad
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
     get:
       operationId: consultarIdentidad
-      summary: Consultar el estado de una identidad
-      parameters:
-        - name: idIdentidad
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      summary: Consultar una identidad
       responses:
         "200":
           description: Identidad encontrada.
           content:
             application/json:
-              schema:
-                type: object
-                required: [idIdentidad, estado]
-                properties:
-                  idIdentidad:
-                    type: string
-                    format: uuid
-                  estado:
-                    type: string
-                    description: Estado de identidad por acordar con el servicio.
+              schema: { $ref: "#/components/schemas/Identidad" }
         "404":
           $ref: "#/components/responses/NoEncontrado"
-        "500":
-          $ref: "#/components/responses/ErrorInterno"
+    put:
+      operationId: actualizarIdentidad
+      summary: Reemplazar los campos editables de una identidad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NuevaIdentidad" }
+      responses:
+        "200":
+          description: Identidad actualizada.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Identidad" }
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+        "422":
+          $ref: "#/components/responses/ErrorValidacion"
+    delete:
+      operationId: eliminarIdentidad
+      summary: Eliminar una identidad de demostración
+      responses:
+        "204": { description: Identidad eliminada. }
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
 components:
-  responses:
-    NoEncontrado:
-      description: Recurso no encontrado.
-      content:
-        application/problem+json:
-          schema:
-            $ref: "#/components/schemas/Problema"
-    ErrorInterno:
-      description: Error interno del servicio.
-      content:
-        application/problem+json:
-          schema:
-            $ref: "#/components/schemas/Problema"
+  parameters:
+    Pagina:
+      name: pagina
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limite:
+      name: limite
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
   schemas:
+    NuevaIdentidad:
+      type: object
+      additionalProperties: false
+      required: [nombre, estado]
+      properties:
+        nombre: { type: string, minLength: 1, maxLength: 120 }
+        estado: { type: string, enum: [activa, suspendida] }
+    Identidad:
+      allOf:
+        - $ref: "#/components/schemas/NuevaIdentidad"
+        - type: object
+          required: [idIdentidad, creadoEn, actualizadoEn]
+          properties:
+            idIdentidad: { type: string, format: uuid }
+            creadoEn: { type: string, format: date-time }
+            actualizadoEn: { type: string, format: date-time }
+    PaginaIdentidades:
+      type: object
+      required: [elementos, pagina, limite, total]
+      properties:
+        elementos:
+          type: array
+          items: { $ref: "#/components/schemas/Identidad" }
+        pagina: { type: integer }
+        limite: { type: integer }
+        total: { type: integer }
     Problema:
       type: object
       required: [type, title, status]
       properties:
-        type:
-          type: string
-          format: uri-reference
-        title:
-          type: string
-        status:
-          type: integer
-        detail:
-          type: string
-        instance:
-          type: string
-          format: uri-reference
-        idCorrelacion:
-          type: string
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string, format: uri-reference }
+        idCorrelacion: { type: string }
+  responses:
+    NoEncontrado:
+      description: Identidad no encontrada.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problema" }
+    ErrorValidacion:
+      description: Solicitud inválida.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problema" }

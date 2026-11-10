@@ -2,12 +2,101 @@ openapi: 3.1.0
 info:
   title: Propuesta de API de padrón electoral SIGAPE
   version: 1.0.0
-  description: Propuesta pendiente de aprobación; consulta de elegibilidad sin exponer datos personales.
-x-estado-propuesta: pendiente-de-aprobacion
+  description: CRUD académico de inscripciones sintéticas sin identidad ni datos personales de electores.
+x-estado-propuesta: pendiente-de-revision-del-equipo
 servers:
-  - url: http://padron-electoral:3000/api/v1
-    description: Nombre y puerto internos propuestos para desarrollo con Docker.
+  - url: /api/v1
+security: []
 paths:
+  /salud:
+    get:
+      operationId: consultarSaludPadron
+      summary: Comprobar servicio y conexión a PostgreSQL
+      responses:
+        "200": { description: Servicio y base disponibles. }
+        "400": { description: Solicitud inválida. }
+        "503": { description: Base de datos no disponible. }
+  /inscripciones:
+    get:
+      operationId: listarInscripciones
+      summary: Listar inscripciones sintéticas con paginación y filtros
+      parameters:
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Limite"
+        - name: idEleccion
+          in: query
+          schema: { type: string, format: uuid }
+        - name: elegible
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Página sin datos personales.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginaInscripciones" }
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+    post:
+      operationId: crearInscripcion
+      summary: Crear inscripción sintética sin identidad de elector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NuevaInscripcion" }
+      responses:
+        "201":
+          description: Inscripción creada.
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Inscripcion" }
+        "422":
+          $ref: "#/components/responses/ErrorValidacion"
+  /inscripciones/{idInscripcion}:
+    parameters:
+      - name: idInscripcion
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: consultarInscripcion
+      summary: Consultar una inscripción sintética
+      responses:
+        "200":
+          description: Inscripción encontrada.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Inscripcion" }
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+    put:
+      operationId: actualizarInscripcion
+      summary: Reemplazar los campos de una inscripción sintética
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NuevaInscripcion" }
+      responses:
+        "200":
+          description: Inscripción actualizada.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Inscripcion" }
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+        "422":
+          $ref: "#/components/responses/ErrorValidacion"
+    delete:
+      operationId: eliminarInscripcion
+      summary: Eliminar una inscripción sintética
+      responses:
+        "204": { description: Inscripción eliminada. }
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
   /inscripciones/{idInscripcion}/elegibilidad:
     get:
       operationId: consultarElegibilidad
@@ -16,9 +105,7 @@ paths:
         - name: idInscripcion
           in: path
           required: true
-          schema:
-            type: string
-            format: uuid
+          schema: { type: string, format: uuid }
       responses:
         "200":
           description: Resultado de elegibilidad consultado.
@@ -28,45 +115,65 @@ paths:
                 type: object
                 required: [idInscripcion, elegible]
                 properties:
-                  idInscripcion:
-                    type: string
-                    format: uuid
-                  elegible:
-                    type: boolean
+                  idInscripcion: { type: string, format: uuid }
+                  elegible: { type: boolean }
         "404":
           $ref: "#/components/responses/NoEncontrado"
-        "500":
-          $ref: "#/components/responses/ErrorInterno"
 components:
+  parameters:
+    Pagina:
+      name: pagina
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limite:
+      name: limite
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  schemas:
+    NuevaInscripcion:
+      type: object
+      additionalProperties: false
+      required: [idEleccion, elegible]
+      properties:
+        idEleccion: { type: string, format: uuid }
+        elegible: { type: boolean }
+    Inscripcion:
+      allOf:
+        - $ref: "#/components/schemas/NuevaInscripcion"
+        - type: object
+          required: [idInscripcion, creadoEn, actualizadoEn]
+          properties:
+            idInscripcion: { type: string, format: uuid }
+            creadoEn: { type: string, format: date-time }
+            actualizadoEn: { type: string, format: date-time }
+    PaginaInscripciones:
+      type: object
+      required: [elementos, pagina, limite, total]
+      properties:
+        elementos:
+          type: array
+          items: { $ref: "#/components/schemas/Inscripcion" }
+        pagina: { type: integer }
+        limite: { type: integer }
+        total: { type: integer }
+    Problema:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string, format: uri-reference }
+        idCorrelacion: { type: string }
   responses:
     NoEncontrado:
       description: Inscripción no encontrada.
       content:
         application/problem+json:
-          schema:
-            $ref: "#/components/schemas/Problema"
-    ErrorInterno:
-      description: Error interno del servicio.
+          schema: { $ref: "#/components/schemas/Problema" }
+    ErrorValidacion:
+      description: Solicitud inválida.
       content:
         application/problem+json:
-          schema:
-            $ref: "#/components/schemas/Problema"
-  schemas:
-    Problema:
-      type: object
-      required: [type, title, status]
-      properties:
-        type:
-          type: string
-          format: uri-reference
-        title:
-          type: string
-        status:
-          type: integer
-        detail:
-          type: string
-        instance:
-          type: string
-          format: uri-reference
-        idCorrelacion:
-          type: string
+          schema: { $ref: "#/components/schemas/Problema" }

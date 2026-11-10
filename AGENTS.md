@@ -5,7 +5,7 @@ SIGAPE es el proyecto final COM-600: Sistema de Gestión y Administración de Pr
 ## Idioma del proyecto
 
 - El español es el idioma permanente del proyecto. Los nombres de carpetas, archivos propios, documentación, variables y clases de dominio, funciones de negocio, comentarios y mensajes deben estar en español.
-- Se mantienen en inglés únicamente los nombres técnicos estandarizados y los exigidos por herramientas, bibliotecas y frameworks, como `frontend`, `gateway`, `graphql`, `Dockerfile`, `docker-compose.yml`, `package.json`, `go.mod`, `pyproject.toml`, `README.md`, `AGENTS.md` y `.gitignore`.
+- Se mantienen en inglés únicamente los nombres técnicos estandarizados y los exigidos por herramientas, bibliotecas y frameworks, como `frontend`, `gateway`, `graphql`, `Dockerfile`, `docker-compose.yml`, `package.json`, `package-lock.json`, `go.mod`, `pyproject.toml`, `README.md`, `AGENTS.md` y `.gitignore`.
 
 ## Decisiones arquitectónicas
 
@@ -13,8 +13,8 @@ SIGAPE es el proyecto final COM-600: Sistema de Gestión y Administración de Pr
 - Las integraciones entre servicios se realizan mediante contratos explícitos: REST documentado con OpenAPI, gRPC o eventos asíncronos por RabbitMQ, según corresponda al caso de uso.
 - Los contratos compartidos viven en `compartido/contratos/`; no se comparten modelos internos ni acceso a persistencia entre servicios.
 - `gateway/graphql/` contiene la capa GraphQL de entrada. DataLoader se utiliza para agrupar y deduplicar cargas durante una operación, sin convertir al gateway en dueño de reglas de negocio o datos.
-- No se agregan secretos reales al repositorio. La configuración local sensible debe permanecer fuera de Git.
-- La infraestructura objetivo incluye Docker Compose para desarrollo local, NGINX como proxy de entrada, Kubernetes, Helm y Argo CD. Los directorios están preparados, pero aún no contienen despliegues.
+- No se agregan secretos reales al repositorio. La configuración local sensible debe permanecer fuera de Git y del contexto de construcción Docker.
+- La infraestructura de desarrollo incluye Docker Compose y NGINX. Kubernetes, Helm, Argo CD y monitoreo permanecen como objetivos posteriores.
 
 ## Servicios y tecnologías
 
@@ -27,6 +27,12 @@ SIGAPE es el proyecto final COM-600: Sistema de Gestión y Administración de Pr
 | `votacion` | Go | PostgreSQL y Redis |
 | `resultados` | Python y FastAPI | MongoDB |
 
-## Alcance del scaffold
+## Estado P1 y límites
 
-Este punto de partida contiene estructura y documentación únicamente. No agregar operaciones CRUD, lógica de negocio, dependencias, credenciales ni artefactos de despliegue hasta que se definan como siguiente tarea. Al iniciar la implementación, mantener el código, las pruebas y la configuración de cada servicio dentro de `microservicios/` y documentar los contratos de integración.
+- `identidad`, `elecciones`, `candidaturas` y `padron-electoral` tienen una primera API CRUD REST académica, documentada en sus OpenAPI y con persistencia en sus propias bases.
+- Los cuatro OpenAPI están marcados como propuestas pendientes de revisión por las personas responsables. Mantener productor, contrato, consumidor y pruebas coordinados en cada cambio.
+- Los modelos son mínimos y sintéticos; no representan reglas electorales completas ni permiten procesar elecciones reales.
+- El padrón de demostración almacena únicamente una inscripción sintética, su elección asociada y elegibilidad. No incluir identidad ni datos personales de electores.
+- No afirmar que votación sea anónima criptográficamente sin análisis y verificación especializados.
+
+Mantener el código, las pruebas y la configuración de cada microservicio dentro de `microservicios/`. No agregar secretos reales ni datos electorales reales.

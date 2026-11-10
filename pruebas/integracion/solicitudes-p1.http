@@ -1,0 +1,19 @@
+@base = http://localhost:8080/api/v1
+
+### Crear identidad sintética
+POST {{base}}/identidades
+Content-Type: application/json
+
+{"nombre":"Identidad sintética P1","estado":"activa"}
+
+### Listar elecciones con paginación y filtro
+GET {{base}}/elecciones?pagina=1&limite=20&estado=borrador
+
+### Crear candidatura sintética
+POST {{base}}/candidaturas
+Content-Type: application/json
+
+{"idEleccion":"00000000-0000-4000-8000-000000000001","nombre":"Lista sintética P1","tipo":"lista","estado":"borrador"}
+
+### Consultar elegibilidad sintética
+GET {{base}}/inscripciones/00000000-0000-4000-8000-000000000001/elegibilidad

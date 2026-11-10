@@ -2,44 +2,42 @@
 
 **Sistema de Gestión y Administración de Procesos Electorales** · Proyecto final COM-600
 
-Este repositorio contiene la estructura inicial de un monorepositorio orientado a microservicios. Incluye la infraestructura local Docker Compose y contratos iniciales propuestos; todavía no implementa lógica de negocio, operaciones CRUD ni aplicaciones ejecutables.
+Primera entrega académica de un monorepositorio de microservicios. Incluye infraestructura local Docker Compose y cuatro CRUD REST P1 conectados a bases propias. Los modelos son mínimos y demostrativos; los contratos OpenAPI permanecen como propuestas pendientes de revisión del equipo. No hay autenticación y no debe cargarse información electoral real.
 
 ## Estructura
 
-- `frontend/`: aplicación web React.
-- `gateway/graphql/`: gateway GraphQL con DataLoader.
-- `microservicios/`: seis servicios independientes; sus responsabilidades están descritas en [`docs/arquitectura.md`](docs/arquitectura.md).
-- `compartido/contratos/openapi/`: contratos HTTP REST con OpenAPI.
-- `compartido/contratos/grpc/`: definiciones de interfaces gRPC.
-- `compartido/contratos/eventos/`: esquemas y documentación de eventos para RabbitMQ.
-- `infraestructura/`: espacios para Docker Compose, Kubernetes, Helm, Argo CD y monitoreo.
-- `pruebas/integracion/` y `pruebas/rendimiento/`: pruebas entre componentes y de rendimiento.
-- `docs/`: documentación del proyecto y su arquitectura.
-- `docker-compose.yml` y `infraestructura/docker/`: bases de datos, Redis, RabbitMQ y NGINX para desarrollo local.
+- `frontend/`: espacio reservado para la aplicación React.
+- `gateway/graphql/`: espacio reservado para GraphQL y DataLoader.
+- `microservicios/`: seis servicios; identidad, elecciones, candidaturas y padrón tienen una API CRUD inicial.
+- `compartido/contratos/`: contratos OpenAPI, gRPC y eventos RabbitMQ.
+- `infraestructura/docker/`: configuración de bases, RabbitMQ y NGINX.
+- `pruebas/integracion/`: pruebas REST y ejemplos de solicitudes P1.
+- `docs/`: arquitectura y propuestas del proyecto.
 
-## Tecnologías acordadas
+## Tecnologías
 
-Node.js/TypeScript y PostgreSQL para `identidad`, `elecciones` y `padron-electoral`; Python/FastAPI y MongoDB para `candidaturas` y `resultados`; Go, PostgreSQL y Redis para `votacion`; React para `frontend`; GraphQL y DataLoader para `gateway`.
+Node.js/TypeScript y PostgreSQL para `identidad`, `elecciones` y `padron-electoral`; Python/FastAPI y MongoDB para `candidaturas` y `resultados`; Go, PostgreSQL y Redis para `votacion`; React; GraphQL con DataLoader; REST/OpenAPI, gRPC y RabbitMQ.
 
-La comunicación contempla REST/OpenAPI, gRPC y mensajería asíncrona con RabbitMQ. La infraestructura objetivo contempla Docker Compose, NGINX, Kubernetes, Helm y Argo CD.
+## Inicio local
 
-## Infraestructura local
+Requisitos: Docker Engine y Docker Compose.
 
-Requisitos: Docker Engine y el complemento Docker Compose.
+1. Copia `.env.example` como `.env` y sustituye los valores `CAMBIAR_...` con secretos aleatorios distintos. No subas `.env`.
+2. Comprueba la definición sin imprimir secretos: `docker compose config --quiet`.
+3. Construye e inicia el sistema: `docker compose up -d --build`.
+4. Revisa salud: `docker compose ps`.
+5. Ejecuta las pruebas REST: `sh pruebas/integracion/probar-crud-p1.sh`.
 
-1. Copia `.env.example` como `.env` y sustituye todos los valores `CAMBIAR_...` por claves aleatorias distintas.
-2. Valida la configuración con `docker compose config`.
-3. Inicia solo la infraestructura con `docker compose up -d` y revisa el estado con `docker compose ps`.
-4. Consulta los registros con `docker compose logs -f` y detén los contenedores con `docker compose down`.
+Solo NGINX publica el puerto HTTP del anfitrión (8080 por defecto). Los puertos de bases de datos, Redis y RabbitMQ permanecen internos. Los servicios de frontend y GraphQL aún no están implementados.
 
-Solo NGINX publica un puerto en el equipo anfitrión, `8080` por defecto. PostgreSQL, MongoDB, Redis y RabbitMQ solo son accesibles desde la red Docker interna. Las rutas de NGINX para `frontend` y `gateway` están preparadas, pero devolverán error de proxy hasta que se incorporen esas aplicaciones. Los scripts de inicialización se ejecutan únicamente al crear volúmenes de datos vacíos.
+## Datos de demostración
 
-Los contratos iniciales están en [`compartido/contratos/README.md`](compartido/contratos/README.md); las propuestas que afectan a varios integrantes requieren aprobación antes de considerarse definitivas.
+Carga repetible de 10.000 elecciones sintéticas:
 
-## Convenciones
+```sh
+docker compose exec -T elecciones node dist/cargar-demostracion.js
+```
 
-1. Revisa [`AGENTS.md`](AGENTS.md) y [`docs/arquitectura.md`](docs/arquitectura.md) antes de proponer cambios.
-2. Conserva el aislamiento de datos: ningún microservicio accede directamente a la base de otro.
-3. Mantén el código, pruebas y configuración de cada servicio dentro de `microservicios/` y documenta sus integraciones mediante contratos compartidos.
+La carga usa identificadores deterministas y no crea datos electorales reales. Filtros y paginación están disponibles en `GET /api/v1/elecciones`.
 
-No guardes credenciales ni secretos reales en este repositorio. En esta etapa solo se inicia la infraestructura; los servicios de aplicación se incorporarán después.
+Las pruebas integradas se pueden ejecutar tras levantar Compose. Los contratos describen propuestas y no habilitan uso fuera de un entorno académico aislado. No se implementa todavía autenticación, votación ni anonimato criptográfico.

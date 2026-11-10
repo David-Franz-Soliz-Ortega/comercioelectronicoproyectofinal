@@ -1,0 +1,9 @@
+{
+  "name": "sigape-elecciones",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "compilar": "tsc -p tsconfig.json", "iniciar": "node dist/servidor.js", "cargar-demostracion": "node dist/cargar-demostracion.js" },
+  "dependencies": { "express": "^5.1.0", "pg": "^8.16.3", "swagger-ui-express": "^5.0.1", "yaml": "^2.8.1", "zod": "^4.1.12" },
+  "devDependencies": { "@types/express": "^5.0.3", "@types/node": "^24.10.1", "@types/pg": "^8.15.5", "@types/swagger-ui-express": "^4.1.8", "typescript": "^5.9.3" }
+}

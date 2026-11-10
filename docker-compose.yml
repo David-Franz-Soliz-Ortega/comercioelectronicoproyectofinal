@@ -32,6 +32,52 @@ services:
       retries: 12
       start_period: 10s
 
+  identidad:
+    build:
+      context: .
+      dockerfile: microservicios/identidad/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      DB_HOST: base-postgres
+      DB_PORT: "5432"
+      DB_NAME: identidad_db
+      DB_USER: ${IDENTIDAD_DB_USUARIO:?Define IDENTIDAD_DB_USUARIO en .env}
+      DB_PASSWORD: ${IDENTIDAD_DB_CLAVE:?Define IDENTIDAD_DB_CLAVE en .env}
+    networks: [red_interna]
+    depends_on:
+      base-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  elecciones:
+    build:
+      context: .
+      dockerfile: microservicios/elecciones/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      DB_HOST: base-postgres
+      DB_PORT: "5432"
+      DB_NAME: elecciones_db
+      DB_USER: ${ELECCIONES_DB_USUARIO:?Define ELECCIONES_DB_USUARIO en .env}
+      DB_PASSWORD: ${ELECCIONES_DB_CLAVE:?Define ELECCIONES_DB_CLAVE en .env}
+    networks: [red_interna]
+    depends_on:
+      base-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
   base-mongodb:
     image: mongo:8.0
     restart: unless-stopped
@@ -59,6 +105,52 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+      start_period: 20s
+
+  candidaturas:
+    build:
+      context: .
+      dockerfile: microservicios/candidaturas/Dockerfile
+    restart: unless-stopped
+    environment:
+      MONGODB_HOST: base-mongodb
+      MONGODB_PORT: "27017"
+      MONGODB_DATABASE: candidaturas_db
+      MONGODB_USERNAME: ${CANDIDATURAS_DB_USUARIO:?Define CANDIDATURAS_DB_USUARIO en .env}
+      MONGODB_PASSWORD: ${CANDIDATURAS_DB_CLAVE:?Define CANDIDATURAS_DB_CLAVE en .env}
+      MONGODB_AUTH_SOURCE: candidaturas_db
+    networks: [red_interna]
+    depends_on:
+      base-mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/salud', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 25s
+
+  padron-electoral:
+    build:
+      context: .
+      dockerfile: microservicios/padron-electoral/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      DB_HOST: base-postgres
+      DB_PORT: "5432"
+      DB_NAME: padron_electoral_db
+      DB_USER: ${PADRON_ELECTORAL_DB_USUARIO:?Define PADRON_ELECTORAL_DB_USUARIO en .env}
+      DB_PASSWORD: ${PADRON_ELECTORAL_DB_CLAVE:?Define PADRON_ELECTORAL_DB_CLAVE en .env}
+    networks: [red_interna]
+    depends_on:
+      base-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
       start_period: 20s
 
   cache-redis:
@@ -116,6 +208,15 @@ services:
   entrada-nginx:
     image: nginx:1.29-alpine
     restart: unless-stopped
+    depends_on:
+      identidad:
+        condition: service_healthy
+      elecciones:
+        condition: service_healthy
+      candidaturas:
+        condition: service_healthy
+      padron-electoral:
+        condition: service_healthy
     ports:
       - "${PUERTO_HTTP_PUBLICO:-8080}:80"
     volumes:
