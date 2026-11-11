@@ -1,21 +1,10 @@
-# Solo fuentes del servicio y contratos; excluye secretos y datos locales.
-**
-!microservicios/
-!microservicios/padron-electoral/
-!compartido/
-!compartido/contratos/
-!compartido/contratos/openapi/
-!compartido/contratos/openapi/padron-electoral.yaml
-!microservicios/padron-electoral/package*.json
-!microservicios/padron-electoral/tsconfig.json
-!microservicios/padron-electoral/src/
-!microservicios/padron-electoral/src/*.ts
-!microservicios/padron-electoral/pruebas/
-!microservicios/padron-electoral/pruebas/*.mjs
-!compartido/contratos/grpc/
-!compartido/contratos/grpc/padron-v1.proto
+# Exclusiones para el Dockerfile del Compose compartido.
+.git
 **/.env
 **/.env.*
-**/__pycache__
 **/node_modules
+**/dist
 **/.venv
+**/__pycache__
+**/*.pyc
+**/coverage

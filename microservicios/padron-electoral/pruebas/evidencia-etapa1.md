@@ -1,61 +1,56 @@
-# Evidencia de Etapa 1 — Integrante 2
+# Evidencia — versión sencilla basada en las prácticas
 
-Verificación local realizada el **10 de noviembre de 2026** sobre la base `34880d4` de `main`, con los cambios propios de la rama `feature/integrante-2-etapa-1`.
+Comprobaciones del **11 de noviembre de 2026**, después de simplificar la entrega del integrante 2. Los cambios siguen limitados a Candidaturas y Padrón electoral.
 
-## Alcance
+## Material revisado
 
-Candidaturas (FastAPI/MongoDB) y Padrón electoral (Node.js/TypeScript/PostgreSQL). Los cambios están limitados a sus dos carpetas. Se conservaron los contratos, el Compose compartido, los servicios de los otros integrantes, frontend y gateway. Los contratos revisados son los dos OpenAPI de estos servicios y `padron-v1.proto`; el evento `voto.registrado.v1` pertenece a Votación/Resultados. Todos mantienen su estado de propuesta del equipo.
+- Práctica 2, laboratorio 5: `docker-compose.yml`, variables de entorno, redes, volúmenes y healthchecks.
+- Práctica 3, laboratorios 4 y 5: conexión a la base y script para cargar ejemplos.
+- Práctica 7, laboratorio 4: pruebas HTTP pequeñas con Jest y Supertest.
+- Práctica 5: se conserva la integración gRPC existente y sus dos pruebas.
 
-## Resultados observados
+Las guías del docente están en la carpeta local `MICRO SERVICIOS/temas`. Sus ejemplos de JavaScript y MongoDB se adaptan a las tecnologías ya acordadas del proyecto.
 
-| Comprobación | Resultado |
+## Cambios para facilitar la explicación
+
+Se retiraron los scripts personalizados que construían archivos comprimidos, generaban configuración y controlaban ambos proyectos. Cada servicio tiene su propio Compose y se trabaja con los comandos normales de clase. La conexión de Candidaturas está en `app/base_datos.py`; los scripts de carga usan listas, bucles y consultas con comentarios.
+
+Los contratos y el Compose compartido no cambian. `Dockerfile.local` usa como contexto solo la carpeta del servicio, con un `.dockerignore` normal que excluye `.env`. Los contratos se montan en modo lectura. Se mantienen nombres de proyecto y volúmenes para conservar los datos anteriores.
+
+## Resultados comprobados
+
+| Verificación | Resultado |
 | --- | --- |
-| Construcción de Padrón con TypeScript | Correcta |
-| Dos pruebas gRPC existentes durante construcción | 2 aprobadas |
-| Prueba de Padrón con PostgreSQL real | Aprobada: salud, CRUD, filtros, validación, persistencia y gRPC |
-| Tres pruebas de Candidaturas | 3 aprobadas: CRUD/persistencia, salud/documentación/carga, error de salud 503 |
-| Swagger aislado | HTML y contrato referenciado disponibles |
-| Carga de demostración | Dos candidaturas y dos inscripciones; segunda carga inserta cero registros |
-| Caída controlada de PostgreSQL | `/salud` devuelve 503 y recupera 200 al volver la base |
-| Caída controlada de MongoDB | `/salud` devuelve 503 y recupera 200 al volver la base |
-| Reinicio de bases y de APIs | Registros de ejemplo y fechas conservados |
-| Configuración local | `.env` ignorados por Git, claves distintas y permisos 600 |
-| Contexto mínimo de construcción | Padrón 12 archivos, unos 24 KB comprimidos; Candidaturas 5 archivos, unos 5 KB |
+| Construcción TypeScript | Correcta |
+| Arranque con `docker compose up -d --build --wait` | Ambas APIs y bases saludables |
+| Jest + Supertest contra la API y PostgreSQL reales | 4 pruebas aprobadas |
+| Pruebas gRPC existentes | 2 pruebas aprobadas |
+| unittest contra la API y MongoDB reales | 3 pruebas aprobadas |
+| Recarga de los ejemplos | Los cuatro registros y sus fechas permanecen idénticos |
+| Swagger | Disponible en ambos servicios; Candidaturas referencia un contrato accesible |
+| Imagen de ejecución de Padrón | Jest no está instalado |
+| Alcance del cambio | Solo carpetas de Candidaturas y Padrón |
 
-La comprobación del CRUD realiza operaciones HTTP y consulta solamente la base propia del servicio para verificar persistencia. La prueba de recuperación corta de verdad la base aislada y reinicia cada API; no simula PostgreSQL ni MongoDB. Los ejemplos pertenecen a una elección sintética de referencia, sin escribir en el servicio de Elecciones. Estas comprobaciones no equivalen a una prueba de carga ni a validar el sistema electoral completo.
+Las pruebas crean y eliminan sus propios registros. El resto de los datos se conserva. La carga de ejemplos no crea elecciones en otro servicio.
 
-## Memoria
-
-Muestra de `docker stats --no-stream` en reposo, después de las pruebas funcionales:
-
-| Contenedor | Uso observado | Límite |
-| --- | ---: | ---: |
-| Padrón | 31,70 MiB | 128 MiB |
-| PostgreSQL propio | 18,79 MiB | 128 MiB |
-| Candidaturas | 39,64 MiB | 128 MiB |
-| MongoDB propio | 130,40 MiB | 512 MiB |
-| Total | **220,53 MiB** | **896 MiB** |
-
-Es una muestra local, no una garantía bajo carga. Los límites corresponden a los Compose aislados de esta etapa; no cambian el Compose compartido ni incluyen memoria de Docker, construcción o cachés del anfitrión. No se levantaron servicios de otros integrantes.
+Los límites de ejecución siguen siendo 128 MiB para cada API, 128 MiB para PostgreSQL y 512 MiB para MongoDB: **896 MiB en total**. El contenedor temporal de pruebas de Padrón admite 256 MiB adicionales y se elimina con `--rm`. La construcción también consume memoria adicional. No se realizó una prueba de carga.
 
 ## Reproducir
 
-Desde la raíz del repositorio:
+En `microservicios/padron-electoral`, después de configurar `.env`:
 
 ```sh
-sh microservicios/padron-electoral/desarrollo/etapa1.sh iniciar
-sh microservicios/padron-electoral/desarrollo/etapa1.sh cargar
-sh microservicios/padron-electoral/desarrollo/etapa1.sh probar
-python3 microservicios/padron-electoral/pruebas/recuperacion.py
-sh microservicios/padron-electoral/desarrollo/etapa1.sh estado
+docker compose up -d --build --wait
+docker compose exec -T padron-electoral npm run cargar-datos
+docker compose run --build --rm pruebas
 ```
 
-`recuperacion.py` interrumpe brevemente **solo** las bases y APIs de estos dos proyectos aislados; las restaura antes de terminar normalmente. Debe ejecutarse sin otra prueba escribiendo al mismo tiempo. Si se interrumpe el proceso externamente, `etapa1.sh iniciar` vuelve a levantarlo. No elimina volúmenes.
-
-Para liberar la memoria al terminar, conservando los ejemplos:
+En `microservicios/candidaturas`, después de configurar `.env`:
 
 ```sh
-sh microservicios/padron-electoral/desarrollo/etapa1.sh detener
+docker compose up -d --build --wait
+docker compose exec -T candidaturas python -m app.cargar_demostracion
+docker compose exec -T candidaturas python -m unittest discover -s pruebas -v
 ```
 
-El trabajo usa los contratos existentes; no verifica aquí frontend, GraphQL, RabbitMQ ni los servicios de otros integrantes. La documentación de arquitectura compartida contiene secciones anteriores al código actual; se deja su actualización a la coordinación del equipo.
+En cada carpeta, `docker compose stop` libera memoria y conserva el volumen. Esta revisión no prueba el frontend, GraphQL ni RabbitMQ.

@@ -9,27 +9,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from pymongo import ASCENDING, MongoClient
-from pymongo.collection import Collection
+from pymongo import ASCENDING
 from pymongo.errors import PyMongoError
 
-cliente = MongoClient(
-    host=os.environ.get("MONGODB_HOST", "base-mongodb"),
-    port=int(os.environ.get("MONGODB_PORT", "27017")),
-    username=os.environ.get("MONGODB_USERNAME"),
-    password=os.environ.get("MONGODB_PASSWORD"),
-    authSource=os.environ.get("MONGODB_AUTH_SOURCE", "admin"),
-    serverSelectionTimeoutMS=2000,
-    connectTimeoutMS=2000,
-    socketTimeoutMS=3000,
-    waitQueueTimeoutMS=2000,
-    maxPoolSize=5,
-    minPoolSize=0,
-    maxIdleTimeMS=10000,
-    tz_aware=True,
-)
-base = cliente[os.environ.get("MONGODB_DATABASE", "candidaturas_db")]
-coleccion: Collection = base["candidaturas"]
+from app.base_datos import cliente, coleccion
+
 estados = {"borrador", "pendiente", "aprobada", "rechazada", "retirada"}
 tipos = {"individual", "lista"}
 
@@ -114,6 +98,7 @@ async def error_interno(request: Request, _error: Exception):
 
 @app.get("/salud")
 def salud(request: Request):
+    # El servicio está saludable solamente si MongoDB responde.
     try:
         cliente.admin.command("ping")
     except PyMongoError:
@@ -128,7 +113,8 @@ def contrato():
 
 @app.get("/docs", include_in_schema=False)
 def documentacion():
-    return get_swagger_ui_html(openapi_url=os.environ.get("URL_CONTRATO_OPENAPI", "/api/v1/candidaturas/openapi.yaml"), title="API de candidaturas SIGAPE")
+    ruta_contrato = os.environ.get("URL_CONTRATO_OPENAPI", "/api/v1/candidaturas/openapi.yaml")
+    return get_swagger_ui_html(openapi_url=ruta_contrato, title="API de candidaturas SIGAPE")
 
 
 @app.get("/candidaturas")

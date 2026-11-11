@@ -1,4 +1,4 @@
-# Proyecto separado del Compose compartido. Solo Candidaturas y su MongoDB.
+# Práctica 2: API y base de datos en una red de Docker Compose.
 name: sigape-integrante2-candidaturas
 services:
   base-mongodb:
@@ -19,16 +19,21 @@ services:
     networks: [interna]
   candidaturas:
     build:
-      context: ../..
-      dockerfile: microservicios/candidaturas/Dockerfile
-    env_file: .env
+      context: .
+      dockerfile: Dockerfile.local
     environment:
+      MONGODB_HOST: base-mongodb
+      MONGODB_DATABASE: ${MONGODB_DATABASE:?Configura .env}
+      MONGODB_USERNAME: ${MONGODB_USERNAME:?Configura .env}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD:?Configura .env}
+      MONGODB_AUTH_SOURCE: ${MONGODB_AUTH_SOURCE:?Configura .env}
       URL_CONTRATO_OPENAPI: /openapi.yaml
     mem_limit: 128m
     cpus: 0.50
     ports: ["127.0.0.1:${PUERTO_HTTP_CANDIDATURAS:-8003}:8000"]
     volumes:
       - ./pruebas:/app/pruebas:ro
+      - ../../compartido/contratos/openapi/candidaturas.yaml:/app/contrato.yaml:ro
     depends_on:
       base-mongodb: {condition: service_healthy}
     healthcheck:

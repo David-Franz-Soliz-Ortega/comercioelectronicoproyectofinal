@@ -1,35 +1,35 @@
-"""Carga pequeña y repetible; solo escribe en la colección propia de candidaturas."""
+"""Práctica 3: un script separado para cargar datos de ejemplo."""
 from datetime import datetime, timezone
-
 from pymongo.errors import PyMongoError
+from app.base_datos import cliente, coleccion
 
-from app.servidor import cliente, coleccion
+candidaturas = [
+    {"_id": "20000000-0000-4000-8000-000000000021",
+     "nombre": "Candidatura sintética de ejemplo", "tipo": "individual"},
+    {"_id": "20000000-0000-4000-8000-000000000022",
+     "nombre": "Lista sintética de ejemplo", "tipo": "lista"},
+]
 
 
-def cargar():
-    ahora = datetime.now(timezone.utc)
-    nuevas = 0
-    for identificador, nombre, tipo in (
-        ("20000000-0000-4000-8000-000000000021", "Candidatura sintética de ejemplo", "individual"),
-        ("20000000-0000-4000-8000-000000000022", "Lista sintética de ejemplo", "lista"),
-    ):
-        resultado = coleccion.update_one(
-            {"_id": identificador},
-            {"$setOnInsert": {
-                "idEleccion": "20000000-0000-4000-8000-000000000001",
-                "nombre": nombre, "tipo": tipo, "estado": "borrador",
-                "creadoEn": ahora, "actualizadoEn": ahora,
-            }},
+def cargar_datos():
+    for candidatura in candidaturas:
+        candidatura["idEleccion"] = "20000000-0000-4000-8000-000000000001"
+        candidatura["estado"] = "borrador"
+        candidatura["creadoEn"] = datetime.now(timezone.utc)
+        candidatura["actualizadoEn"] = candidatura["creadoEn"]
+        # Solo inserta si el ID no existe; repetir el script conserva los datos.
+        coleccion.update_one(
+            {"_id": candidatura["_id"]},
+            {"$setOnInsert": candidatura},
             upsert=True,
         )
-        nuevas += int(resultado.upserted_id is not None)
-    print(f"Demostración sintética de candidaturas preparada. Nuevas: {nuevas}.")
+    print("Listo: las dos candidaturas de ejemplo están guardadas.")
 
 
 if __name__ == "__main__":
     try:
-        cargar()
+        cargar_datos()
     except PyMongoError:
-        raise SystemExit("No se pudo cargar la demostración. Revisa la conexión a MongoDB.")
+        raise SystemExit("No se pudieron cargar los datos. Revisa MongoDB.")
     finally:
         cliente.close()

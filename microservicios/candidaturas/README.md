@@ -1,55 +1,64 @@
-# Candidaturas — Integrante 2, Etapa 1
+# Candidaturas — Integrante 2
 
-Servicio existente de Python/FastAPI con MongoDB, conservando el contrato compartido [candidaturas.yaml](../../compartido/contratos/openapi/candidaturas.yaml). La etapa deja ejecución aislada, conexión comprobada, dos registros sintéticos y pruebas reproducibles.
+Python + FastAPI + MongoDB. Guarda postulaciones sintéticas de tipo individual o lista, con el contrato existente del equipo.
 
-El reparto vigente asigna al integrante 2 **Candidaturas y Padrón electoral**. Votación pertenece al integrante 3. No se crea `ms-votos` ni una tabla que relacione elector y candidato. El modelo actual es académico y su contrato sigue marcado como propuesta pendiente de revisión.
+## Archivos principales
 
-## Ejecutar solo la parte del integrante 2
+- `app/servidor.py`: rutas REST, validaciones y respuestas JSON.
+- `app/base_datos.py`: conexión a MongoDB, separada para usarla desde el servidor y la carga de ejemplos.
+- `app/cargar_demostracion.py`: lista de dos ejemplos y un bucle que los guarda.
+- `docker-compose.yml`: API y MongoDB, como en el laboratorio 5 de la práctica 2.
+- `Dockerfile.local` y `.dockerignore`: construcción local y exclusión de `.env`.
+- `pruebas/test_etapa1.py`: pruebas pequeñas con `unittest`, incluido en Python.
 
-Desde la raíz del repositorio, con Docker Engine y Compose disponibles:
+Se aplican las ideas de REST, persistencia y carga de datos de la práctica 3. Se conserva Python/FastAPI porque esa es la tecnología acordada para este servicio. Las pruebas siguen los pasos de preparar, ejecutar y comprobar de la práctica 7, adaptados a Python.
 
-```sh
-sh microservicios/padron-electoral/desarrollo/etapa1.sh iniciar
-sh microservicios/padron-electoral/desarrollo/etapa1.sh cargar
-sh microservicios/padron-electoral/desarrollo/etapa1.sh probar
-```
+## Iniciar
 
-El inicio genera los dos `.env` con claves distintas y permisos 600, conservando cualquier archivo existente. Construye secuencialmente los servicios, espera su salud y crea volúmenes propios. El constructor envía únicamente una lista explícita de fuentes y contratos mediante un contexto tar; los `.env` quedan fuera incluso con Docker clásico. Para construir este entorno usa el script `iniciar`. La primera descarga y la construcción necesitan memoria y disco adicionales a los límites de ejecución.
-
-- Candidaturas: <http://127.0.0.1:8003/salud>.
-- Padrón: <http://127.0.0.1:3004/salud>.
-- Swagger de Candidaturas: <http://127.0.0.1:8003/docs>.
-- API versionada: `/api/v1/candidaturas` y `/api/v1/salud`.
-
-El proyecto `sigape-integrante2-candidaturas` contiene únicamente esta API y MongoDB. No comparte volúmenes ni credenciales con el Compose del equipo. MongoDB y gRPC no publican puertos; HTTP se limita a la interfaz local. Los cuatro contenedores de ambos proyectos tienen un límite conjunto de **896 MiB**: MongoDB 512, PostgreSQL 128 y cada API 128. No es una estimación de consumo ni incluye Docker, caché del sistema o construcción. MongoDB usa 256 MiB de caché WiredTiger; el cliente mantiene como máximo cinco conexiones por servidor.
-
-Para liberar memoria conservando datos:
+Desde la raíz del repositorio:
 
 ```sh
-sh microservicios/padron-electoral/desarrollo/etapa1.sh detener
+cd microservicios/candidaturas
+cp -n .env.example .env
 ```
 
-Si un puerto está ocupado, cambia `PUERTO_HTTP_CANDIDATURAS` o `PUERTO_HTTP_PADRON` en el `.env` del servicio. El script aplica estas variables. Cambiar una contraseña después de inicializar un volumen requiere actualizar el usuario correspondiente en la base; editar `.env` por sí solo no migra credenciales.
-
-## Persistencia y datos de ejemplo
-
-La colección propia `candidaturas_db.candidaturas` se crea al inicializar los índices del servidor. Sus campos son `_id` (expuesto como `idCandidatura`), `idEleccion`, `nombre`, `tipo`, `estado`, `creadoEn` y `actualizadoEn`. El usuario MongoDB tiene permisos de lectura/escritura únicamente en esta base.
-
-`python -m app.cargar_demostracion` dentro del contenedor inserta, mediante `$setOnInsert`, una candidatura individual y una lista en borrador. Repetirlo conserva los mismos IDs, fechas y cualquier edición. Ambas usan `idEleccion=20000000-0000-4000-8000-000000000001`: es una referencia sintética; la carga no crea ni modifica elecciones en otro servicio.
+En una instalación nueva, sustituye los dos valores `CAMBIAR_CLAVE` de `.env` por contraseñas distintas. Si ya tenías ese archivo, se conserva. No cambies las claves de una base inicializada sin actualizar también sus usuarios.
 
 ```sh
-curl --fail http://127.0.0.1:8003/salud
-curl --fail 'http://127.0.0.1:8003/api/v1/candidaturas?limite=2'
+docker compose up -d --build --wait
+docker compose exec -T candidaturas python -m app.cargar_demostracion
+curl --fail http://localhost:8003/salud
+curl --fail http://localhost:8003/api/v1/candidaturas
 ```
 
-## Pruebas y archivos
+Swagger: <http://localhost:8003/docs>. También responde `GET /api/v1/salud`. El puerto local se configura con `PUERTO_HTTP_CANDIDATURAS` en `.env`.
 
-`pruebas/test_etapa1.py` comprueba salud, contrato servido, documentación, carga repetible, CRUD, persistencia real en MongoDB, filtros, validación y bloqueo de borrado fuera de borrador. Una prueba controlada comprueba el error 503 cuando MongoDB no responde. Las pruebas limpian exclusivamente los registros que crean; conservan los dos ejemplos.
+## Probar
 
-`app/servidor.py` sirve la API; `app/cargar_demostracion.py` carga ejemplos; `compose.etapa1.yml` y `desarrollo/inicializar-mongo.js` crean el entorno propio. `.env.example` documenta las variables, y `.env` queda fuera de Git. No se añaden dependencias de ejecución.
+Desde esta misma carpeta:
 
-## Integración con el equipo
+```sh
+docker compose exec -T candidaturas python -m unittest discover -s pruebas -v
+```
 
-El Dockerfile original y las variables del Compose compartido siguen funcionando. Las rutas REST y los campos mantienen el contrato existente. `GET /salud` comprueba MongoDB y devuelve 503 en su ausencia; la API usa un solo proceso Uvicorn, sin recarga automática. En el Compose compartido la salud se publica por NGINX como `/api/v1/salud/candidaturas`.
+Comprueba salud, creación, consulta, actualización, eliminación, persistencia real, filtros y entradas inválidas. Verifica que una candidatura aprobada no pueda eliminarse. Solo limpia la candidatura creada por la prueba.
 
-Quedan fuera de esta etapa autenticación, reglas electorales completas, aprobación definitiva de contratos y nuevas integraciones. No existe un contrato de eventos propio de Candidaturas que haya que implementar en esta entrega; `voto.registrado.v1` corresponde a Votación y Resultados.
+## Datos y memoria
+
+La colección `candidaturas_db.candidaturas` guarda `_id`, `idEleccion`, `nombre`, `tipo`, `estado`, `creadoEn` y `actualizadoEn`. La API muestra `_id` como `idCandidatura`.
+
+La carga crea una candidatura individual y una lista en borrador. `$setOnInsert` inserta solo si el ID no existe: repetir el comando conserva los datos y sus fechas. Usan la misma elección sintética que los ejemplos de Padrón; no se escribe en el servicio de Elecciones.
+
+El cliente mantiene hasta cinco conexiones. La API tiene un límite de 128 MiB y MongoDB de 512 MiB. El volumen conserva los datos. Para liberar memoria:
+
+```sh
+docker compose stop
+```
+
+## Integración existente
+
+El contrato compartido se monta en modo lectura. El Compose del equipo sigue usando el `Dockerfile` original; este entorno usa `Dockerfile.local`. La ruta de Swagger se configura con `URL_CONTRATO_OPENAPI` para funcionar tanto aquí como detrás de NGINX.
+
+`/salud` devuelve 503 si MongoDB no responde. Los nombres de proyecto y volumen se conservan; tus datos anteriores siguen disponibles. Los contratos siguen pendientes de revisión del equipo.
+
+El otro servicio del integrante 2 es [Padrón electoral](../padron-electoral/README.md). Sus cuatro contenedores juntos tienen un límite de 896 MiB de ejecución; la construcción y las pruebas temporales necesitan memoria adicional.

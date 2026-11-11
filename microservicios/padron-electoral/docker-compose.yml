@@ -1,0 +1,72 @@
+# Práctica 2: API y base de datos en una red de Docker Compose.
+name: sigape-integrante2-padron
+services:
+  base-postgres:
+    image: postgres:17-alpine
+    env_file: .env
+    environment:
+      POSTGRES_DB: postgres
+    command: [postgres, -c, shared_buffers=16MB, -c, max_connections=20, -c, work_mem=2MB]
+    mem_limit: 128m
+    cpus: 0.50
+    volumes:
+      - datos_padron:/var/lib/postgresql/data
+      - ./desarrollo/inicializar-postgres.sh:/docker-entrypoint-initdb.d/10-padron.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d postgres']
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    networks: [interna]
+  padron-electoral:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: ejecucion
+    environment:
+      PORT: 3000
+      DB_HOST: base-postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:?Configura .env}
+      DB_USER: ${DB_USER:?Configura .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Configura .env}
+      NODE_OPTIONS: --max-old-space-size=64
+    mem_limit: 128m
+    cpus: 0.50
+    ports: ["127.0.0.1:${PUERTO_HTTP_PADRON:-3004}:3000"]
+    volumes:
+      # Se lee el mismo contrato del equipo, sin copiarlo ni cambiarlo.
+      - ../../compartido/contratos/openapi/padron-electoral.yaml:/app/contrato.yaml:ro
+      - ../../compartido/contratos/grpc/padron-v1.proto:/app/padron-v1.proto:ro
+    depends_on:
+      base-postgres: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 4s
+      retries: 6
+    networks: [interna]
+  pruebas:
+    # Solo se ejecuta cuando se pide: docker compose run --rm pruebas
+    profiles: [pruebas]
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: desarrollo
+    environment:
+      PADRON_URL: http://padron-electoral:3000
+      DB_HOST: base-postgres
+      DB_NAME: ${DB_NAME:?Configura .env}
+      DB_USER: ${DB_USER:?Configura .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Configura .env}
+    volumes:
+      - ../../compartido/contratos/grpc/padron-v1.proto:/app/padron-v1.proto:ro
+    depends_on:
+      padron-electoral: {condition: service_healthy}
+    command: [sh, -c, "npm test && npm run probar-grpc"]
+    mem_limit: 256m
+    networks: [interna]
+networks:
+  interna:
+volumes:
+  datos_padron:
