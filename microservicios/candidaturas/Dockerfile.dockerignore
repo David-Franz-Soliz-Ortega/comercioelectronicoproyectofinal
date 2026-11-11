@@ -1,0 +1,10 @@
+# Exclusiones para el Dockerfile del Compose compartido.
+.git
+**/.env
+**/.env.*
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+**/*.pyc
+**/coverage

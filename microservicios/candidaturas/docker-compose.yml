@@ -1,0 +1,48 @@
+# Práctica 2: API y base de datos en una red de Docker Compose.
+name: sigape-integrante2-candidaturas
+services:
+  base-mongodb:
+    image: mongo:8.0
+    env_file: .env
+    command: [mongod, --wiredTigerCacheSizeGB, "0.25"]
+    mem_limit: 512m
+    cpus: 1.0
+    volumes:
+      - datos_candidaturas:/data/db
+      - ./desarrollo/inicializar-mongo.js:/docker-entrypoint-initdb.d/10-candidaturas.js:ro
+    healthcheck:
+      test: [CMD-SHELL, 'mongosh --quiet --eval "quit(db.adminCommand({ping: 1}).ok ? 0 : 1)"']
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks: [interna]
+  candidaturas:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    environment:
+      MONGODB_HOST: base-mongodb
+      MONGODB_DATABASE: ${MONGODB_DATABASE:?Configura .env}
+      MONGODB_USERNAME: ${MONGODB_USERNAME:?Configura .env}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD:?Configura .env}
+      MONGODB_AUTH_SOURCE: ${MONGODB_AUTH_SOURCE:?Configura .env}
+      URL_CONTRATO_OPENAPI: /openapi.yaml
+    mem_limit: 128m
+    cpus: 0.50
+    ports: ["127.0.0.1:${PUERTO_HTTP_CANDIDATURAS:-8003}:8000"]
+    volumes:
+      - ./pruebas:/app/pruebas:ro
+      - ../../compartido/contratos/openapi/candidaturas.yaml:/app/contrato.yaml:ro
+    depends_on:
+      base-mongodb: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/salud', timeout=3)"]
+      interval: 15s
+      timeout: 4s
+      retries: 6
+    networks: [interna]
+networks:
+  interna:
+volumes:
+  datos_candidaturas:

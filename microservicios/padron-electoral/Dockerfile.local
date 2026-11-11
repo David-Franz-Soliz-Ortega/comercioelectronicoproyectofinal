@@ -1,0 +1,18 @@
+# Compilar TypeScript y disponer de Jest para las pruebas.
+FROM node:24-alpine AS desarrollo
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY tsconfig.json jest.config.cjs ./
+COPY src ./src
+COPY pruebas ./pruebas
+RUN npm run compilar
+ENV CONTRATO_GRPC=/app/padron-v1.proto
+
+# La API funciona sin las herramientas de desarrollo.
+FROM desarrollo AS ejecucion
+RUN npm prune --omit=dev --no-audit --no-fund && npm cache clean --force
+ENV NODE_ENV=production
+USER node
+EXPOSE 3000 50051
+CMD ["node", "dist/servidor.js"]

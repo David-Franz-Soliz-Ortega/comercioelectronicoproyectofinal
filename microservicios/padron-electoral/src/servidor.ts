@@ -1,15 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
-import { Pool } from "pg";
 import swaggerUi from "swagger-ui-express";
 import { parse } from "yaml";
 import { z } from "zod";
 
 import { iniciarGrpc } from "./servidor-grpc.js";
+import { inicializar, pool } from "./persistencia.js";
 
 const puerto = Number(process.env.PORT ?? 3000);
-const pool = new Pool({ host: process.env.DB_HOST, port: Number(process.env.DB_PORT ?? 5432), database: process.env.DB_NAME ?? "padron_electoral_db", user: process.env.DB_USER, password: process.env.DB_PASSWORD, max: 10 });
 const esquemaEntrada = z.object({ idEleccion: z.string().uuid(), elegible: z.boolean() }).strict();
 const esquemaUuid = z.string().uuid();
 const app = express();
@@ -41,17 +40,6 @@ function validarPagina(solicitud: Request, respuesta: Response): { pagina: numbe
     return null;
   }
   return { pagina, limite };
-}
-
-async function inicializar(): Promise<void> {
-  await pool.query(`CREATE TABLE IF NOT EXISTS inscripciones (
-    id_inscripcion UUID PRIMARY KEY,
-    id_eleccion UUID NOT NULL,
-    elegible BOOLEAN NOT NULL,
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
-    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
-  )`);
-  await pool.query("CREATE INDEX IF NOT EXISTS inscripciones_eleccion_elegibilidad_idx ON inscripciones (id_eleccion, elegible)");
 }
 
 app.get("/salud", async (_solicitud, respuesta) => {
@@ -141,8 +129,15 @@ app.delete("/inscripciones/:idInscripcion", async (solicitud, respuesta) => {
 app.use((_solicitud, respuesta) => problema(respuesta, 404, "No encontrado", "La ruta solicitada no existe."));
 const errores: ErrorRequestHandler = (error, _solicitud, respuesta, _siguiente) => problema(respuesta, error instanceof SyntaxError ? 400 : 500, "Solicitud inválida", error instanceof SyntaxError ? "El cuerpo debe contener JSON válido." : "Ocurrió un error inesperado.");
 app.use(errores);
-await inicializar();
-const servidorGrpc = await iniciarGrpc(pool);
+let servidorGrpc;
+try {
+  await inicializar();
+  servidorGrpc = await iniciarGrpc(pool);
+} catch {
+  console.error("No se pudo iniciar el padrón. Revisa PostgreSQL y el puerto gRPC.");
+  await pool.end();
+  process.exit(1);
+}
 const servidorHttp = app.listen(puerto, "0.0.0.0", () => console.log(`Servicio padrón electoral disponible en puerto ${puerto}`));
 for (const senal of ["SIGTERM", "SIGINT"]) process.once(senal, () => {
   const forzar = setTimeout(() => { servidorGrpc.forceShutdown(); process.exit(1); }, 10000).unref();
