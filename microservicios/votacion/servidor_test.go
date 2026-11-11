@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestRechazarDatosAntesDePersistir(t *testing.T) {
+func TestAccesoAnonimoSiempreRechazado(t *testing.T) {
 	servicio := &Servicio{}
 	for _, caso := range []struct{ clave, cuerpo string }{
 		{"", `{"idEleccion":"` + uuid.NewString() + `"}`},
@@ -20,7 +20,7 @@ func TestRechazarDatosAntesDePersistir(t *testing.T) {
 		solicitud.Header.Set("Idempotency-Key", caso.clave)
 		respuesta := httptest.NewRecorder()
 		servicio.rutas().ServeHTTP(respuesta, solicitud)
-		if respuesta.Code != 400 {
+		if respuesta.Code != 401 {
 			t.Fatalf("Estado inesperado: %d", respuesta.Code)
 		}
 		var problema map[string]any

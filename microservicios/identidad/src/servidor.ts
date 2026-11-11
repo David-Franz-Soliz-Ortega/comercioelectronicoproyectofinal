@@ -1,3 +1,5 @@
+import { migrarSeguridad, rutasSeguridad } from "./seguridad.js";
+import { proteger } from "./autorizacion.js";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
@@ -95,11 +97,14 @@ const contratoDocumentacion = parse(await readFile(new URL("../contrato.yaml", i
 const opcionesDocumentacion = { swaggerOptions: { validatorUrl: null }, customSiteTitle: "API de identidad SIGAPE" };
 app.use("/docs", swaggerUi.serveFiles(contratoDocumentacion, opcionesDocumentacion), swaggerUi.setup(contratoDocumentacion, opcionesDocumentacion));
 
+rutasSeguridad(app,pool);
+app.use(proteger(pool,"identidades","id_identidad","identidades","identidades"));
+
 app.get("/identidades", async (solicitud, respuesta) => {
   const paginacion = validarPagina(solicitud, respuesta);
   if (!paginacion) return;
-  const filtros: string[] = [];
-  const valores: unknown[] = [];
+  const filtros: string[] = ["id_organizacion = $1"];
+  const valores: unknown[] = [respuesta.locals.organizacion];
   if (solicitud.query.estado !== undefined) {
     const estado = z.enum(estados).safeParse(solicitud.query.estado);
     if (!estado.success) return problema(respuesta, 400, "Filtro inválido", "estado no es un estado reconocido.");
@@ -126,8 +131,8 @@ app.post("/identidades", async (solicitud, respuesta) => {
   try {
     const id = randomUUID();
     const resultado = await pool.query(
-      `INSERT INTO identidades (id_identidad, nombre, estado) VALUES ($1, $2, $3) RETURNING id_identidad AS "idIdentidad", nombre, estado, creado_en AS "creadoEn", actualizado_en AS "actualizadoEn"`,
-      [id, entrada.data.nombre, entrada.data.estado],
+      `INSERT INTO identidades(id_organizacion, id_identidad, nombre, estado) VALUES($1, $2, $3, $4) RETURNING id_identidad AS "idIdentidad", nombre, estado, creado_en AS "creadoEn", actualizado_en AS "actualizadoEn"`,
+      [respuesta.locals.organizacion,id, entrada.data.nombre, entrada.data.estado],
     );
     respuesta.location(`/api/v1/identidades/${id}`).status(201).json(resultado.rows[0]);
   } catch {
@@ -184,4 +189,7 @@ app.use((_solicitud, respuesta) => problema(respuesta, 404, "No encontrado", "La
 app.use(errores);
 
 await inicializar();
+await pool.query("ALTER TABLE identidades ADD COLUMN IF NOT EXISTS id_organizacion UUID");
+await pool.query("CREATE INDEX IF NOT EXISTS identidades_organizacion ON identidades(id_organizacion)");
+await migrarSeguridad(pool);
 app.listen(puerto, "0.0.0.0", () => console.log(`Servicio identidad disponible en puerto ${puerto}`));

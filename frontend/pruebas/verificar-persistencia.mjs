@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { readFile, writeFile } from 'node:fs/promises';
+const carpeta = process.env.EVIDENCIA_FRONTEND;
+const meta = JSON.parse(await readFile(process.env.MANIFIESTO_FRONTEND, 'utf8'));
+assert.equal(meta.base, process.env.URL_BASE);
+assert.ok(meta.proyecto.startsWith('sigape-cierre-p1-'));
+const navegador = JSON.parse(await readFile(carpeta + '/evidencia.json', 'utf8'));
+const respuesta = await fetch(meta.base + '/api/v1/elecciones/' + navegador.idEleccion);
+assert.equal(respuesta.status, 200);
+const registro = await respuesta.json();
+assert.equal(registro.nombre, navegador.nombre);
+assert.equal(registro.estado, 'borrador');
+await writeFile(carpeta + '/persistencia.json', JSON.stringify({ correcto: true, idEleccion: registro.idEleccion, nombre: registro.nombre, alcance: 'Lectura REST tras reinicio de PostgreSQL aislado' }, null, 2));
+console.log('OK: persistencia real tras reiniciar PostgreSQL aislado');

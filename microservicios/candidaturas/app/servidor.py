@@ -1,3 +1,5 @@
+from starlette.concurrency import run_in_threadpool
+from app.autorizacion import autorizar, comprobar_eleccion, Acceso
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -71,6 +73,7 @@ def representar(documento: dict) -> dict:
 @asynccontextmanager
 async def ciclo_vida(_aplicacion: FastAPI):
     cliente.admin.command("ping")
+    coleccion.create_index([("idOrganizacion", ASCENDING), ("creadoEn", ASCENDING)])
     coleccion.create_index([("estado", ASCENDING), ("creadoEn", ASCENDING)])
     coleccion.create_index([("idEleccion", ASCENDING), ("estado", ASCENDING)])
     yield
@@ -78,6 +81,28 @@ async def ciclo_vida(_aplicacion: FastAPI):
 
 
 app = FastAPI(title="Propuesta de API de candidaturas SIGAPE", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None, lifespan=ciclo_vida)
+
+
+@app.middleware("http")
+async def controlar_acceso(request: Request, siguiente):
+    if not request.scope['path'].startswith('/candidaturas'):return await siguiente(request)
+    try:
+        escritura=request.method not in ('GET','HEAD')
+        accion='candidaturas:'+('leer' if not escritura else 'crear' if request.method=='POST' else 'modificar')
+        contexto=await run_in_threadpool(autorizar,request,accion,escritura)
+        request.state.organizacion=contexto['idOrganizacion']
+        partes=request.scope['path'].split('/')
+        if len(partes)>2 and partes[2]:
+            documento=await run_in_threadpool(coleccion.find_one,{'_id':partes[2]})
+            if documento and documento.get('idOrganizacion')!=contexto['idOrganizacion']:raise Acceso(403)
+        if escritura:
+            try:referencia=(await request.json()).get('idEleccion')
+            except (ValueError,AttributeError):referencia=None
+        else:referencia=request.query_params.get('idEleccion')
+        if referencia:await run_in_threadpool(comprobar_eleccion,request,referencia)
+        return await siguiente(request)
+    except Acceso as e:
+        return JSONResponse(status_code=e.codigo,media_type='application/problem+json',content={'type':'about:blank','title':'Acceso no disponible','status':e.codigo,'detail':'Sesión requerida' if e.codigo==401 else 'Permiso denegado' if e.codigo==403 else 'Dependencia no disponible'})
 
 
 @app.middleware("http")
@@ -128,7 +153,7 @@ def listar_candidaturas(
     estado: str | None = None,
     idEleccion: UUID | None = None,
 ):
-    filtro: dict = {}
+    filtro: dict = {"idOrganizacion": request.state.organizacion}
     if estado is not None:
         if estado not in estados:
             return problema(400, "Filtro inválido", "estado no es un estado reconocido.", request.url.path, request.state.id_correlacion)
@@ -145,7 +170,7 @@ def crear_candidatura(entrada: NuevaCandidatura, response: Response, request: Re
     if entrada.tipo not in tipos or entrada.estado not in estados:
         return problema(422, "Datos inválidos", "tipo o estado no pertenece a los valores permitidos.", request.url.path, request.state.id_correlacion)
     ahora = datetime.now(timezone.utc)
-    documento = {"_id": str(uuid4()), "idEleccion": str(entrada.idEleccion), "nombre": entrada.nombre.strip(), "tipo": entrada.tipo, "estado": entrada.estado, "creadoEn": ahora, "actualizadoEn": ahora}
+    documento = {"idOrganizacion": request.state.organizacion, "_id": str(uuid4()), "idEleccion": str(entrada.idEleccion), "nombre": entrada.nombre.strip(), "tipo": entrada.tipo, "estado": entrada.estado, "creadoEn": ahora, "actualizadoEn": ahora}
     coleccion.insert_one(documento)
     response.headers["Location"] = f"/api/v1/candidaturas/{documento['_id']}"
     return representar(documento)

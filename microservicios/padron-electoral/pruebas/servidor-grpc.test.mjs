@@ -7,7 +7,7 @@ const { crearServidorGrpc, definicionPadron } = await import('../dist/servidor-g
 const idEleccion = '10000000-0000-4000-8000-000000000001';
 const idInscripcion = '10000000-0000-4000-8000-000000000002';
 async function preparar(t, consultar) {
-  const servidor = crearServidorGrpc({ query: consultar });
+  const servidor = crearServidorGrpc({ query: consultar }, async()=>({idOrganizacion:idEleccion}));
   const puerto = await new Promise((resolver, rechazar) => servidor.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createInsecure(), (error, puerto) => error ? rechazar(error) : resolver(puerto)));
   const Constructor = grpc.makeGenericClientConstructor(definicionPadron, 'ServicioPadron');
   const cliente = new Constructor('127.0.0.1:' + puerto, grpc.credentials.createInsecure());
@@ -18,7 +18,7 @@ async function preparar(t, consultar) {
 }
 test('devuelve elegibilidad sintética y valida asociación con la elección', async t => {
   let elegible = true;
-  const llamar = await preparar(t, async () => ({ rowCount: 1, rows: [{ id_eleccion: idEleccion, elegible }] }));
+  const llamar = await preparar(t, async () => ({ rowCount: 1, rows: [{ id_eleccion: idEleccion, elegible, id_organizacion:idEleccion }] }));
   assert.equal((await llamar()).resultado, 'RESULTADO_ELEGIBILIDAD_ELEGIBLE');
   elegible = false;
   assert.equal((await llamar()).resultado, 'RESULTADO_ELEGIBILIDAD_NO_ELEGIBLE');

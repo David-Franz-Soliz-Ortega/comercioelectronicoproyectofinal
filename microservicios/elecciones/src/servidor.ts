@@ -1,3 +1,4 @@
+import { proteger, cabeceras } from "./autorizacion.js";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
@@ -69,11 +70,13 @@ const contratoDocumentacion = parse(await readFile(new URL("../contrato.yaml", i
 const opcionesDocumentacion = { swaggerOptions: { validatorUrl: null }, customSiteTitle: "API de elecciones SIGAPE" };
 app.use("/docs", swaggerUi.serveFiles(contratoDocumentacion, opcionesDocumentacion), swaggerUi.setup(contratoDocumentacion, opcionesDocumentacion));
 
+app.use(proteger(pool,"elecciones","id_eleccion","elecciones","elecciones"));
+
 app.get("/elecciones", async (solicitud, respuesta) => {
   const pagina = validarPagina(solicitud, respuesta);
   if (!pagina) return;
-  const condiciones: string[] = [];
-  const valores: unknown[] = [];
+  const condiciones: string[] = ["id_organizacion = $1"];
+  const valores: unknown[] = [respuesta.locals.organizacion];
   if (solicitud.query.estado !== undefined) {
     const estado = z.enum(estados).safeParse(solicitud.query.estado);
     if (!estado.success) return problema(respuesta, 400, "Filtro inválido", "estado no es un estado reconocido.");
@@ -98,7 +101,7 @@ app.post("/elecciones", async (solicitud, respuesta) => {
   if (!entrada.success) return problema(respuesta, 422, "Datos inválidos", entrada.error.issues.map((error) => `${error.path.join(".")}: ${error.message}`).join("; "));
   try {
     const id = randomUUID();
-    const resultado = await pool.query(`INSERT INTO elecciones (id_eleccion, nombre, estado) VALUES ($1, $2, $3) RETURNING id_eleccion AS "idEleccion", nombre, estado, creado_en AS "creadoEn", actualizado_en AS "actualizadoEn"`, [id, entrada.data.nombre, entrada.data.estado]);
+    const resultado = await pool.query(`INSERT INTO elecciones(id_organizacion, id_eleccion, nombre, estado) VALUES($1, $2, $3, $4) RETURNING id_eleccion AS "idEleccion", nombre, estado, creado_en AS "creadoEn", actualizado_en AS "actualizadoEn"`, [respuesta.locals.organizacion,id, entrada.data.nombre, entrada.data.estado]);
     respuesta.location(`/api/v1/elecciones/${id}`).status(201).json(resultado.rows[0]);
   } catch { problema(respuesta, 500, "Error interno", "No se pudo crear la elección."); }
 });
@@ -116,7 +119,7 @@ app.get("/elecciones/:idEleccion/inscripciones/:idInscripcion/elegibilidad", asy
   try {
     const resultado = await consultarElegibilidad(clientePadron, {
       idCorrelacion, idProcesoElectoral: solicitud.params.idEleccion, idInscripcion: solicitud.params.idInscripcion,
-    }, undefined, controlador.signal);
+    }, undefined, controlador.signal, cabeceras(solicitud));
     console.log(JSON.stringify({ evento: "cliente_padron_grpc", idCorrelacion, codigoGrpc: 0 }));
     if (!respuesta.destroyed) respuesta.json({ idEleccion: solicitud.params.idEleccion, idInscripcion: solicitud.params.idInscripcion,
       elegible: resultado.resultado === "RESULTADO_ELEGIBILIDAD_ELEGIBLE", idCorrelacion });
@@ -165,6 +168,8 @@ app.use((_solicitud, respuesta) => problema(respuesta, 404, "No encontrado", "La
 const errores: ErrorRequestHandler = (error, _solicitud, respuesta, _siguiente) => problema(respuesta, error instanceof SyntaxError ? 400 : 500, "Solicitud inválida", error instanceof SyntaxError ? "El cuerpo debe contener JSON válido." : "Ocurrió un error inesperado.");
 app.use(errores);
 await inicializar();
+await pool.query("ALTER TABLE elecciones ADD COLUMN IF NOT EXISTS id_organizacion UUID");
+await pool.query("CREATE INDEX IF NOT EXISTS elecciones_organizacion ON elecciones(id_organizacion)");
 const servidorHttp = app.listen(puerto, "0.0.0.0", () => console.log(`Servicio elecciones disponible en puerto ${puerto}`));
 for (const senal of ["SIGTERM", "SIGINT"]) process.once(senal, () => {
   servidorHttp.close(() => { clientePadron.close(); void pool.end(); });

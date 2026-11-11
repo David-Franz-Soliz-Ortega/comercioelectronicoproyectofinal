@@ -1,74 +1,73 @@
-# Interfaz React de SIGAPE
+# Interfaz React de SIGAPE — desarrollo posterior a P1
 
-Aplicación sencilla de React y Vite disponible en `http://localhost:8080`, servida por el NGINX de entrada de SIGAPE. Solo consulta `/graphql` en el mismo origen, mediante queries y mutations del BFF existente; no recibe credenciales ni accede directamente a bases o puertos de microservicios.
+La versión estable `v1.0-p1` y `main` se conservan. Esta fase se desarrolla en `develop`, sin publicar cambios. Se mantiene SIGAPE como nombre provisional, sin referencias institucionales exclusivas.
 
-## Funciones
+## Funciones disponibles y navegación
 
-- Listados de elecciones, candidaturas y padrón con paginación de diez registros, totales reales, estados de carga, errores y listas vacías.
-- Búsqueda de elecciones por nombre y filtros de estado o elegibilidad, ejecutados en el servidor.
-- Referencias de elección de candidaturas e inscripciones mediante los campos anidados del contrato GraphQL.
-- Formulario «Nueva elección» con nombre y estado, mutation real `crearEleccion`, bloqueo de envíos repetidos y confirmación después de la respuesta del servicio. El listado y los totales se vuelven a consultar tras guardar.
-- Navegación por fragmentos `#elecciones`, `#candidaturas` y `#padron`, diseño adaptable, controles etiquetados y formulario modal operable con teclado.
+| Ruta por hash | Estado |
+| --- | --- |
+| `#inicio` | Resumen con totales reales de elecciones, candidaturas y padrón; acceso a la creación existente. |
+| `#usuarios` | Página informativa; gestión de cuentas e inicio de sesión pendientes. |
+| `#elecciones` | Listado, búsqueda por nombre, filtro de estado, paginación y creación persistente. |
+| `#candidaturas` | Listado, referencia a elección, filtro de estado y paginación. |
+| `#padron` | Listado, referencia a elección, filtro de elegibilidad y paginación. |
+| `#votacion` | Página informativa; no permite registrar participación todavía. |
+| `#resultados` | Página informativa; integración de conteos pendiente. |
 
-No hay registros, contadores o respuestas simulados en el código. Los datos mostrados son los persistidos por SIGAPE, incluidos sus registros académicos sintéticos existentes. La interfaz no crea datos al abrirse. Las inscripciones no muestran identidad ni datos personales.
+Las tres páginas pendientes no presentan formularios, cifras inventadas ni acciones operativas. No se ha añadido una sesión ficticia ni un selector de roles. El frontend sigue consumiendo `/graphql` del mismo origen, sin contraseñas de infraestructura ni acceso directo a bases. Los registros sintéticos existentes permanecen identificables por sus nombres; la interfaz no crea datos al abrirse.
 
-Los códigos de estado y las opciones de formulario proceden del contrato `compartido/contratos/graphql/esquema.graphql`. La lógica y la validación de negocio permanecen en los microservicios. Las referencias no disponibles se indican sin inventar nombres. Si no hay conexión, el listado informa el error y permite reintentar; no sustituye respuestas por datos de ejemplo.
+## Organización del código
 
-## Docker y ejecución
+- `src/Aplicacion.jsx`: composición, navegación, resumen y ciclo del modal.
+- `src/navegacion/secciones.js`: catálogo de las siete rutas y roles futuros por sección.
+- `src/navegacion/planPermisos.js`: propuesta declarativa de acciones por rol; **no aplica seguridad**.
+- `src/paginas/`: Inicio, los tres listados y páginas pendientes.
+- `src/componentes/`: navegación, resumen, tabla, formulario, iconos y formato.
+- `src/api/clienteGraphql.js`: transporte, timeout y manejo de errores.
+- `src/api/operaciones.js`: queries y mutation existentes, sin cambios de contrato.
+- `src/graphql.js`: reexportaciones compatibles con las importaciones anteriores.
+- `src/estilos.css`: diseño adaptable y tokens `#123B70`, `#2563EB`, `#FFFFFF`, `#DBEAFE`, `#8B1E3F`.
 
-Desde la raíz:
+La paginación sigue siendo de diez registros en el servidor. Actualizar conserva los filtros; cambiar de listado los reinicia. Crear una elección reinicia el listado de elecciones y consulta de nuevo los totales. Se mantienen abortos de solicitudes obsoletas, respuestas parciales, estado vacío, error sin datos sustitutos y protección contra envíos simultáneos. La creación no tiene idempotencia entre solicitudes distintas: ante respuesta incierta se pide consultar antes de repetir.
 
-```sh
-docker compose up -d --build --no-deps --wait frontend
-docker compose exec -T entrada-nginx nginx -t
-docker compose exec -T entrada-nginx nginx -s reload
-```
+## Roles y permisos propuestos
 
-El frontend es el contenedor permanente número 15, conectado únicamente a `red_interna`, sin puerto público propio ni volúmenes de datos. Usa NGINX sin privilegios en el puerto interno 3000 para servir archivos estáticos. El NGINX de entrada mantiene el puerto público 8080 y sus rutas REST/GraphQL previas. En arranques completos, Compose espera que el BFF y el frontend estén saludables.
+| Rol | Alcance inicial propuesto |
+| --- | --- |
+| SUPERADMIN | Gestión de cuentas y dominios administrativos; consulta de resultados y auditoría. |
+| ADMIN_ELECTORAL | Gestión de elecciones, candidaturas y padrón; consulta de resultados. |
+| OPERADOR | Consulta de elecciones, registro de candidaturas/padrón y consulta de resultados. |
+| ELECTOR | Consulta de elecciones/resultados y participación cuando exista autorización real. |
+| AUDITOR | Consulta de elecciones, candidaturas, padrón, resultados y auditoría, sin escrituras. |
 
-Salud local: `frontend:3000/salud`; salud pública: `/api/v1/salud/frontend`. Este healthcheck verifica el servidor estático; la disponibilidad de los servicios de datos se comprueba en el BFF y en la prueba funcional.
+La matriz debe ratificarse y tener alcance por elección. No se usa para ocultar rutas o autorizar operaciones actuales. Siguiente fase: cuentas y credenciales protegidas en identidad, sesiones reales, consulta del usuario autenticado, cierre/expiración de sesión, protección CSRF si se usan cookies, validación de permisos en cada operación REST/GraphQL y pruebas 401/403, incluidos accesos directos que eviten el BFF. Los permisos del navegador serán solo presentación; el backend decide. No se certifica aptitud para elecciones oficiales ni anonimato electoral.
 
-Para desarrollo local con Node.js 24 y el Compose principal activo:
+## Compilar y probar sin modificar el principal
+
+Requisitos: Node 24, Python 3.12, Git, Docker Compose v2 con `!override`, dependencias del frontend y Chromium de Playwright.
 
 ```sh
 npm ci --prefix frontend --ignore-scripts
-npm run desarrollar --prefix frontend
-```
-
-Vite envía `/graphql` al NGINX de `localhost:8080` durante el desarrollo. La compilación de producción utiliza rutas relativas del mismo origen, sin variables sensibles:
-
-```sh
+npm run probar --prefix frontend
 npm run compilar --prefix frontend
-```
-
-No se incluyen `.env`, dependencias de prueba, fuentes ni secretos en la imagen final; solo la salida estática y la configuración de NGINX.
-
-## Prueba real de navegador
-
-Con SIGAPE principal activo, desde la raíz:
-
-```sh
-npm ci --prefix frontend --ignore-scripts
+# Instalar Chromium si hace falta:
+./frontend/node_modules/.bin/playwright install chromium --only-shell
+# Ejecutar el flujo real en bases, redes y volúmenes nuevos:
 sh frontend/pruebas/ejecutar.sh
 ```
 
-El guion usa Chromium real en la imagen oficial Playwright 1.56.1, coincidente con la dependencia fijada. Requiere Docker con red del anfitrión en Linux y acceso a `localhost:8080`. Monta las pruebas y sus dependencias en lectura; no monta el socket Docker ni los archivos de entorno. No es un servicio permanente.
+Si Chromium está en una carpeta propia, exportar `PLAYWRIGHT_BROWSERS_PATH`. `desarrollo.py` crea una copia temporal de los archivos publicables, credenciales aleatorias fuera del repositorio con permisos 0600 y un proyecto Compose nuevo de nueve contenedores. Solo publica NGINX en loopback con puerto dinámico. Inicia cuatro CRUD, PostgreSQL, MongoDB, BFF, frontend y NGINX; los servicios restantes del principal no se tocan.
 
-La prueba navega las tres secciones, contrasta listados con las API REST reales, prueba paginación y filtros cuando hay datos, crea una elección con el formulario, verifica una sola mutation y confirma su persistencia mediante REST y recarga del navegador. También comprueba búsqueda, pérdida real de conectividad del navegador, recuperación y una vista móvil de 390 px. No intercepta respuestas ni usa mocks.
+El guion prepara doce elecciones, una candidatura y dos inscripciones mediante REST real, con nombres `Prueba explícita ...`. Playwright verifica los siete accesos, los listados reales, filtros, página siguiente, creación con una sola mutation, recarga, búsqueda, modo sin conexión/recuperación y móvil 390 px. No intercepta respuestas ni usa mocks en el recorrido integrado. Las pruebas unitarias sí sustituyen el transporte para verificar fallos.
 
-También se puede ejecutar Chromium headless localmente, sin instalar paquetes del sistema, cuando sus bibliotecas ya están disponibles:
+La elección creada se verifica de nuevo tras reiniciar solo PostgreSQL aislado. Se comparan hashes de los 10013 registros originales, almacenes, volúmenes, contenedores e inicios del principal. Se comprueba que `main` y el tag siguen iguales. Al terminar se detienen por defecto solo los contenedores de prueba para liberar recursos; sus datos/volúmenes se conservan. No se ejecuta limpieza destructiva. Para una vista de desarrollo activa, usar `python3 frontend/pruebas/desarrollo.py --reanudar RUTA/ejecucion.json --mantener-activo` cuando haya recursos disponibles. Las credenciales privadas no se copian como evidencia.
+
+Para Vite local, usar la URL aislada que imprime el guion:
 
 ```sh
-PLAYWRIGHT_BROWSERS_PATH=/tmp/sigape-navegadores ./frontend/node_modules/.bin/playwright install chromium --only-shell
-PLAYWRIGHT_BROWSERS_PATH=/tmp/sigape-navegadores npm run probar-navegador --prefix frontend
+URL_ENTRADA_DESARROLLO=http://127.0.0.1:PUERTO_AISLADO npm run desarrollar --prefix frontend
 ```
 
-Este modo usa el mismo guion y el mismo endpoint NGINX. El navegador se descarga únicamente en `/tmp`; no usa perfiles personales.
+El proxy de desarrollo exige un puerto aislado distinto de 8080. La compilación de producción mantiene `/graphql` relativo y no necesita esa variable. El guion de navegador exige además un manifiesto cuyo proyecto y URL coincidan; no permite ejecutar mutations de prueba contra el principal.
 
-Cada ejecución crea y conserva una elección académica con nombre único `Prueba navegador SIGAPE ...`. No elimina elecciones ni modifica las anteriores. Las capturas y la evidencia JSON se guardan en una carpeta nueva de `/tmp`, cuyo nombre imprime el guion. La eliminación automática del contenedor efímero de navegador no elimina datos ni volúmenes del sistema.
-
-Pendientes: autenticación y autorización coordinadas con los servicios, aprobación humana de los contratos y pruebas adicionales en otros navegadores. La mutation de creación existente no ofrece idempotencia entre solicitudes diferentes; por eso se bloquean envíos simultáneos y, ante una respuesta incierta, se pide actualizar antes de volver a guardar.
-
-Referencias: [React DOM](https://react.dev/reference/react-dom/client), [ejecución Playwright en Docker](https://playwright.dev/docs/docker).
-
-Ejecución verificada y evidencia: [resultados de la prueba real](pruebas/resultados-pruebas.md).
+[Pruebas de P1, conservadas como evidencia histórica](pruebas/resultados-pruebas.md). Los resultados nuevos se documentan por separado en `pruebas/resultados-desarrollo.md`.

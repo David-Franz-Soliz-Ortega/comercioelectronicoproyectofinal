@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { chromium } from 'playwright';
 
-const base = process.env.URL_BASE ?? 'http://localhost:8080';
+const base = process.env.URL_BASE;
+assert.ok(base, 'URL_BASE debe apuntar a un proyecto aislado');
+const manifiesto = JSON.parse(await readFile(process.env.MANIFIESTO_FRONTEND, 'utf8'));
+assert.ok(manifiesto.proyecto.startsWith('sigape-cierre-p1-'));
+assert.equal(manifiesto.base, base);
+assert.equal(new URL(base).hostname, '127.0.0.1');
+assert.notEqual(new URL(base).port, '8080');
 const carpeta = process.env.EVIDENCIA_FRONTEND ?? '/tmp/sigape-frontend-' + randomUUID();
 await mkdir(carpeta, { recursive: true });
 const navegador = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
@@ -37,6 +43,21 @@ async function esperarListado(nombre) {
 }
 try {
   await pagina.goto(base, { waitUntil: 'networkidle' });
+  await pagina.getByRole('heading', { name: 'Tu espacio de gestión', exact: true }).waitFor();
+  assert.equal(await pagina.getByRole('navigation').getByRole('button').count(), 7);
+  const paleta = await pagina.evaluate(() => {
+    const estilos = getComputedStyle(document.documentElement);
+    return ['--azul-oscuro', '--azul-principal', '--blanco', '--azul-claro', '--borgona'].map(nombre => estilos.getPropertyValue(nombre).trim());
+  });
+  assert.deepEqual(paleta, ['#123B70', '#2563EB', '#FFFFFF', '#DBEAFE', '#8B1E3F']);
+  for (const nombre of ['Usuarios', 'Votación', 'Resultados']) {
+    await pagina.getByRole('navigation').getByRole('button', { name: nombre, exact: true }).click();
+    await pagina.getByText('Integración pendiente', { exact: true }).waitFor();
+    assert.equal(await pagina.locator('main button').count(), 0, 'Sin acciones operativas pendientes');
+  }
+  assert.equal(await pagina.getByText('SUPERADMIN', { exact: true }).count(), 0);
+  await pagina.getByRole('navigation').getByRole('button', { name: 'Elecciones', exact: true }).click();
+  correcto('Siete secciones, paleta azul exacta y pantallas pendientes sin acciones ni sesiones ficticias');
   await esperarListado('Elecciones');
   const elecciones = await pedir('/api/v1/elecciones?limite=10');
   const formatear = valor => new Intl.NumberFormat('es-VE').format(valor);
@@ -56,6 +77,17 @@ try {
     assert.equal(await pagina.getByRole('button', { name: 'Página siguiente', exact: true }).isDisabled(), true);
     correcto('Paginación deshabilitada cuando la base real no tiene más páginas');
   }
+
+  const respuestaEstado = pagina.waitForResponse(respuesta => respuesta.url() === base + '/graphql' && respuesta.request().postDataJSON().variables?.estado === 'programada');
+  await pagina.getByLabel('Estado', { exact: true }).selectOption('programada');
+  await respuestaEstado;
+  await pagina.locator('.panel[aria-busy="false"]').waitFor();
+  const programadas = await pedir('/api/v1/elecciones?limite=10&estado=programada');
+  assert.equal(await pagina.locator('tbody tr').count(), programadas.elementos.length);
+  await pagina.getByRole('button', { name: 'Actualizar', exact: true }).click();
+  await pagina.locator('.panel[aria-busy="false"]').waitFor();
+  assert.equal(await pagina.getByLabel('Estado', { exact: true }).inputValue(), 'programada');
+  correcto('Filtro de estado real y conservación del filtro al actualizar');
 
   await pagina.getByRole('button', { name: 'Candidaturas', exact: true }).click();
   await esperarListado('Candidaturas');
@@ -81,6 +113,15 @@ try {
 
   await pagina.getByRole('button', { name: 'Nueva elección', exact: true }).click();
   await pagina.getByRole('dialog').waitFor();
+  await pagina.getByLabel('Nombre de la elección', { exact: true }).fill('   ');
+  await pagina.getByRole('button', { name: 'Guardar elección', exact: true }).click();
+  await pagina.getByText('Escribe un nombre para la elección.', { exact: true }).waitFor();
+  assert.equal(mutations, 0);
+  await pagina.keyboard.press('Escape');
+  await pagina.getByRole('dialog').waitFor({ state: 'hidden' });
+  await pagina.getByRole('button', { name: 'Nueva elección', exact: true }).click();
+  await pagina.getByRole('dialog').waitFor();
+  correcto('Validación de nombre vacío y cierre con Escape sin enviar una mutation');
   await pagina.getByLabel('Nombre de la elección', { exact: true }).fill(prefijo);
   const guardado = pagina.waitForResponse(respuesta => respuesta.url() === base + '/graphql' && respuesta.request().postDataJSON().query.includes('mutation CrearEleccion'));
   await pagina.getByRole('button', { name: 'Guardar elección', exact: true }).click();
@@ -127,6 +168,21 @@ try {
   await pagina.getByRole('button', { name: 'Candidaturas', exact: true }).click();
   await esperarListado('Candidaturas');
   correcto('Interfaz móvil de 390 px navegable, sin desbordamiento de la página');
+  for (const nombre of ['Inicio', 'Usuarios', 'Elecciones', 'Candidaturas', 'Padrón electoral', 'Votación', 'Resultados']) {
+    await pagina.getByRole('navigation').getByRole('button', { name: nombre, exact: true }).click();
+    if (['Elecciones', 'Candidaturas', 'Padrón electoral'].includes(nombre)) await esperarListado(nombre);
+    assert.ok(await pagina.evaluate(() => document.documentElement.scrollWidth <= innerWidth), nombre);
+  }
+  await pagina.getByRole('navigation').getByRole('button', { name: 'Inicio', exact: true }).click();
+  await pagina.goBack();
+  await pagina.getByRole('heading', { name: 'Consulta de resultados', exact: true }).waitFor();
+  await pagina.goForward();
+  await pagina.getByRole('heading', { name: 'Tu espacio de gestión', exact: true }).waitFor();
+  correcto('El historial del navegador restaura las rutas sin confundir los listados');
+  await pagina.screenshot({ path: carpeta + '/inicio-movil.png', fullPage: true });
+  await pagina.setViewportSize({ width: 1440, height: 1000 });
+  await pagina.screenshot({ path: carpeta + '/inicio-azul.png', fullPage: true });
+  correcto('Las siete rutas son navegables en móvil y escritorio sin desbordamiento');
   assert.equal(errores.length, 0, errores.join('\n'));
   assert.ok(solicitudes.some(s => s.consulta.includes('ListarCandidaturas')));
   assert.ok(solicitudes.some(s => s.consulta.includes('ListarPadron')));

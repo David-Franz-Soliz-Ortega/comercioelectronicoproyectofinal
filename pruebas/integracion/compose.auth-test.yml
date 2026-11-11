@@ -1,0 +1,116 @@
+# Solo combinar con la copia temporal del Compose principal, nunca desplegar P1.
+# Requiere Docker Compose compatible con !override. No reutiliza recursos externos.
+name: sigape-auth-test
+
+services:
+  base-postgres:
+    volumes: !override
+      - type: volume
+        source: datos_postgres
+        target: /var/lib/postgresql/data
+      - type: bind
+        source: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}/infraestructura/docker/inicializar-postgres.sh
+        target: /docker-entrypoint-initdb.d/10-inicializar-bases.sh
+        read_only: true
+        bind: {create_host_path: false}
+  base-mongodb:
+    volumes: !override
+      - type: volume
+        source: datos_mongodb
+        target: /data/db
+      - type: bind
+        source: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}/infraestructura/docker/inicializar-mongodb.sh
+        target: /docker-entrypoint-initdb.d/10-inicializar-bases.sh
+        read_only: true
+        bind: {create_host_path: false}
+  cache-redis:
+    volumes: !override
+      - type: volume
+        source: datos_redis
+        target: /data
+  mensajeria-rabbitmq:
+    volumes: !override
+      - type: volume
+        source: datos_rabbitmq
+        target: /var/lib/rabbitmq
+  configurar-mensajeria:
+    volumes: !override
+      - type: bind
+        source: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}/infraestructura/docker/definiciones-rabbitmq.json
+        target: /etc/rabbitmq/definiciones.json
+        read_only: true
+        bind: {create_host_path: false}
+  entrada-nginx:
+    ports: !override
+      - target: 80
+        published: "8888"
+        host_ip: 127.0.0.1
+        protocol: tcp
+    volumes: !override
+      - type: bind
+        source: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}/infraestructura/docker/nginx.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+        bind: {create_host_path: false}
+  identidad:
+    build:
+      context: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}
+    environment:
+      COOKIE_SEGURA: "false"
+      ORIGEN_PUBLICO: http://127.0.0.1:8888
+  elecciones:
+    build:
+      context: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}
+  candidaturas:
+    build:
+      context: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}
+  padron-electoral:
+    build:
+      context: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}
+  votacion:
+    build:
+      context: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}
+  resultados:
+    build:
+      context: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}
+  resultados-conteo:
+    build:
+      context: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}
+  resultados-auditoria:
+    build:
+      context: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}
+  gateway-graphql:
+    build:
+      context: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}
+  frontend:
+    build:
+      context: ${SIGAPE_AUTH_COPIA:?Define una copia privada fuera del repositorio}
+
+volumes:
+  datos_postgres:
+    name: sigape-auth-test_datos_postgres
+    external: false
+    driver: local
+  datos_mongodb:
+    name: sigape-auth-test_datos_mongodb
+    external: false
+    driver: local
+  datos_redis:
+    name: sigape-auth-test_datos_redis
+    external: false
+    driver: local
+  datos_rabbitmq:
+    name: sigape-auth-test_datos_rabbitmq
+    external: false
+    driver: local
+
+networks:
+  red_entrada:
+    name: sigape-auth-test_red_entrada
+    external: false
+    driver: bridge
+  red_interna:
+    name: sigape-auth-test_red_interna
+    external: false
+    driver: bridge
+    internal: true

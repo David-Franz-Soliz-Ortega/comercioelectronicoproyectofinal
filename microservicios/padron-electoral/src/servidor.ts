@@ -1,3 +1,4 @@
+import { proteger } from "./autorizacion.js";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
@@ -67,11 +68,13 @@ const contratoDocumentacion = parse(await readFile(new URL("../contrato.yaml", i
 const opcionesDocumentacion = { swaggerOptions: { validatorUrl: null }, customSiteTitle: "API de padron-electoral SIGAPE" };
 app.use("/docs", swaggerUi.serveFiles(contratoDocumentacion, opcionesDocumentacion), swaggerUi.setup(contratoDocumentacion, opcionesDocumentacion));
 
+app.use(proteger(pool,"inscripciones","id_inscripcion","inscripciones","padron"));
+
 app.get("/inscripciones", async (solicitud, respuesta) => {
   const pagina = validarPagina(solicitud, respuesta);
   if (!pagina) return;
-  const condiciones: string[] = [];
-  const valores: unknown[] = [];
+  const condiciones: string[] = ["id_organizacion = $1"];
+  const valores: unknown[] = [respuesta.locals.organizacion];
   if (solicitud.query.idEleccion !== undefined) {
     const id = esquemaUuid.safeParse(solicitud.query.idEleccion);
     if (!id.success) return problema(respuesta, 400, "Filtro inválido", "idEleccion debe ser un UUID válido.");
@@ -95,7 +98,7 @@ app.post("/inscripciones", async (solicitud, respuesta) => {
   if (!entrada.success) return problema(respuesta, 422, "Datos inválidos", entrada.error.issues.map((error) => `${error.path.join(".")}: ${error.message}`).join("; "));
   try {
     const id = randomUUID();
-    const resultado = await pool.query(`INSERT INTO inscripciones (id_inscripcion, id_eleccion, elegible) VALUES ($1, $2, $3) RETURNING id_inscripcion AS "idInscripcion", id_eleccion AS "idEleccion", elegible, creado_en AS "creadoEn", actualizado_en AS "actualizadoEn"`, [id, entrada.data.idEleccion, entrada.data.elegible]);
+    const resultado = await pool.query(`INSERT INTO inscripciones(id_organizacion, id_inscripcion, id_eleccion, elegible) VALUES($1, $2, $3, $4) RETURNING id_inscripcion AS "idInscripcion", id_eleccion AS "idEleccion", elegible, creado_en AS "creadoEn", actualizado_en AS "actualizadoEn"`, [respuesta.locals.organizacion,id, entrada.data.idEleccion, entrada.data.elegible]);
     respuesta.location(`/api/v1/inscripciones/${id}`).status(201).json(resultado.rows[0]);
   } catch { problema(respuesta, 500, "Error interno", "No se pudo crear la inscripción."); }
 });
@@ -142,6 +145,8 @@ app.use((_solicitud, respuesta) => problema(respuesta, 404, "No encontrado", "La
 const errores: ErrorRequestHandler = (error, _solicitud, respuesta, _siguiente) => problema(respuesta, error instanceof SyntaxError ? 400 : 500, "Solicitud inválida", error instanceof SyntaxError ? "El cuerpo debe contener JSON válido." : "Ocurrió un error inesperado.");
 app.use(errores);
 await inicializar();
+await pool.query("ALTER TABLE inscripciones ADD COLUMN IF NOT EXISTS id_organizacion UUID");
+await pool.query("CREATE INDEX IF NOT EXISTS inscripciones_organizacion ON inscripciones(id_organizacion)");
 const servidorGrpc = await iniciarGrpc(pool);
 const servidorHttp = app.listen(puerto, "0.0.0.0", () => console.log(`Servicio padrón electoral disponible en puerto ${puerto}`));
 for (const senal of ["SIGTERM", "SIGINT"]) process.once(senal, () => {

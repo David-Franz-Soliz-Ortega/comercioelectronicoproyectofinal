@@ -80,7 +80,7 @@ const esquema = `CREATE TABLE IF NOT EXISTS registros_votacion (
  id_evento UUID PRIMARY KEY, id_solicitud UUID NOT NULL UNIQUE,
  id_eleccion UUID NOT NULL, evento JSONB NOT NULL,
  creado_en TIMESTAMPTZ NOT NULL DEFAULT now(), publicado_en TIMESTAMPTZ
-); CREATE INDEX IF NOT EXISTS registros_pendientes ON registros_votacion(creado_en) WHERE publicado_en IS NULL;`
+); ALTER TABLE registros_votacion ADD COLUMN IF NOT EXISTS id_organizacion UUID; CREATE INDEX IF NOT EXISTS registros_organizacion ON registros_votacion(id_organizacion); CREATE INDEX IF NOT EXISTS registros_pendientes ON registros_votacion(creado_en) WHERE publicado_en IS NULL;`
 
 func (s *Servicio) publicar(ctx context.Context) {
 	for ctx.Err() == nil {
@@ -204,11 +204,13 @@ func (s *Servicio) registrar(w http.ResponseWriter, r *http.Request) {
 		problema(w, r, 400, "Se requiere únicamente idEleccion UUID")
 		return
 	}
+	if codigo:=verificarEleccion(r,datos.IdEleccion);codigo!=200{problema(w,r,codigo,"Elección no habilitada o fuera de organización");return}
+	autorizacion,ok:=r.Context().Value(claveContexto{}).(contextoAutorizacion);if !ok{problema(w,r,401,"Sesión requerida");return}
 	evento := Evento{uuid.NewString(), "voto.registrado.v1", 1, time.Now().UTC().Format(time.RFC3339Nano), datos}
 	cuerpo, _ := json.Marshal(evento)
 	ctx, cancelar := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancelar()
-	resultado, err := s.base.ExecContext(ctx, `INSERT INTO registros_votacion(id_evento,id_solicitud,id_eleccion,evento) VALUES($1,$2,$3,$4) ON CONFLICT(id_solicitud) DO NOTHING`, evento.IdEvento, idSolicitud, datos.IdEleccion, string(cuerpo))
+	resultado, err := s.base.ExecContext(ctx, `INSERT INTO registros_votacion(id_organizacion,id_evento,id_solicitud,id_eleccion,evento) VALUES($5,$1,$2,$3,$4) ON CONFLICT(id_solicitud) DO NOTHING`, evento.IdEvento, idSolicitud, datos.IdEleccion, string(cuerpo),autorizacion.IdOrganizacion)
 	if err != nil {
 		problema(w, r, 503, "Persistencia no disponible")
 		return
@@ -275,8 +277,8 @@ func (s *Servicio) salud(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Servicio) rutas() http.Handler {
 	rutas := http.NewServeMux()
-	rutas.HandleFunc("POST /api/v1/votos", s.registrar)
-	rutas.HandleFunc("GET /api/v1/votos/{id}", s.consultar)
+	rutas.HandleFunc("POST /api/v1/votos", s.conSesion(s.registrar,"votos:crear"))
+	rutas.HandleFunc("GET /api/v1/votos/{id}", s.conSesion(s.consultar,"votos:leer"))
 	rutas.HandleFunc("GET /api/v1/salud", s.salud)
 	rutas.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "/app/contrato.yaml") })
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

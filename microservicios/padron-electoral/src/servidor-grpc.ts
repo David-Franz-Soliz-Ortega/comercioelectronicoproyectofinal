@@ -1,3 +1,5 @@
+import type { Request } from "express";
+import { permiso } from "./autorizacion.js";
 import * as grpc from "@grpc/grpc-js";
 import { loadSync } from "@grpc/proto-loader";
 import type { Pool, QueryConfig } from "pg";
@@ -12,7 +14,11 @@ interface Solicitud { idCorrelacion: string; idProcesoElectoral: string; idInscr
 interface Respuesta { idCorrelacion: string; resultado: string }
 const entrada = z.object({ idCorrelacion: z.string().min(1).max(128), idProcesoElectoral: z.string().uuid(), idInscripcion: z.string().uuid() });
 
-export function crearServidorGrpc(pool: Pick<Pool, "query">): grpc.Server {
+async function autorizarGrpc(llamada: grpc.ServerUnaryCall<Solicitud,Respuesta>) {
+  const req={header:(nombre:string)=>String(llamada.metadata.get(nombre.toLowerCase())[0]??'')} as unknown as Request;
+  return permiso(req,'padron:leer',false);
+}
+export function crearServidorGrpc(pool: Pick<Pool, "query">, autorizar: typeof autorizarGrpc = autorizarGrpc): grpc.Server {
   const servidor = new grpc.Server({ "grpc.max_receive_message_length": 16384 });
   const consultar: grpc.handleUnaryCall<Solicitud, Respuesta> = async (llamada, devolver) => {
     const validacion = entrada.safeParse(llamada.request);
@@ -21,6 +27,8 @@ export function crearServidorGrpc(pool: Pick<Pool, "query">): grpc.Server {
       console.log(JSON.stringify({ evento: "consulta_padron_grpc", idCorrelacion, codigoGrpc: codigo }));
       if (!llamada.cancelled) devolver({ code: codigo, details: detalle, name: grpc.status[codigo], message: detalle }, null);
     }
+    let contexto;
+    try{contexto=await autorizar(llamada);}catch(e){const estado=(e as {estado?:number}).estado;return fallar(estado===401?grpc.status.UNAUTHENTICATED:estado===403?grpc.status.PERMISSION_DENIED:grpc.status.UNAVAILABLE,'Acceso no disponible');}
     if (!validacion.success) return fallar(grpc.status.INVALID_ARGUMENT, "Se requieren correlación e identificadores UUID válidos");
     const datos = validacion.data;
     const plazo = llamada.getDeadline();
@@ -29,12 +37,13 @@ export function crearServidorGrpc(pool: Pick<Pool, "query">): grpc.Server {
     try {
       // Solo se consulta la base propia del padrón. El plazo acota la consulta SQL.
       const consulta: QueryConfig & { query_timeout: number } = {
-        text: "SELECT id_eleccion, elegible FROM inscripciones WHERE id_inscripcion = $1",
+        text: "SELECT id_eleccion, elegible, id_organizacion FROM inscripciones WHERE id_inscripcion = $1",
         values: [datos.idInscripcion], query_timeout: Math.max(1, Math.min(1000, restante)),
       };
-      const resultado = await pool.query<{ id_eleccion: string; elegible: boolean }>(consulta);
+      const resultado = await pool.query<{ id_eleccion: string; elegible: boolean; id_organizacion: string }>(consulta);
       if (llamada.cancelled) return;
       if (!resultado.rowCount) return fallar(grpc.status.NOT_FOUND, "Inscripción inexistente");
+      if(resultado.rows[0].id_organizacion!==contexto.idOrganizacion)return fallar(grpc.status.PERMISSION_DENIED,'Organización no permitida');
       if (resultado.rows[0].id_eleccion !== datos.idProcesoElectoral.toLowerCase()) {
         return fallar(grpc.status.FAILED_PRECONDITION, "La inscripción pertenece a otra elección");
       }

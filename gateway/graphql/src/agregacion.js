@@ -24,7 +24,7 @@ function paginacion({ pagina = 1, limite = 20 }) {
 }
 
 export function crearContexto({ idCorrelacion, transporte = fetch, registrar = console.log,
-  destinos = servicios, maximoPaginas = Number(process.env.MAXIMO_PAGINAS_LOTE ?? 20),
+  destinos = servicios, cabeceras = {}, maximoPaginas = Number(process.env.MAXIMO_PAGINAS_LOTE ?? 20),
   senal = AbortSignal.timeout(15000) } = {}) {
   const peticiones = new Map();
   const colecciones = new Map();
@@ -42,7 +42,7 @@ export function crearContexto({ idCorrelacion, transporte = fetch, registrar = c
       try {
         respuesta = await transporte(destinos[servicio] + ruta, {
           method: metodo,
-          headers: { 'Content-Type': 'application/json', 'X-Correlation-ID': idCorrelacion },
+          headers: { ...cabeceras, 'Content-Type': 'application/json', 'X-Correlation-ID': idCorrelacion },
           body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
           signal: AbortSignal.any([senal, AbortSignal.timeout(3000)]),
         });
@@ -53,7 +53,7 @@ export function crearContexto({ idCorrelacion, transporte = fetch, registrar = c
       }
       if (respuesta.status === 404) return null;
       if (!respuesta.ok) {
-        const codigo = respuesta.status === 409 ? 'CONFLICTO' :
+        const codigo = respuesta.status === 401 ? 'NO_AUTENTICADO' : respuesta.status === 403 ? 'NO_AUTORIZADO' : respuesta.status === 409 ? 'CONFLICTO' :
           [400, 422].includes(respuesta.status) ? 'ENTRADA_INVALIDA' : 'SERVICIO_NO_DISPONIBLE';
         // No se expone el cuerpo de error interno ni direcciones de infraestructura.
         throw error(codigo, 'El servicio no pudo completar la solicitud', { servicio, estado: respuesta.status, idCorrelacion });

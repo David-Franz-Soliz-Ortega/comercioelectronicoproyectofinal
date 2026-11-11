@@ -31,4 +31,6 @@ venv/
 *.log
 .DS_Store
 .idea/
-.vscode/
+.vscode/frontend/pruebas/evidencias-desarrollo/secretos.json
+# Archivos privados
+frontend/pruebas/evidencias-desarrollo/secretos.jsonfrontend/pruebas/evidencias-desarrollo/

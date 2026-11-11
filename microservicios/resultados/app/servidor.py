@@ -1,3 +1,5 @@
+from starlette.concurrency import run_in_threadpool
+from app.autorizacion import autorizar, comprobar_eleccion, Acceso
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
@@ -29,6 +31,18 @@ def problema(solicitud, codigo, detalle):
         "detail": detalle, "instance": solicitud.url.path,
         "idCorrelacion": getattr(solicitud.state, "correlacion", ""),
     })
+
+
+@app.middleware("http")
+async def controlar_acceso(solicitud: Request,siguiente):
+    if not solicitud.url.path.startswith('/api/v1/resultados/'):return await siguiente(solicitud)
+    try:
+        await run_in_threadpool(autorizar,solicitud,'resultados:leer')
+        identificador=solicitud.url.path.split('/')[4]
+        await run_in_threadpool(comprobar_eleccion,solicitud,identificador)
+        return await siguiente(solicitud)
+    except Acceso as e:
+        return JSONResponse(status_code=e.codigo,media_type='application/problem+json',content={'type':'about:blank','title':'Acceso no disponible','status':e.codigo,'detail':'Sesión requerida' if e.codigo==401 else 'Permiso denegado' if e.codigo==403 else 'Elección no disponible'})
 
 
 @app.middleware("http")

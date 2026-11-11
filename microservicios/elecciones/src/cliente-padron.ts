@@ -18,11 +18,11 @@ export function crearClientePadron(destino = process.env.PADRON_GRPC_DIRECCION ?
   }) as unknown as ClientePadron;
 }
 export function consultarElegibilidad(cliente: ClientePadron, entrada: SolicitudElegibilidad,
-  plazoMs = Number(process.env.PADRON_GRPC_PLAZO_MS ?? 1200), senal?: AbortSignal): Promise<RespuestaElegibilidad> {
+  plazoMs = Number(process.env.PADRON_GRPC_PLAZO_MS ?? 1200), senal?: AbortSignal, credenciales?: Record<string,string>): Promise<RespuestaElegibilidad> {
   if (!Number.isFinite(plazoMs) || plazoMs < 1 || plazoMs > 10000) throw new Error("PADRON_GRPC_PLAZO_MS debe estar entre 1 y 10000");
   return new Promise((resolver, rechazar) => {
     const cancelar = () => llamada.cancel();
-    const llamada = cliente.ConsultarElegibilidad(entrada, { deadline: new Date(Date.now() + plazoMs) }, (error, respuesta) => {
+    const devolver = (error: grpc.ServiceError | null, respuesta?: RespuestaElegibilidad) => {
       senal?.removeEventListener("abort", cancelar);
       if (error) return rechazar(error);
       if (!respuesta || respuesta.idCorrelacion !== entrada.idCorrelacion ||
@@ -30,7 +30,9 @@ export function consultarElegibilidad(cliente: ClientePadron, entrada: Solicitud
         return rechazar(Object.assign(new Error("Respuesta de padrón inválida"), { code: grpc.status.DATA_LOSS }));
       }
       resolver(respuesta);
-    });
+    };
+    const metadata=new grpc.Metadata();for(const [clave,valor] of Object.entries(credenciales??{}))metadata.set(clave.toLowerCase(),valor);
+    const llamada = credenciales ? (cliente.ConsultarElegibilidad as any)(entrada,metadata,{deadline:new Date(Date.now()+plazoMs)},devolver) : cliente.ConsultarElegibilidad(entrada,{deadline:new Date(Date.now()+plazoMs)},devolver);
     if (senal?.aborted) cancelar();
     else senal?.addEventListener("abort", cancelar, { once: true });
   });

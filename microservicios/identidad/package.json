@@ -8,6 +8,7 @@
     "iniciar": "node dist/servidor.js"
   },
   "dependencies": {
+    "bcryptjs": "3.0.2",
     "express": "^5.1.0",
     "pg": "^8.16.3",
     "swagger-ui-express": "^5.0.1",

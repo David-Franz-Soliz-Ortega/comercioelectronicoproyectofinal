@@ -64,14 +64,20 @@ const servidor = createServer(async (solicitud, respuesta) => {
         (entrada.variables != null && (typeof entrada.variables !== 'object' || Array.isArray(entrada.variables)))) {
       return responder(respuesta, 400, { errors: [{ message: 'Se requiere query y variables como objeto JSON' }] });
     }
+    const cabeceras=Object.fromEntries(['cookie','origin','x-csrf-token','x-organizacion'].map(clave=>[clave,String(solicitud.headers[clave]??'')]));
+    let autorizacion;
+    try{autorizacion=await fetch((process.env.IDENTIDAD_URL??'http://identidad:3000')+'/api/v1/interno/autorizar',{method:'POST',headers:{...cabeceras,'Content-Type':'application/json','X-Servicio':'gateway-graphql','X-Clave-Servicio':process.env.CLAVE_SERVICIO??''},body:JSON.stringify({accion:'elecciones:leer',idOrganizacion:cabeceras['x-organizacion'],escritura:false}),signal:AbortSignal.timeout(2500)});}catch{return responder(respuesta,503,{errors:[{message:'Identidad no disponible'}]});}
+    if(!autorizacion.ok)return responder(respuesta,[401,403].includes(autorizacion.status)?autorizacion.status:503,{errors:[{message:'Acceso no autorizado'}]});
     const documento = parse(entrada.query, { maxTokens: 2500 });
     const errores = validate(esquema, documento);
     if (errores.length) return responder(respuesta, 400, { errors: errores });
     limitar(documento, entrada.operationName);
-    contexto = crearContexto({ idCorrelacion, senal: AbortSignal.any([controlador.signal, AbortSignal.timeout(15000)]) });
+    contexto = crearContexto({ idCorrelacion, cabeceras, senal: AbortSignal.any([controlador.signal, AbortSignal.timeout(15000)]) });
     const resultado = await execute({ schema: esquema, document: documento, contextValue: contexto,
       fieldResolver: resolverCampo, variableValues: entrada.variables, operationName: entrada.operationName });
-    return responder(respuesta, 200, resultado);
+    const prohibido=resultado.errors?.some(e=>e.extensions?.code==='NO_AUTORIZADO');
+    const anonimo=resultado.errors?.some(e=>e.extensions?.code==='NO_AUTENTICADO');
+    return responder(respuesta,anonimo?401:prohibido?403:200,resultado);
   } catch (fallo) {
     const mensaje = fallo instanceof GraphQLError ? fallo.message : 'Solicitud JSON inválida';
     return responder(respuesta, 400, { errors: [{ message: mensaje, extensions: { code: 'SOLICITUD_INVALIDA', idCorrelacion } }] });
