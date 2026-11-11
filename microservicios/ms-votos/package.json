@@ -1,0 +1,18 @@
+{
+  "name": "ms-votos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Microservicio de votos - Etapa 1",
+  "main": "src/servidor.js",
+  "scripts": {
+    "start": "node src/servidor.js",
+    "dev": "node --watch src/servidor.js",
+    "cargar-datos": "node src/cargar_datos_prueba.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.1.0",
+    "pg": "^8.16.3"
+  }
+}

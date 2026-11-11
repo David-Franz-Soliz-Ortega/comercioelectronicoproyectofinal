@@ -1,0 +1,50 @@
+# Práctica 2: API y base de datos en una red de Docker Compose.
+name: sigape-ms-votos
+
+services:
+  base-postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: votos_db
+      POSTGRES_USER: votos
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Configura .env}
+    ports:
+      - "127.0.0.1:${PUERTO_POSTGRES_VOTOS:-5435}:5432"
+    volumes:
+      - datos_ms_votos:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U votos -d votos_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks: [interna]
+
+  ms-votos:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: base-postgres
+      DB_PORT: 5432
+      DB_NAME: votos_db
+      DB_USER: votos
+      DB_PASSWORD: ${DB_PASSWORD:?Configura .env}
+    ports:
+      - "127.0.0.1:${PUERTO_HTTP_VOTOS:-3005}:3000"
+    depends_on:
+      base-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+      start_period: 10s
+    networks: [interna]
+
+networks:
+  interna:
+
+volumes:
+  datos_ms_votos:
