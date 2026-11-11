@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID, uuid4
 
-import yaml
 from fastapi import FastAPI, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -12,6 +11,7 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pymongo import ASCENDING, MongoClient
 from pymongo.collection import Collection
+from pymongo.errors import PyMongoError
 
 cliente = MongoClient(
     host=os.environ.get("MONGODB_HOST", "base-mongodb"),
@@ -19,7 +19,13 @@ cliente = MongoClient(
     username=os.environ.get("MONGODB_USERNAME"),
     password=os.environ.get("MONGODB_PASSWORD"),
     authSource=os.environ.get("MONGODB_AUTH_SOURCE", "admin"),
-    serverSelectionTimeoutMS=5000,
+    serverSelectionTimeoutMS=2000,
+    connectTimeoutMS=2000,
+    socketTimeoutMS=3000,
+    waitQueueTimeoutMS=2000,
+    maxPoolSize=5,
+    minPoolSize=0,
+    maxIdleTimeMS=10000,
     tz_aware=True,
 )
 base = cliente[os.environ.get("MONGODB_DATABASE", "candidaturas_db")]
@@ -70,11 +76,13 @@ def representar(documento: dict) -> dict:
 
 @asynccontextmanager
 async def ciclo_vida(_aplicacion: FastAPI):
-    cliente.admin.command("ping")
-    coleccion.create_index([("estado", ASCENDING), ("creadoEn", ASCENDING)])
-    coleccion.create_index([("idEleccion", ASCENDING), ("estado", ASCENDING)])
-    yield
-    cliente.close()
+    try:
+        cliente.admin.command("ping")
+        coleccion.create_index([("estado", ASCENDING), ("creadoEn", ASCENDING)])
+        coleccion.create_index([("idEleccion", ASCENDING), ("estado", ASCENDING)])
+        yield
+    finally:
+        cliente.close()
 
 
 app = FastAPI(title="Propuesta de API de candidaturas SIGAPE", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None, lifespan=ciclo_vida)
@@ -105,8 +113,11 @@ async def error_interno(request: Request, _error: Exception):
 
 
 @app.get("/salud")
-def salud():
-    cliente.admin.command("ping")
+def salud(request: Request):
+    try:
+        cliente.admin.command("ping")
+    except PyMongoError:
+        return problema(503, "Base no disponible", "No se pudo consultar la base de candidaturas.", request.url.path, request.state.id_correlacion)
     return {"estado": "saludable", "servicio": "candidaturas"}
 
 
@@ -117,7 +128,7 @@ def contrato():
 
 @app.get("/docs", include_in_schema=False)
 def documentacion():
-    return get_swagger_ui_html(openapi_url="/api/v1/candidaturas/openapi.yaml", title="API de candidaturas SIGAPE")
+    return get_swagger_ui_html(openapi_url=os.environ.get("URL_CONTRATO_OPENAPI", "/api/v1/candidaturas/openapi.yaml"), title="API de candidaturas SIGAPE")
 
 
 @app.get("/candidaturas")
@@ -136,7 +147,7 @@ def listar_candidaturas(
     if idEleccion is not None:
         filtro["idEleccion"] = str(idEleccion)
     total = coleccion.count_documents(filtro)
-    documentos = coleccion.find(filtro).sort("creadoEn", -1).skip((pagina - 1) * limite).limit(limite)
+    documentos = coleccion.find(filtro).sort([("creadoEn", -1), ("_id", 1)]).skip((pagina - 1) * limite).limit(limite)
     return {"elementos": [representar(documento) for documento in documentos], "pagina": pagina, "limite": limite, "total": total}
 
 

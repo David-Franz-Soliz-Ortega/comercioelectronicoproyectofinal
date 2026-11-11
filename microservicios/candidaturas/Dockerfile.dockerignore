@@ -1,0 +1,16 @@
+# Solo fuentes del servicio y contratos; excluye secretos y datos locales.
+**
+!microservicios/
+!microservicios/candidaturas/
+!compartido/
+!compartido/contratos/
+!compartido/contratos/openapi/
+!compartido/contratos/openapi/candidaturas.yaml
+!microservicios/candidaturas/requirements.txt
+!microservicios/candidaturas/app/
+!microservicios/candidaturas/app/*.py
+**/.env
+**/.env.*
+**/__pycache__
+**/node_modules
+**/.venv
