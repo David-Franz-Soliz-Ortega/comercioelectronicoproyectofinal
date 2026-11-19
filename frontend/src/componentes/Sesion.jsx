@@ -1,15 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { obtenerSesion, iniciarSesion, finalizarSesion, seleccionarOrganizacion, establecerOrganizacion } from '../api/clienteSesion.js';
+import { IconoTuvoto, IconoUsuario, IconoSalir } from './Iconos.jsx';
 
 export default function Sesion({ children }) {
-  const revision = useRef(0); const operando = useRef(false);
+  const revision = useRef(0);
+  const operando = useRef(false);
   const [sesion, cambiarSesion] = useState(null);
   const [cargando, cambiarCargando] = useState(true);
   const [ocupado, cambiarOcupado] = useState(false);
   const [error, cambiarError] = useState('');
   const [usuario, cambiarUsuario] = useState('');
   const [contrasena, cambiarContrasena] = useState('');
-  function aceptar(datos) { establecerOrganizacion(datos?.idOrganizacion); cambiarSesion(datos); }
+
+  function aceptar(datos) {
+    establecerOrganizacion(datos?.idOrganizacion);
+    cambiarSesion(datos);
+  }
+
   useEffect(() => {
     let vigente = true, enCurso = false;
     const caducar = () => { ++revision.current; aceptar(null); cambiarError('La sesión terminó. Inicia sesión de nuevo.'); };
@@ -34,6 +41,7 @@ export default function Sesion({ children }) {
       document.removeEventListener('visibilitychange', alMostrar);
     };
   }, []);
+
   async function ejecutar(operacion) {
     const actual = ++revision.current; operando.current = true;
     cambiarOcupado(true); cambiarError('');
@@ -41,29 +49,85 @@ export default function Sesion({ children }) {
     catch (fallo) { if (actual === revision.current) cambiarError(fallo.message); }
     finally { operando.current = false; cambiarOcupado(false); }
   }
-  if (cargando) return <main className="acceso" role="status">Restaurando sesión…</main>;
-  if (!sesion) return <main className="acceso"><form className="panel formulario-acceso" onSubmit={evento => {
-    evento.preventDefault(); const clave = contrasena; cambiarContrasena('');
-    ejecutar(() => iniciarSesion(usuario, clave));
-  }}><p className="sobretitulo">TUVOTO · ACCESO DEL PERSONAL</p><h1>Iniciar sesión</h1>
-    <label htmlFor="usuario">Usuario</label><input id="usuario" autoComplete="username" value={usuario} onChange={e => cambiarUsuario(e.target.value)} required disabled={ocupado} />
-    <label htmlFor="contrasena">Contraseña</label><input id="contrasena" type="password" autoComplete="current-password" value={contrasena} onChange={e => cambiarContrasena(e.target.value)} required disabled={ocupado} />
-    {error && <p className="aviso" role="alert">{error}</p>}
-    <button className="boton primario" disabled={ocupado}>{ocupado ? 'Verificando…' : 'Entrar'}</button>
-    <button className="boton secundario" type="button" disabled={ocupado} onClick={() => ejecutar(obtenerSesion)}>Reintentar sesión</button>
-  </form></main>;
-  return children({ sesion, ocupado, error,
+
+  if (cargando) {
+    return (
+      <main className="acceso" role="status">
+        <div className="formulario-acceso-tuvoto" style={{ textAlign: 'center' }}>
+          <p>Restaurando sesión…</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!sesion) {
+    return (
+      <main className="acceso">
+        <form className="formulario-acceso-tuvoto" onSubmit={evento => {
+          evento.preventDefault(); const clave = contrasena; cambiarContrasena('');
+          ejecutar(() => iniciarSesion(usuario, clave));
+        }}>
+          <div className="cabecera-login">
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <IconoTuvoto tamano={44} />
+            </div>
+            <h1>TUVOTO</h1>
+            <p>Acceso del personal electoral y auditoría</p>
+          </div>
+          <div className="formulario-simple">
+            <label htmlFor="usuario">
+              Usuario
+              <input id="usuario" autoComplete="username" value={usuario} onChange={e => cambiarUsuario(e.target.value)} required disabled={ocupado} />
+            </label>
+            <label htmlFor="contrasena">
+              Contraseña
+              <input id="contrasena" type="password" autoComplete="current-password" value={contrasena} onChange={e => cambiarContrasena(e.target.value)} required disabled={ocupado} />
+            </label>
+          </div>
+          {error && <p className="aviso" role="alert">{error}</p>}
+          <button className="boton primario" disabled={ocupado} style={{ width: '100%', marginTop: 8 }}>
+            {ocupado ? 'Verificando…' : 'Entrar al sistema'}
+          </button>
+          <a href="#resultados" className="enlace-volver-publico">← Volver a resultados públicos</a>
+        </form>
+      </main>
+    );
+  }
+
+  return children({
+    sesion,
+    ocupado,
+    error,
     salir: () => ejecutar(async () => { await finalizarSesion(); return null; }),
     seleccionar: id => ejecutar(() => seleccionarOrganizacion(id)),
   });
 }
 
-export function ControlesSesion({ sesion, ocupado, salir, seleccionar }) {
+export function ControlesSesion({ sesion, ocupado, salir, seleccionar, subtituloRol }) {
   const organizaciones = [...new Set(sesion.roles.map(r => r.idOrganizacion).filter(Boolean))];
-  return <div className="controles-sesion"><span>{sesion.usuario}</span>
-    {organizaciones.length > 0 && <label>Organización<select aria-label="Organización" value={sesion.idOrganizacion ?? ''} disabled={ocupado} onChange={e => seleccionar(e.target.value)}>
-      <option value="" disabled>Selecciona organización</option>{organizaciones.map(id => <option key={id} value={id}>{id}</option>)}
-    </select></label>}
-    <button className="boton secundario" disabled={ocupado} onClick={salir}>Cerrar sesión</button>
-  </div>;
+  return (
+    <div className="perfil-usuario-privado">
+      <div className="insignia-usuario-actual">
+        <IconoUsuario tamano={16} />
+        <span>{subtituloRol ? `${subtituloRol} · ${sesion.usuario}` : sesion.usuario}</span>
+      </div>
+      {organizaciones.length > 0 && (
+        <select
+          aria-label="Organización"
+          value={sesion.idOrganizacion ?? ''}
+          disabled={ocupado}
+          onChange={e => seleccionar(e.target.value)}
+          className="selector-unidades-publico"
+        >
+          <option value="" disabled>Selecciona organización</option>
+          {organizaciones.map(id => <option key={id} value={id}>{id}</option>)}
+        </select>
+      )}
+      <div className="separador-perfil" />
+      <button className="boton-cerrar-sesion" disabled={ocupado} onClick={salir}>
+        <IconoSalir tamano={14} />
+        <span>Cerrar sesión</span>
+      </button>
+    </div>
+  );
 }
