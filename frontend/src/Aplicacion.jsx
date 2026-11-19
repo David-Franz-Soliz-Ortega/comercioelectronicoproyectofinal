@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import UrnaAnimada from './componentes/UrnaAnimada.jsx';
 import Sesion, { ControlesSesion } from './componentes/Sesion.jsx';
 import AdministrarCuentas from './componentes/AdministrarCuentas.jsx';
 import GuiaEleccion from './componentes/GuiaEleccion.jsx';
@@ -30,7 +31,7 @@ import {
 } from './componentes/Iconos.jsx';
 
 const consulta = `query Portal($unidad:String) { portal(unidad:$unidad) { recepcion { idProceso mesasConActa versiones } proceso { id nombre cargo tipo unidad unidades candidatos { id nombre foto } } resultados { esperadas contabilizadas pendientes observadas avance blancos nulos total validos actualizadoEn candidatos { id nombre foto votos porcentaje } unidades { unidad esperadas contabilizadas pendientes } } } }`;
-const numero = n => new Intl.NumberFormat('es-VE').format(n);
+const numero = n => new Intl.NumberFormat('es-BO').format(n);
 const archivoComoTexto = archivo => new Promise((aceptar, rechazar) => {
   const lector = new FileReader();
   lector.onload = () => aceptar(lector.result);
@@ -69,6 +70,7 @@ export default function Aplicacion() {
    ========================================================================= */
 function PortalPublico() {
   const [portal, cambiarPortal] = useState(null);
+  const [animacionesPausadas, cambiarAnimacionesPausadas] = useState(false);
   const [cargando, cambiarCargando] = useState(true);
   const [error, cambiarError] = useState('');
   const [unidad, cambiarUnidad] = useState('');
@@ -104,7 +106,7 @@ function PortalPublico() {
 
   const r = portal?.resultados;
   const fechaActualizacion = r?.actualizadoEn
-    ? new Date(r.actualizadoEn).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })
+    ? new Date(r.actualizadoEn).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })
     : null;
 
   // Totales de unidades para la fila final de la tabla
@@ -114,7 +116,8 @@ function PortalPublico() {
   const totalEsperadas = unidadesFiltradas.reduce((acc, u) => acc + (u.esperadas || 0), 0);
 
   return (
-    <>
+    <div className={`vista-observatorio ${animacionesPausadas ? 'animaciones-pausadas' : ''}`} >
+      <a className="saltar-contenido" href="#contenido-publico">Ir a resultados</a>
       {/* Cabecera Pública */}
       <header className="barra-tuvoto">
         <div className="bloque-marca-publica">
@@ -143,7 +146,16 @@ function PortalPublico() {
       </header>
 
       {/* Contenido Principal */}
-      <main className="portal-tuvoto">
+      <main className="portal-tuvoto" id="contenido-publico" tabIndex="-1">
+        <section className="portada-observatorio" aria-labelledby="titulo-observatorio">
+          <div className="texto-portada"><p className="etiqueta-observatorio">OBSERVATORIO ELECTORAL UNIVERSITARIO</p>
+            <h1 id="titulo-observatorio">Tu universidad.<br /><span>Cada voto, a la vista.</span></h1>
+            <p>De tu carrera al rectorado. Información clara para seguir a tus candidaturas y entender el avance de cada elección.</p>
+            <div className="acciones-portada"><a href="#conteo-publico" className="boton-explorar" onClick={evento => { evento.preventDefault(); document.getElementById('conteo-publico').scrollIntoView({ behavior: animacionesPausadas || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' }); document.getElementById('conteo-publico').focus({ preventScroll: true }); }}>Explorar resultados</a><button className="control-animaciones" aria-pressed={animacionesPausadas} onClick={() => cambiarAnimacionesPausadas(valor => !valor)}>{animacionesPausadas ? 'Reanudar animaciones' : 'Pausar animaciones'}</button></div>
+            <small>Proyecto académico independiente · No es un portal oficial de la USFX</small>
+          </div><div className="ilustracion-portada"><span className="orbita-portada" /><UrnaAnimada /><span>CADA FACULTAD. CADA CARRERA.</span></div>
+        </section>
+        <div id="conteo-publico" tabIndex="-1" className="introduccion-conteo"><div><p className="etiqueta-seccion">EL PANORAMA, A TU ALCANCE</p><h2>Resultados de la elección</h2></div><span>Lectura pública · Cómputo preliminar</span></div>
         <Aviso error={error} />
         {error && portal && (
           <p className="aviso" style={{ background: '#FFFBEB', color: '#92400E', borderColor: '#FDE68A' }}>
@@ -152,7 +164,8 @@ function PortalPublico() {
         )}
 
         {cargando ? (
-          <section className="panel-publico" style={{ padding: 48, textAlign: 'center' }}>
+          <section className="panel-publico estado-carga-observatorio" role="status" aria-live="polite">
+            <UrnaAnimada compacta />
             <p style={{ color: 'var(--secundario)', fontSize: 14 }}>Consultando elección y resultados preliminares…</p>
           </section>
         ) : !portal ? (
@@ -209,7 +222,7 @@ function PortalPublico() {
             {/* Barra de Progreso de Mesas */}
             <section className="tarjeta-progreso-tuvoto" aria-label="Progreso general de actas">
               <span className="etiqueta-progreso-mesas">{r.avance} % de mesas contabilizadas</span>
-              <div className="barra-progreso-contenedor" role="progressbar" aria-valuenow={r.avance} aria-valuemin="0" aria-valuemax="100">
+              <div className="barra-progreso-contenedor" role="progressbar" aria-label="Porcentaje de mesas contabilizadas" aria-valuenow={r.avance} aria-valuemin="0" aria-valuemax="100">
                 <div className="barra-progreso-relleno" style={{ width: `${Math.min(100, Math.max(r.avance, 0))}%` }}>
                   <span className="porcentaje-barra-pill">{r.avance} %</span>
                 </div>
@@ -236,7 +249,7 @@ function PortalPublico() {
                   {r.candidatos.length === 0 ? (
                     <p style={{ color: 'var(--secundario)', padding: 12 }}>No hay candidaturas configuradas.</p>
                   ) : (
-                    r.candidatos.map(c => (
+                    [...r.candidatos].sort((a, b) => b.votos - a.votos).map(c => (
                       <article key={c.id} className="fila-candidato-publico">
                         {c.foto ? (
                           <img src={c.foto} alt={`Fotografía de ${c.nombre}`} className="avatar-candidato" />
@@ -337,7 +350,7 @@ function PortalPublico() {
           </>
         )}
       </main>
-    </>
+    </div>
   );
 }
 
@@ -1436,7 +1449,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                           <span className="estado-activo-pill" style={{ background: a.estado === 'publicada' ? '#DCFCE7' : '#FEE2E2', color: a.estado === 'publicada' ? '#166534' : '#9F1239' }}>
                             {a.estado}
                           </span>{' '}
-                          · <small style={{ color: 'var(--secundario)' }}>{new Date(a.creado_en).toLocaleString('es-VE')}</small>
+                          · <small style={{ color: 'var(--secundario)' }}>{new Date(a.creado_en).toLocaleString('es-BO')}</small>
                         </div>
                         <a href={`/api/v1/actas/${a.id}/foto`} target="_blank" rel="noreferrer" className="enlace-ver-original">
                           Ver original ↗
@@ -1552,7 +1565,7 @@ function PanelAuditor({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                   datos.elementos.map(a => (
                     <li key={a.id} className="item-historial-acta">
                       <div>
-                        <strong>Versión {a.version}</strong> · {a.estado} · {new Date(a.creado_en).toLocaleString('es-VE')}
+                        <strong>Versión {a.version}</strong> · {a.estado} · {new Date(a.creado_en).toLocaleString('es-BO')}
                       </div>
                       <a href={`/api/v1/actas/${a.id}/foto`} target="_blank" rel="noreferrer" className="enlace-ver-original">
                         Ver original ↗
