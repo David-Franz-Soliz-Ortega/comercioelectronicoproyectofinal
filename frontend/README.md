@@ -1,8 +1,22 @@
-# Interfaz React de SIGAPE
+# Observatorio electoral de SIGAPE
 
-Aplicación sencilla de React y Vite disponible en `http://localhost:8080`, servida por el NGINX de entrada de SIGAPE. Solo consulta `/graphql` en el mismo origen, mediante queries y mutations del BFF existente; no recibe credenciales ni accede directamente a bases o puertos de microservicios.
+Interfaz React y Vite para explorar elecciones universitarias y gestionar los registros académicos de SIGAPE. En Docker está disponible en `http://localhost:8080`, servida por el NGINX de entrada. La gestión solo consulta `/graphql` en el mismo origen, mediante queries y mutations del BFF existente; no recibe credenciales ni accede directamente a bases o puertos de microservicios.
 
-## Funciones
+## Observatorio y demostración
+
+La portada `#resultados` presenta una **demostración visual explícita**, independiente de la gestión conectada. Los seis procesos, candidaturas, votos y cantidades de actas de `src/datos/demostracion.js` son ficticios. No se envían al servidor, no representan las elecciones de la USFX y no se usan como reemplazo ante un error de conexión. No hay importación de resultados oficiales ni actualización en tiempo real.
+
+- Filtros combinados por facultad, carrera, cargo y búsqueda sin distinción de tildes.
+- Vistas independientes de estudiantes y docentes, ordenadas según votos del estamento seleccionado.
+- Porcentajes calculados sobre los votos válidos del estamento, con blancos y nulos aparte en el detalle. No se calcula una ponderación ni se proclaman ganadores.
+- Actas computadas y esperadas identificadas como ejemplos; el panel lateral muestra un ejemplo fijo y lo indica expresamente.
+- Papeleta animada entrando en la urna, barras de votos y entrada suave de tarjetas y diálogos. La urna también acompaña las consultas reales mientras cargan, sin añadir esperas artificiales.
+- Control para pausar animaciones, respeto de `prefers-reduced-motion`, navegación con teclado, diálogos nativos y menú adaptable.
+- Sección `#guia` con explicación del recorrido propuesto de las actas y enlaces oficiales.
+
+La interfaz no permite emitir votos. Su enfoque público es informar sobre el escrutinio. El cómputo por candidatura, las actas y el catálogo académico aún necesitan contratos e integración: [propuesta para la siguiente etapa](propuesta-integracion-actas.md).
+
+## Gestión conectada
 
 - Listados de elecciones, candidaturas y padrón con paginación de diez registros, totales reales, estados de carga, errores y listas vacías.
 - Búsqueda de elecciones por nombre y filtros de estado o elegibilidad, ejecutados en el servidor.
@@ -10,7 +24,7 @@ Aplicación sencilla de React y Vite disponible en `http://localhost:8080`, serv
 - Formulario «Nueva elección» con nombre y estado, mutation real `crearEleccion`, bloqueo de envíos repetidos y confirmación después de la respuesta del servicio. El listado y los totales se vuelven a consultar tras guardar.
 - Navegación por fragmentos `#elecciones`, `#candidaturas` y `#padron`, diseño adaptable, controles etiquetados y formulario modal operable con teclado.
 
-No hay registros, contadores o respuestas simulados en el código. Los datos mostrados son los persistidos por SIGAPE, incluidos sus registros académicos sintéticos existentes. La interfaz no crea datos al abrirse. Las inscripciones no muestran identidad ni datos personales.
+En estas tres pantallas no hay respuestas ni contadores sustituidos por ejemplos locales. Los datos mostrados son los persistidos por SIGAPE, incluidos sus registros académicos sintéticos existentes. La interfaz no crea datos al abrirse. Las inscripciones no muestran identidad ni datos personales. Un error al actualizar elimina los totales anteriores para no presentarlos como actuales.
 
 Los códigos de estado y las opciones de formulario proceden del contrato `compartido/contratos/graphql/esquema.graphql`. La lógica y la validación de negocio permanecen en los microservicios. Las referencias no disponibles se indican sin inventar nombres. Si no hay conexión, el listado informa el error y permite reintentar; no sustituye respuestas por datos de ejemplo.
 
@@ -28,20 +42,32 @@ El frontend es el contenedor permanente número 15, conectado únicamente a `red
 
 Salud local: `frontend:3000/salud`; salud pública: `/api/v1/salud/frontend`. Este healthcheck verifica el servidor estático; la disponibilidad de los servicios de datos se comprueba en el BFF y en la prueba funcional.
 
-Para desarrollo local con Node.js 24 y el Compose principal activo:
+Para desarrollo local con Node.js 24 o superior:
 
 ```sh
 npm ci --prefix frontend --ignore-scripts
 npm run desarrollar --prefix frontend
 ```
 
-Vite envía `/graphql` al NGINX de `localhost:8080` durante el desarrollo. La compilación de producción utiliza rutas relativas del mismo origen, sin variables sensibles:
+La demostración y la guía funcionan sin backend. Para las pantallas de gestión se necesita el Compose principal activo: Vite envía `/graphql` al NGINX de `localhost:8080`. La compilación de producción utiliza rutas relativas del mismo origen, sin variables sensibles:
 
 ```sh
 npm run compilar --prefix frontend
 ```
 
 No se incluyen `.env`, dependencias de prueba, fuentes ni secretos en la imagen final; solo la salida estática y la configuración de NGINX.
+
+## Prueba aislada del frontend
+
+Con Vite activo, ejecutar:
+
+```sh
+npm run probar-interfaz --prefix frontend
+```
+
+Requiere Chromium de Playwright instalado. Puede indicarse otro ejecutable compatible mediante `CHROMIUM_EJECUTABLE=/ruta/al/navegador`. `URL_BASE` permite probar otra dirección y `EVIDENCIA_FRONTEND` seleccionar dónde guardar capturas y resultados.
+
+Esta prueba intercepta GraphQL únicamente dentro del navegador de pruebas. Verifica filtros, porcentajes, detalles, foco, animaciones, estados de carga y error, creación con una mutation y adaptación de 320 a 1440 px. No escribe en servicios ni comprueba persistencia real. La evidencia se guarda por defecto en `/tmp/sigape-rediseno-*`.
 
 ## Prueba real de navegador
 
@@ -54,7 +80,7 @@ sh frontend/pruebas/ejecutar.sh
 
 El guion usa Chromium real en la imagen oficial Playwright 1.56.1, coincidente con la dependencia fijada. Requiere Docker con red del anfitrión en Linux y acceso a `localhost:8080`. Monta las pruebas y sus dependencias en lectura; no monta el socket Docker ni los archivos de entorno. No es un servicio permanente.
 
-La prueba navega las tres secciones, contrasta listados con las API REST reales, prueba paginación y filtros cuando hay datos, crea una elección con el formulario, verifica una sola mutation y confirma su persistencia mediante REST y recarga del navegador. También comprueba búsqueda, pérdida real de conectividad del navegador, recuperación y una vista móvil de 390 px. No intercepta respuestas ni usa mocks.
+La prueba entra directamente a `#elecciones`, navega las tres secciones de gestión, contrasta listados con las API REST reales, prueba paginación y filtros cuando hay datos, crea una elección con el formulario, verifica una sola mutation y confirma su persistencia mediante REST y recarga del navegador. También comprueba búsqueda, pérdida real de conectividad del navegador, recuperación y una vista móvil de 390 px. No intercepta respuestas ni usa mocks.
 
 También se puede ejecutar Chromium headless localmente, sin instalar paquetes del sistema, cuando sus bibliotecas ya están disponibles:
 
@@ -71,4 +97,4 @@ Pendientes: autenticación y autorización coordinadas con los servicios, aproba
 
 Referencias: [React DOM](https://react.dev/reference/react-dom/client), [ejecución Playwright en Docker](https://playwright.dev/docs/docker).
 
-Ejecución verificada y evidencia: [resultados de la prueba real](pruebas/resultados-pruebas.md).
+Evidencia anterior: [resultados de la prueba real](pruebas/resultados-pruebas.md). Para el rediseño, consultar [validación de la interfaz](pruebas/validacion-rediseno.md); la prueba real debe repetirse con Docker activo.

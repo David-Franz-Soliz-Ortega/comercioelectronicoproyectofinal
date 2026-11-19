@@ -1,0 +1,939 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elecciones y padrón electoral · SIGAPE</title>
+<style>
+  :root {
+    --bg: #f2f6f4;
+    --paper: #ffffff;
+    --ink: #142b26;
+    --muted: #5d726b;
+    --soft: #7b8d87;
+    --line: #d5e1dc;
+    --green: #17624f;
+    --green-dark: #0d3d32;
+    --green-soft: #e8f3ee;
+    --blue: #235c7e;
+    --blue-soft: #eaf3f8;
+    --amber: #9a641c;
+    --amber-soft: #fbf3e6;
+    --violet: #4a4c8f;
+    --violet-soft: #eeeefb;
+    --red: #a62a20;
+    --red-soft: #fbeceb;
+    --shadow: 0 12px 34px rgba(20, 43, 38, .07);
+    --radius: 20px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 10% 0%, rgba(23, 98, 79, .08), transparent 30rem),
+      var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  a { color: var(--green); text-underline-offset: 3px; }
+  a:hover { color: var(--green-dark); }
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  code {
+    background: #edf3f0;
+    border: 1px solid #dce7e2;
+    border-radius: 6px;
+    padding: .08em .35em;
+    font-size: .92em;
+  }
+  pre {
+    margin: 16px 0;
+    padding: 18px 20px;
+    overflow-x: auto;
+    border: 1px solid #d7e4de;
+    border-left: 4px solid var(--green);
+    border-radius: 12px;
+    background: #f8fbf9;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 62px 24px 58px;
+    color: #fff;
+    background:
+      radial-gradient(circle at 82% 10%, rgba(151, 214, 187, .22), transparent 24rem),
+      radial-gradient(circle at 6% 90%, rgba(255, 255, 255, .09), transparent 20rem),
+      linear-gradient(135deg, var(--green-dark), var(--green) 62%, #1f735e);
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    right: -80px;
+    bottom: -130px;
+    width: 360px;
+    height: 360px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 50%;
+    box-shadow: 0 0 0 42px rgba(255, 255, 255, .035), 0 0 0 84px rgba(255, 255, 255, .025);
+  }
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 13px;
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .08);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .badge::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #9ee6c5;
+    box-shadow: 0 0 0 4px rgba(158, 230, 197, .14);
+  }
+  .hero h1 {
+    max-width: 900px;
+    margin: 20px 0 14px;
+    font-size: clamp(2.1rem, 5vw, 3.7rem);
+    line-height: 1.08;
+    letter-spacing: -.035em;
+  }
+  .hero p.lead {
+    max-width: 760px;
+    margin: 0;
+    color: rgba(255, 255, 255, .82);
+    font-size: clamp(1rem, 2vw, 1.18rem);
+  }
+  .hero code {
+    border-color: rgba(255, 255, 255, .24);
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+  }
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 24px;
+  }
+  .hero-meta span {
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .1);
+    color: rgba(255, 255, 255, .9);
+    font-size: 12.5px;
+  }
+  .print-btn {
+    margin-top: 28px;
+    padding: 11px 18px;
+    border: 1px solid rgba(255, 255, 255, .35);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--green-dark);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .print-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0, 0, 0, .18); }
+
+  .toc {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255, 255, 255, .93);
+    backdrop-filter: blur(14px);
+  }
+  .toc-inner {
+    display: flex;
+    gap: 6px;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 10px 24px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .toc-inner::-webkit-scrollbar { display: none; }
+  .toc a {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .toc a:hover { background: var(--green-soft); color: var(--green-dark); }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 34px 24px 78px;
+  }
+  .section {
+    margin: 24px 0;
+    padding: clamp(22px, 4vw, 36px);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper);
+    box-shadow: var(--shadow);
+  }
+  .kicker {
+    margin: 0 0 8px;
+    color: var(--green);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+  }
+  .section h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: 0 0 16px;
+    font-size: clamp(1.4rem, 2.7vw, 1.95rem);
+    line-height: 1.2;
+    letter-spacing: -.02em;
+  }
+  .section h2 .num {
+    color: #a9bdb5;
+    font-size: .72em;
+    font-variant-numeric: tabular-nums;
+  }
+  .section h3 {
+    margin: 26px 0 8px;
+    font-size: 1.06rem;
+    letter-spacing: -.01em;
+  }
+  .section p:first-of-type { margin-top: 0; }
+  .section p:last-child { margin-bottom: 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: .9rem; }
+
+  .idea-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .idea {
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: linear-gradient(180deg, #fbfdfc, #f6faf8);
+  }
+  .idea strong {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--green-dark);
+    font-size: .95rem;
+  }
+  .idea span { color: var(--muted); font-size: .88rem; line-height: 1.45; }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .service {
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+  .service.elecciones {
+    border-color: #b9d8cb;
+    background: linear-gradient(145deg, #f1f9f5, #fff);
+  }
+  .service.padron {
+    border-color: #b8d4e2;
+    background: linear-gradient(145deg, #eef7fb, #fff);
+  }
+  .service-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .service-header h3 { margin: 0; font-size: 1.2rem; }
+  .service-header code { font-size: .82em; }
+  .mini-list {
+    display: grid;
+    gap: 8px;
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .mini-list li {
+    display: grid;
+    grid-template-columns: 130px minmax(0, 1fr);
+    gap: 12px;
+    padding-top: 8px;
+    border-top: 1px dashed #dce7e2;
+    font-size: .9rem;
+  }
+  .mini-list li:first-child { border-top: 0; padding-top: 0; }
+  .mini-list b { color: var(--muted); font-weight: 600; }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    white-space: nowrap;
+  }
+  .pill.green { background: var(--green-soft); color: var(--green); }
+  .pill.blue { background: var(--blue-soft); color: var(--blue); }
+  .pill.amber { background: var(--amber-soft); color: var(--amber); }
+  .pill.violet { background: var(--violet-soft); color: var(--violet); }
+  .pill.red { background: var(--red-soft); color: var(--red); }
+
+  .diagram {
+    margin-top: 18px;
+    padding: 10px;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #fbfdfc;
+  }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 22px;
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: .86rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { width: 26px; height: 0; border-top: 2px solid #7b8d87; }
+  .legend i.green { border-color: var(--green); }
+  .legend i.blue { border-color: var(--blue); border-top-style: dashed; }
+
+  .callout {
+    margin: 18px 0;
+    padding: 15px 18px;
+    border-left: 4px solid var(--green);
+    border-radius: 0 12px 12px 0;
+    background: var(--green-soft);
+    color: #21483d;
+  }
+  .callout.warn {
+    border-color: #c58b2f;
+    background: #fff8ec;
+    color: #6b4b18;
+  }
+  .callout strong { color: inherit; }
+
+  .table-wrap { margin-top: 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: .91rem; }
+  th, td { padding: 11px 13px; border-bottom: 1px solid #e4ede9; text-align: left; vertical-align: top; }
+  th { background: #f0f7f4; color: #31564a; font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: #fbfdfc; }
+  td code { font-size: .87em; }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+    counter-reset: paso;
+  }
+  .step {
+    position: relative;
+    padding: 16px 16px 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #fbfdfc;
+  }
+  .step::before {
+    counter-increment: paso;
+    content: counter(paso);
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    margin-bottom: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .step strong { display: block; margin-bottom: 4px; font-size: .95rem; }
+  .step span { color: var(--muted); font-size: .86rem; line-height: 1.45; }
+
+  .flow {
+    display: flex;
+    align-items: stretch;
+    gap: 9px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .flow-box {
+    flex: 1 1 150px;
+    min-width: 150px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: #fbfdfc;
+  }
+  .flow-box strong { display: block; font-size: .92rem; }
+  .flow-box small { color: var(--muted); font-size: .8rem; line-height: 1.4; }
+  .flow-arrow {
+    display: grid;
+    place-items: center;
+    flex: 0 0 22px;
+    color: #8da39b;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .limits {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+    padding: 0;
+    list-style: none;
+    counter-reset: limite;
+  }
+  .limits li {
+    position: relative;
+    padding: 15px 16px 15px 48px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: #fbfdfc;
+    font-size: .92rem;
+  }
+  .limits li::before {
+    counter-increment: limite;
+    content: counter(limite);
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    display: grid;
+    place-items: center;
+    width: 23px;
+    height: 23px;
+    border-radius: 7px;
+    background: var(--green-soft);
+    color: var(--green);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .script {
+    position: relative;
+    margin-top: 18px;
+    padding: 22px 24px 22px 58px;
+    border: 1px solid #c9dbd3;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #f1f9f5, #fff);
+    font-size: 1.02rem;
+    line-height: 1.75;
+  }
+  .script::before {
+    content: "“";
+    position: absolute;
+    top: 7px;
+    left: 18px;
+    color: #9fc9b8;
+    font: 700 58px/1 Georgia, serif;
+  }
+
+  details {
+    margin: 10px 0;
+    padding: 0 16px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fbfdfc;
+  }
+  details[open] { background: #fff; }
+  summary {
+    padding: 13px 0;
+    color: var(--green-dark);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  details p { margin: 0 0 14px; color: var(--muted); font-size: .94rem; }
+
+  .files td:first-child { width: 34%; }
+  .files a { overflow-wrap: anywhere; }
+  .footer {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 24px 50px;
+    color: var(--muted);
+    font-size: .86rem;
+    text-align: center;
+  }
+
+  @media (max-width: 900px) {
+    .idea-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 680px) {
+    .hero { padding: 44px 18px 46px; }
+    .wrap { padding: 22px 14px 50px; }
+    .section { border-radius: 16px; }
+    .grid-2, .idea-grid, .steps, .limits { grid-template-columns: 1fr; }
+    .mini-list li { grid-template-columns: 1fr; gap: 2px; }
+    .flow-arrow { display: none; }
+    .toc-inner { padding: 8px 14px; }
+  }
+
+  @media print {
+    @page { margin: 13mm; }
+    body { background: #fff; font-size: 10.5pt; }
+    .toc, .print-btn { display: none !important; }
+    .hero {
+      padding: 26px 30px;
+      border-radius: 0;
+      background: var(--green-dark) !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .hero h1 { font-size: 26pt; }
+    .hero p.lead { font-size: 11pt; }
+    .hero-meta { margin-top: 12px; }
+    .wrap { max-width: none; padding: 8px 0 0; }
+    .section {
+      margin: 14px 0;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: none;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .section h2 { font-size: 16pt; }
+    .idea-grid { grid-template-columns: repeat(3, 1fr); }
+    .diagram { overflow: visible; }
+    .diagram svg { min-width: 0; }
+    a { color: var(--green-dark); text-decoration: none; }
+    .footer { padding-bottom: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <span class="badge">SIGAPE · COM-600 · P1</span>
+    <h1>Elecciones y padrón electoral: quién usa a quién</h1>
+    <p class="lead">Explicación visual de la relación entre <code>elecciones</code> y <code>padron-electoral</code>, sus consumidores y los límites actuales del flujo electoral.</p>
+    <div class="hero-meta">
+      <span>Corte: 11/11/2026</span>
+      <span>Datos sintéticos</span>
+      <span>Sin autenticación en P1</span>
+      <span>Contratos pendientes de revisión</span>
+    </div>
+    <button class="print-btn" type="button" onclick="window.print()">Imprimir o guardar como PDF</button>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Contenido">
+  <div class="toc-inner">
+    <a href="#idea">Idea clave</a>
+    <a href="#servicios">Los dos servicios</a>
+    <a href="#mapa">Mapa de consumo</a>
+    <a href="#elegibilidad">Elegibilidad</a>
+    <a href="#consumidores">Consumidores</a>
+    <a href="#flujos">Flujos</a>
+    <a href="#limites">Límites</a>
+    <a href="#guion">Guion</a>
+    <a href="#preguntas">Preguntas</a>
+    <a href="#archivos">Archivos</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <section class="section" id="idea">
+    <p class="kicker">Resumen</p>
+    <h2><span class="num">01</span> La idea en 30 segundos</h2>
+    <div class="idea-grid">
+      <div class="idea"><strong><code>elecciones</code></strong><span>Administra los procesos electorales y su estado.</span></div>
+      <div class="idea"><strong><code>padron-electoral</code></strong><span>Administra inscripciones sintéticas y elegibilidad, sin datos personales.</span></div>
+      <div class="idea"><strong>gRPC</strong><span>Es la única llamada directa: <code>elecciones</code> consulta al padrón.</span></div>
+      <div class="idea"><strong>GraphQL + REST</strong><span>El gateway consume a ambos por REST; el frontend consume al gateway.</span></div>
+      <div class="idea"><strong><code>idEleccion</code></strong><span>En candidaturas, votación y resultados es una referencia lógica, no una llave foránea.</span></div>
+    </div>
+    <div class="callout">
+      <strong>Frase para recordar:</strong> cada servicio es dueño de su base. La relación elección-inscripción es lógica, no un <code>JOIN</code> entre bases.
+    </div>
+  </section>
+
+  <section class="section" id="servicios">
+    <p class="kicker">Los protagonistas</p>
+    <h2><span class="num">02</span> Los dos servicios principales</h2>
+    <div class="grid-2">
+      <article class="service elecciones">
+        <div class="service-header">
+          <h3><code>elecciones</code></h3>
+          <span class="pill green">PostgreSQL</span>
+        </div>
+        <p class="small muted">Gestiona el proceso electoral y verifica la existencia de la elección antes de consultar la elegibilidad.</p>
+        <ul class="mini-list">
+          <li><b>Tecnología</b><span>Node.js, TypeScript, Express</span></li>
+          <li><b>Base lógica</b><span><code>elecciones_db</code></span></li>
+          <li><b>Tabla</b><span><code>elecciones</code></span></li>
+          <li><b>Campos</b><span><code>id_eleccion</code>, <code>nombre</code>, <code>estado</code>, fechas</span></li>
+          <li><b>Estados</b><span><code>borrador</code>, <code>programada</code>, <code>en_curso</code>, <code>finalizada</code>, <code>anulada</code></span></li>
+          <li><b>REST</b><span><code>/api/v1/elecciones</code></span></li>
+          <li><b>Regla</b><span>Solo se edita o elimina en <code>borrador</code></span></li>
+          <li><b>Puerto interno</b><span><code>3000</code></span></li>
+        </ul>
+      </article>
+
+      <article class="service padron">
+        <div class="service-header">
+          <h3><code>padron-electoral</code></h3>
+          <span class="pill blue">PostgreSQL + gRPC</span>
+        </div>
+        <p class="small muted">Gestiona inscripciones sintéticas y responde si una inscripción es elegible. No guarda identidad del elector.</p>
+        <ul class="mini-list">
+          <li><b>Tecnología</b><span>Node.js, TypeScript, Express, gRPC</span></li>
+          <li><b>Base lógica</b><span><code>padron_electoral_db</code></span></li>
+          <li><b>Tabla</b><span><code>inscripciones</code></span></li>
+          <li><b>Campos</b><span><code>id_inscripcion</code>, <code>id_eleccion</code>, <code>elegible</code>, fechas</span></li>
+          <li><b>Datos personales</b><span>No guarda nombre, cédula ni identidad</span></li>
+          <li><b>REST</b><span><code>/api/v1/inscripciones</code></span></li>
+          <li><b>gRPC</b><span><code>ServicioPadron/ConsultarElegibilidad</code> en <code>:50051</code></span></li>
+          <li><b>Puerto HTTP</b><span><code>3000</code></span></li>
+        </ul>
+      </article>
+    </div>
+
+    <h3>Endpoints que conviene mostrar</h3>
+    <pre><code># Elecciones
+GET    /api/v1/elecciones
+POST   /api/v1/elecciones
+GET    /api/v1/elecciones/{idEleccion}
+PUT    /api/v1/elecciones/{idEleccion}
+DELETE /api/v1/elecciones/{idEleccion}
+
+# Ruta que integra elecciones con el padrón
+GET    /api/v1/elecciones/{idEleccion}/inscripciones/{idInscripcion}/elegibilidad
+
+# Padrón
+GET    /api/v1/inscripciones
+POST   /api/v1/inscripciones
+GET    /api/v1/inscripciones/{idInscripcion}
+PUT    /api/v1/inscripciones/{idInscripcion}
+DELETE /api/v1/inscripciones/{idInscripcion}</code></pre>
+  </section>
+
+  <section class="section" id="mapa">
+    <p class="kicker">Dependencias</p>
+    <h2><span class="num">03</span> Mapa de consumo</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 940 430" role="img" aria-labelledby="tituloMapa descMapa">
+        <title id="tituloMapa">Mapa de consumo entre frontend, gateway, elecciones, padrón y candidaturas</title>
+        <desc id="descMapa">El frontend consume el gateway por GraphQL. El gateway consume elecciones, padrón y candidaturas por REST. Elecciones consulta al padrón por gRPC.</desc>
+        <defs>
+          <marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#7b8d87"></path>
+          </marker>
+          <marker id="flechaVerde" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#17624f"></path>
+          </marker>
+        </defs>
+
+        <!-- frontend -->
+        <rect x="16" y="44" width="170" height="84" rx="14" fill="#f4f6f5" stroke="#b9c7c1" stroke-width="1.5"></rect>
+        <text x="101" y="76" text-anchor="middle" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#142b26">frontend</text>
+        <text x="101" y="96" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#5d726b">React · sin base</text>
+        <text x="101" y="113" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#7b8d87">consume /graphql</text>
+
+        <!-- gateway -->
+        <rect x="270" y="44" width="190" height="84" rx="14" fill="#eeeefb" stroke="#9a9bc9" stroke-width="1.5"></rect>
+        <text x="365" y="76" text-anchor="middle" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#2f326e">gateway-graphql</text>
+        <text x="365" y="96" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#4a4c8f">BFF · sin persistencia</text>
+        <text x="365" y="113" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#6b6da3">DataLoader por operación</text>
+
+        <!-- elecciones -->
+        <rect x="590" y="8" width="200" height="84" rx="14" fill="#e8f3ee" stroke="#5e9d86" stroke-width="1.5"></rect>
+        <text x="690" y="40" text-anchor="middle" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#0f4a3b">elecciones</text>
+        <text x="690" y="60" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#17624f">REST + gRPC</text>
+        <text x="690" y="77" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#407666">PostgreSQL: elecciones_db</text>
+
+        <!-- padron -->
+        <rect x="590" y="150" width="200" height="84" rx="14" fill="#eaf3f8" stroke="#5e91ad" stroke-width="1.5"></rect>
+        <text x="690" y="182" text-anchor="middle" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#16465f">padron-electoral</text>
+        <text x="690" y="202" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#235c7e">REST + gRPC :50051</text>
+        <text x="690" y="219" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#46758d">PostgreSQL: padrón</text>
+
+        <!-- candidaturas -->
+        <rect x="590" y="292" width="200" height="84" rx="14" fill="#fbf3e6" stroke="#c49a58" stroke-width="1.5"></rect>
+        <text x="690" y="324" text-anchor="middle" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#6b4716">candidaturas</text>
+        <text x="690" y="344" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#9a641c">REST</text>
+        <text x="690" y="361" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#8b6a3c">MongoDB · idEleccion lógico</text>
+
+        <!-- flechas -->
+        <line x1="186" y1="86" x2="262" y2="86" stroke="#7b8d87" stroke-width="2" marker-end="url(#flecha)"></line>
+        <text x="225" y="74" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#5d726b">GraphQL</text>
+
+        <line x1="460" y1="86" x2="582" y2="50" stroke="#7b8d87" stroke-width="2" marker-end="url(#flecha)"></line>
+        <text x="516" y="57" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#5d726b">REST</text>
+
+        <line x1="460" y1="86" x2="582" y2="192" stroke="#7b8d87" stroke-width="2" marker-end="url(#flecha)"></line>
+        <text x="516" y="160" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#5d726b">REST</text>
+
+        <line x1="460" y1="86" x2="582" y2="334" stroke="#7b8d87" stroke-width="2" marker-end="url(#flecha)"></line>
+        <text x="516" y="252" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#5d726b">REST</text>
+
+        <line x1="690" y1="92" x2="690" y2="142" stroke="#17624f" stroke-width="2.5" marker-end="url(#flechaVerde)"></line>
+        <text x="702" y="122" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#17624f">gRPC</text>
+
+        <text x="16" y="402" font-family="system-ui, sans-serif" font-size="11" fill="#7b8d87">La línea verde es la única integración directa entre servicios de dominio.</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i></i> REST</span>
+      <span><i class="green"></i> gRPC interno</span>
+      <span><i class="blue"></i> GraphQL navegador → BFF</span>
+    </div>
+    <div class="callout">
+      <strong>Lectura rápida:</strong> el gateway no es dueño de datos. Solo compone respuestas REST y usa DataLoader para agrupar y deduplicar llamadas.
+    </div>
+  </section>
+
+  <section class="section" id="elegibilidad">
+    <p class="kicker">Integración directa</p>
+    <h2><span class="num">04</span> Consulta de elegibilidad</h2>
+    <p>Esta es la ruta que conecta los dos servicios:</p>
+    <pre><code>GET /api/v1/elecciones/{idEleccion}/inscripciones/{idInscripcion}/elegibilidad</code></pre>
+
+    <div class="steps">
+      <div class="step"><strong>Cliente → NGINX</strong><span>La solicitud entra por la ruta pública de elecciones.</span></div>
+      <div class="step"><strong>Validar UUID</strong><span><code>elecciones</code> revisa que los identificadores sean válidos.</span></div>
+      <div class="step"><strong>Verificar elección</strong><span>Consulta <code>elecciones_db</code>. Si no existe, responde <code>404</code>.</span></div>
+      <div class="step"><strong>Llamar al padrón</strong><span>Usa gRPC con deadline de <code>1200 ms</code> por defecto.</span></div>
+      <div class="step"><strong>Buscar inscripción</strong><span>El padrón consulta su propia tabla <code>inscripciones</code>.</span></div>
+      <div class="step"><strong>Comparar elección</strong><span>Verifica que <code>id_eleccion</code> coincida con la elección recibida.</span></div>
+      <div class="step"><strong>Responder</strong><span>Devuelve <code>ELEGIBLE</code> o <code>NO_ELEGIBLE</code>.</span></div>
+      <div class="step"><strong>Traducir a HTTP</strong><span><code>elecciones</code> devuelve JSON o un error <code>application/problem+json</code>.</span></div>
+    </div>
+
+    <h3>Respuesta esperada</h3>
+    <pre><code>{
+  "idEleccion": "20000000-0000-4000-8000-000000000001",
+  "idInscripcion": "30000000-0000-4000-8000-000000000001",
+  "elegible": true,
+  "idCorrelacion": "correlacion-de-la-solicitud"
+}</code></pre>
+
+    <h3>Errores que conviene explicar</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Situación</th><th>gRPC</th><th>HTTP</th></tr></thead>
+        <tbody>
+          <tr><td>UUID inválido</td><td><code>INVALID_ARGUMENT</code></td><td><code>400</code></td></tr>
+          <tr><td>La elección no existe en <code>elecciones_db</code></td><td>No se llama al padrón</td><td><code>404</code></td></tr>
+          <tr><td>La inscripción no existe en el padrón</td><td><code>NOT_FOUND</code></td><td><code>404</code></td></tr>
+          <tr><td>La inscripción pertenece a otra elección</td><td><code>FAILED_PRECONDITION</code></td><td><code>409</code></td></tr>
+          <tr><td>El padrón no responde a tiempo</td><td><code>DEADLINE_EXCEEDED</code></td><td><code>504</code></td></tr>
+          <tr><td>El padrón no está disponible</td><td><code>UNAVAILABLE</code></td><td><code>503</code></td></tr>
+          <tr><td>El padrón no tiene capacidad</td><td><code>RESOURCE_EXHAUSTED</code></td><td><code>503</code></td></tr>
+          <tr><td>Error inesperado</td><td><code>INTERNAL</code></td><td><code>502</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <strong>Importante:</strong> el padrón no consulta la base de elecciones. Solo compara el <code>id_eleccion</code> guardado en su propia inscripción. Es <code>elecciones</code> quien verifica primero que la elección exista.
+    </div>
+  </section>
+
+  <section class="section" id="consumidores">
+    <p class="kicker">Consumidores</p>
+    <h2><span class="num">05</span> ¿Quién consume a quién?</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Consumidor</th><th>¿Usa elecciones?</th><th>¿Usa padrón?</th><th>Cómo</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>gateway-graphql</code></td><td>Sí</td><td>Sí</td><td>REST a <code>/api/v1/elecciones</code> y <code>/api/v1/inscripciones</code>. Compone con GraphQL y DataLoader.</td></tr>
+          <tr><td><code>frontend</code></td><td>Indirectamente</td><td>Indirectamente</td><td>Solo llama a <code>/graphql</code>. No accede a microservicios ni a bases.</td></tr>
+          <tr><td><code>candidaturas</code></td><td>No directamente</td><td>No</td><td>Guarda <code>idEleccion</code> como referencia. El gateway cruza candidatura con elección.</td></tr>
+          <tr><td><code>votacion</code></td><td>No directamente</td><td>No</td><td>Recibe <code>idEleccion</code> en <code>POST /api/v1/votos</code>. No valida elección ni elegibilidad.</td></tr>
+          <tr><td><code>resultados</code></td><td>No directamente</td><td>No</td><td>Agrupa eventos por <code>idEleccion</code>. No consulta la base de elecciones.</td></tr>
+          <tr><td><code>identidad</code></td><td>No</td><td>No</td><td>No participa en este flujo. La API P1 no implementa autenticación.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <strong>Matiz importante:</strong> “usar” no siempre significa “llamar”. <code>candidaturas</code>, <code>votacion</code> y <code>resultados</code> usan <code>idEleccion</code> como dato de referencia, pero no hacen peticiones a <code>elecciones</code> ni al padrón.
+    </div>
+  </section>
+
+  <section class="section" id="flujos">
+    <p class="kicker">Paso a paso</p>
+    <h2><span class="num">06</span> Tres flujos para explicar</h2>
+
+    <h3>A. Ver elecciones con sus inscripciones</h3>
+    <div class="flow">
+      <div class="flow-box"><strong>frontend</strong><small>Envía una query GraphQL a <code>/graphql</code>.</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>gateway-graphql</strong><small>Llama por REST a elecciones, padrón y candidaturas.</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>Une por idEleccion</strong><small>DataLoader agrupa y deduplica durante la operación.</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>Respuesta GraphQL</strong><small>El frontend recibe la estructura que necesita.</small></div>
+    </div>
+    <pre><code>{
+  elecciones(limite: 2) {
+    elementos {
+      idEleccion
+      nombre
+      inscripciones {
+        total
+        elementos { elegible }
+      }
+    }
+  }
+}</code></pre>
+
+    <h3>B. Consultar si una inscripción es elegible</h3>
+    <div class="flow">
+      <div class="flow-box"><strong>Cliente</strong><small>Llama a la ruta de elegibilidad.</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>elecciones</strong><small>Verifica que la elección exista en su base.</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>padron-electoral</strong><small>Busca la inscripción y compara el <code>id_eleccion</code>.</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>Respuesta</strong><small><code>elegible: true</code> o <code>elegible: false</code>.</small></div>
+    </div>
+
+    <h3>C. Registrar un voto y calcular resultados</h3>
+    <div class="flow">
+      <div class="flow-box"><strong>Cliente</strong><small><code>POST /api/v1/votos</code> con <code>Idempotency-Key</code>.</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>votacion</strong><small>Valida UUID y guarda en <code>votacion_db</code>.</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>RabbitMQ</strong><small>Publica <code>voto.registrado.v1</code>.</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>resultados</strong><small>Conteo y auditoría escriben en MongoDB.</small></div>
+    </div>
+    <div class="callout warn">
+      <strong>Ojo:</strong> <code>votacion</code> no consulta a <code>elecciones</code> ni al padrón, y todavía no valida elegibilidad. El evento actual solo lleva <code>idEleccion</code>; no lleva candidato, mesa ni identidad. <code>resultados</code> cuenta registros por elección, no hace escrutinio por candidato.
+    </div>
+  </section>
+
+  <section class="section" id="limites">
+    <p class="kicker">Transparencia</p>
+    <h2><span class="num">07</span> Límites que conviene mencionar</h2>
+    <ol class="limits">
+      <li><strong>Sin base compartida:</strong> ningún servicio consulta ni modifica la base de otro.</li>
+      <li><strong>Sin llave foránea entre servicios:</strong> <code>idEleccion</code> es una referencia lógica.</li>
+      <li><strong>El padrón no valida la existencia de la elección:</strong> eso lo hace <code>elecciones</code> antes de la llamada gRPC.</li>
+      <li><strong>Votación no valida elegibilidad:</strong> es una integración pendiente para un flujo electoral completo.</li>
+      <li><strong>Sin autenticación en P1:</strong> no hay login, JWT, roles ni OTP.</li>
+      <li><strong>Datos sintéticos:</strong> no son datos electorales reales ni habilitan un proceso oficial.</li>
+      <li><strong>Contratos pendientes:</strong> OpenAPI, gRPC, GraphQL y eventos siguen marcados como propuestas de revisión.</li>
+      <li><strong>Sin transacción entre servicios:</strong> una operación que cruza servicios no es atómica.</li>
+    </ol>
+  </section>
+
+  <section class="section" id="guion">
+    <p class="kicker">Para exponer</p>
+    <h2><span class="num">08</span> Guion corto</h2>
+    <div class="script">
+      SIGAPE separa elecciones y padrón en dos servicios con bases distintas. <code>elecciones</code> guarda el proceso electoral y <code>padron-electoral</code> guarda inscripciones sintéticas con un indicador de elegibilidad, sin datos personales. La integración directa es por gRPC: cuando se consulta la elegibilidad, <code>elecciones</code> verifica primero que la elección exista en su base y luego llama al padrón. El padrón revisa su propia inscripción y confirma que pertenezca a esa elección. El gateway GraphQL consume a ambos por REST y el frontend consume al gateway; así la interfaz no conoce la topología interna. Candidaturas, votación y resultados solo usan <code>idEleccion</code> como referencia. La limitación principal es que votación todavía no valida elegibilidad antes de registrar un voto.
+    </div>
+  </section>
+
+  <section class="section" id="preguntas">
+    <p class="kicker">Defensa</p>
+    <h2><span class="num">09</span> Preguntas probables</h2>
+    <details>
+      <summary>¿Elecciones consulta directamente la base del padrón?</summary>
+      <p>No. Usa gRPC. Cada servicio conserva su propia base y no accede a la del otro.</p>
+    </details>
+    <details>
+      <summary>¿El padrón consulta la base de elecciones?</summary>
+      <p>No. Solo compara el <code>id_eleccion</code> guardado en su propia inscripción con el identificador recibido.</p>
+    </details>
+    <details>
+      <summary>¿Dónde se valida que la elección exista?</summary>
+      <p>En <code>elecciones</code>, antes de llamar al padrón. Si no existe, responde <code>404</code> y no hace la llamada gRPC.</p>
+    </details>
+    <details>
+      <summary>¿El gateway es dueño de los datos?</summary>
+      <p>No. Es un BFF sin persistencia: agrega respuestas REST y aplica DataLoader durante cada operación.</p>
+    </details>
+    <details>
+      <summary>¿Votación ya valida elegibilidad?</summary>
+      <p>No. Hoy solo registra un voto sintético con <code>idEleccion</code> y lo publica por RabbitMQ. Esa validación queda pendiente.</p>
+    </details>
+    <details>
+      <summary>¿Qué pasa si el padrón está caído o lento?</summary>
+      <p><code>elecciones</code> traduce <code>UNAVAILABLE</code> a <code>503</code> y <code>DEADLINE_EXCEEDED</code> a <code>504</code>. El plazo por defecto es de 1200 ms.</p>
+    </details>
+  </section>
+
+  <section class="section" id="archivos">
+    <p class="kicker">Referencias</p>
+    <h2><span class="num">10</span> Archivos clave</h2>
+    <div class="table-wrap">
+      <table class="files">
+        <thead><tr><th>Tema</th><th>Archivo</th></tr></thead>
+        <tbody>
+          <tr><td>API y ruta de elegibilidad</td><td><a href="../microservicios/elecciones/src/servidor.ts"><code>microservicios/elecciones/src/servidor.ts</code></a></td></tr>
+          <tr><td>Cliente gRPC de elecciones</td><td><a href="../microservicios/elecciones/src/cliente-padron.ts"><code>microservicios/elecciones/src/cliente-padron.ts</code></a></td></tr>
+          <tr><td>API REST del padrón</td><td><a href="../microservicios/padron-electoral/src/servidor.ts"><code>microservicios/padron-electoral/src/servidor.ts</code></a></td></tr>
+          <tr><td>Servidor gRPC del padrón</td><td><a href="../microservicios/padron-electoral/src/servidor-grpc.ts"><code>microservicios/padron-electoral/src/servidor-grpc.ts</code></a></td></tr>
+          <tr><td>Contrato gRPC</td><td><a href="../compartido/contratos/grpc/padron-v1.proto"><code>compartido/contratos/grpc/padron-v1.proto</code></a></td></tr>
+          <tr><td>Agregación GraphQL y DataLoader</td><td><a href="../gateway/graphql/src/agregacion.js"><code>gateway/graphql/src/agregacion.js</code></a></td></tr>
+          <tr><td>Contrato GraphQL</td><td><a href="../compartido/contratos/graphql/esquema.graphql"><code>compartido/contratos/graphql/esquema.graphql</code></a></td></tr>
+          <tr><td>Rutas públicas de NGINX</td><td><a href="../infraestructura/docker/nginx.conf"><code>infraestructura/docker/nginx.conf</code></a></td></tr>
+          <tr><td>Servicios y variables de Compose</td><td><a href="../docker-compose.yml"><code>docker-compose.yml</code></a></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout warn">
+      <strong>Nota sobre la documentación:</strong> <code>docs/arquitectura.md</code> es un documento histórico. Dice que el gateway, el frontend, votación y resultados no están implementados, pero el código y <code>docker-compose.yml</code> ya los incluyen. Para la presentación conviene usar este documento, los README de cada servicio y el Compose actual.
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  SIGAPE · COM-600 · Explicación de elecciones y padrón electoral · Datos sintéticos para uso académico.<br>
+  Versión de texto: <a href="explicacion-elecciones-padron-electoral.md">explicacion-elecciones-padron-electoral.md</a>
+</footer>
+
+<script>
+  window.addEventListener('beforeprint', () => {
+    document.querySelectorAll('details').forEach((detalle) => { detalle.open = true; });
+  });
+</script>
+
+</body>
+</html>

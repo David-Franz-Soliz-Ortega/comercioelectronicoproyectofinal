@@ -7,7 +7,7 @@ const base = process.env.URL_BASE ?? 'http://localhost:8080';
 const carpeta = process.env.EVIDENCIA_FRONTEND ?? '/tmp/sigape-frontend-' + randomUUID();
 await mkdir(carpeta, { recursive: true });
 const navegador = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
-const contexto = await navegador.newContext({ viewport: { width: 1440, height: 1100 }, locale: 'es-VE' });
+const contexto = await navegador.newContext({ viewport: { width: 1440, height: 1100 }, locale: 'es-BO' });
 const pagina = await contexto.newPage();
 const errores = [];
 const solicitudes = [];
@@ -36,10 +36,10 @@ async function esperarListado(nombre) {
   assert.equal(await pagina.getByRole('alert').count(), 0, 'No debe haber errores en la consulta real');
 }
 try {
-  await pagina.goto(base, { waitUntil: 'networkidle' });
+  await pagina.goto(base + '/#elecciones', { waitUntil: 'networkidle' });
   await esperarListado('Elecciones');
   const elecciones = await pedir('/api/v1/elecciones?limite=10');
-  const formatear = valor => new Intl.NumberFormat('es-VE').format(valor);
+  const formatear = valor => new Intl.NumberFormat('es-BO').format(valor);
   assert.equal(await pagina.getByTestId('total-elecciones').innerText(), formatear(elecciones.total));
   if (elecciones.elementos.length) await pagina.getByRole('cell', { name: elecciones.elementos[0].nombre, exact: false }).first().waitFor();
   await pagina.screenshot({ path: carpeta + '/inicio.png', fullPage: true });
@@ -124,6 +124,7 @@ try {
   await pagina.setViewportSize({ width: 390, height: 844 });
   await pagina.screenshot({ path: carpeta + '/movil.png', fullPage: true });
   assert.ok(await pagina.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'El diseño no debe desbordar horizontalmente');
+  await pagina.getByRole('button', { name: 'Abrir menú', exact: true }).click();
   await pagina.getByRole('button', { name: 'Candidaturas', exact: true }).click();
   await esperarListado('Candidaturas');
   correcto('Interfaz móvil de 390 px navegable, sin desbordamiento de la página');
