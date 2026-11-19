@@ -11,10 +11,12 @@ export default function Sesion({ children }) {
   const [error, cambiarError] = useState('');
   const [usuario, cambiarUsuario] = useState('');
   const [contrasena, cambiarContrasena] = useState('');
+  const [mostrarContrasena, cambiarMostrarContrasena] = useState(false);
 
   function aceptar(datos) {
     establecerOrganizacion(datos?.idOrganizacion);
     cambiarSesion(datos);
+    cambiarMostrarContrasena(false);
   }
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function Sesion({ children }) {
     return (
       <main className="acceso">
         <form className="formulario-acceso-tuvoto" onSubmit={evento => {
-          evento.preventDefault(); const clave = contrasena; cambiarContrasena('');
+          evento.preventDefault(); const clave = contrasena; cambiarContrasena(''); cambiarMostrarContrasena(false);
           ejecutar(() => iniciarSesion(usuario, clave));
         }}>
           <div className="cabecera-login">
@@ -79,10 +81,18 @@ export default function Sesion({ children }) {
               Usuario
               <input id="usuario" autoComplete="username" value={usuario} onChange={e => cambiarUsuario(e.target.value)} required disabled={ocupado} />
             </label>
-            <label htmlFor="contrasena">
-              Contraseña
-              <input id="contrasena" type="password" autoComplete="current-password" value={contrasena} onChange={e => cambiarContrasena(e.target.value)} required disabled={ocupado} />
-            </label>
+            <div className="campo-clave-admin">
+              <label htmlFor="contrasena">Contraseña</label>
+              <div className="entrada-clave-admin">
+                <input id="contrasena" type={mostrarContrasena ? 'text' : 'password'} autoComplete="current-password" value={contrasena} onChange={e => cambiarContrasena(e.target.value)} required disabled={ocupado} />
+                <button type="button" className="boton secundario" disabled={ocupado}
+                  aria-label={mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-controls="contrasena" aria-pressed={mostrarContrasena}
+                  onClick={() => cambiarMostrarContrasena(anterior => !anterior)}>
+                  {mostrarContrasena ? 'Ocultar' : 'Mostrar'}
+                </button>
+              </div>
+            </div>
           </div>
           {error && <p className="aviso" role="alert">{error}</p>}
           <button className="boton primario" disabled={ocupado} style={{ width: '100%', marginTop: 8 }}>

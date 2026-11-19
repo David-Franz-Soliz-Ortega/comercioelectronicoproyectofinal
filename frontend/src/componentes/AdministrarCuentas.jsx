@@ -4,13 +4,14 @@ import { IconoUsuario } from './Iconos.jsx';
 
 const rolesAsignables = ['ADMINISTRADOR', 'OPERADOR', 'AUDITOR'];
 
-export default function AdministrarCuentas({ organizaciones, cuentas, idActual, alGuardar, esGlobal = true }) {
-  const [accion, cambiarAccion] = useState(esGlobal ? 'organizacion' : 'usuario');
+export default function AdministrarCuentas({ organizaciones, cuentas, idActual, alGuardar, esGlobal = true, organizacionInicial = '', accionInicial, rolInicial = 'OPERADOR', alCrearOrganizacion }) {
+  const [accion, cambiarAccion] = useState(accionInicial ?? (organizacionInicial ? 'usuario' : esGlobal ? 'organizacion' : 'usuario'));
   const [nombre, cambiarNombre] = useState('');
-  const [organizacion, cambiarOrganizacion] = useState('');
+  const [organizacion, cambiarOrganizacion] = useState(organizacionInicial);
   const [usuario, cambiarUsuario] = useState('');
   const [clave, cambiarClave] = useState('');
-  const [rol, cambiarRol] = useState(esGlobal ? 'ADMINISTRADOR' : 'OPERADOR');
+  const [mostrarClave, cambiarMostrarClave] = useState(false);
+  const [rol, cambiarRol] = useState(rolInicial);
   const [cuenta, cambiarCuenta] = useState('');
   const [activa, cambiarActiva] = useState(true);
   const [ocupado, cambiarOcupado] = useState(false);
@@ -25,9 +26,11 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
     cambiarMensaje('');
     const contrasena = clave;
     cambiarClave('');
+    cambiarMostrarClave(false);
     try {
       if (accion === 'organizacion') {
-        await solicitarRest('/organizaciones', { metodo: 'POST', datos: { nombre: nombre.trim() } });
+        const creada = await solicitarRest('/organizaciones', { metodo: 'POST', datos: { nombre: nombre.trim() } });
+        alCrearOrganizacion?.(creada);
       } else if (accion === 'editar-organizacion') {
         await solicitarRest('/organizaciones/' + encodeURIComponent(organizacion), { metodo: 'PUT', datos: { nombre: nombre.trim(), activa } });
       } else if (accion === 'usuario') {
@@ -35,7 +38,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
       } else {
         await solicitarRest('/usuarios/' + encodeURIComponent(cuenta) + '/roles', { metodo: 'POST', datos: { idOrganizacion: organizacion, rol, revocar: accion === 'revocar' } });
       }
-      cambiarMensaje('Operación confirmada por identidad.');
+      cambiarMensaje(accion === 'usuario' ? 'Cuenta creada. Si es operador, continúa asignándole sus mesas.' : accion === 'revocar' ? 'Rol revocado correctamente.' : 'Cambios guardados correctamente.');
       cambiarNombre('');
       cambiarUsuario('');
       alGuardar();
@@ -57,7 +60,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
 
       <div style={{ padding: 24 }}>
         <p style={{ margin: '0 0 20px', color: 'var(--secundario)', fontSize: 13 }}>
-          Administración autorizada. Cada operación se valida en identidad; no concede permisos electorales al administrador global.
+          Crea una cuenta por persona. Elige Operador de actas para quienes registrarán las mesas; Auditor permite consultar sin modificar.
         </p>
 
         <form className="formulario-simple" onSubmit={guardar}>
@@ -72,7 +75,8 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
                 cambiarError('');
                 cambiarMensaje('');
                 cambiarClave('');
-                cambiarOrganizacion('');
+                cambiarMostrarClave(false);
+                cambiarOrganizacion(organizacionInicial);
                 cambiarCuenta('');
                 cambiarNombre('');
               }}
@@ -158,19 +162,32 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
                   onChange={e => cambiarUsuario(e.target.value)}
                 />
               </label>
-              <label htmlFor="clave-admin">
-                Contraseña privada (12 a 72 bytes UTF-8)
-                <input
-                  id="clave-admin"
-                  type="password"
-                  required
-                  minLength="12"
-                  autoComplete="new-password"
-                  value={clave}
-                  disabled={ocupado}
-                  onChange={e => cambiarClave(e.target.value)}
-                />
-              </label>
+              <div className="campo-clave-admin">
+                <label htmlFor="clave-admin">Contraseña privada (12 a 72 bytes UTF-8)</label>
+                <div className="entrada-clave-admin">
+                  <input
+                    id="clave-admin"
+                    type={mostrarClave ? 'text' : 'password'}
+                    required
+                    minLength="12"
+                    autoComplete="new-password"
+                    value={clave}
+                    disabled={ocupado}
+                    onChange={e => cambiarClave(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="boton secundario"
+                    aria-label={mostrarClave ? 'Ocultar contraseña de la nueva cuenta' : 'Mostrar contraseña de la nueva cuenta'}
+                    aria-controls="clave-admin"
+                    aria-pressed={mostrarClave}
+                    disabled={ocupado}
+                    onClick={() => cambiarMostrarClave(anterior => !anterior)}
+                  >
+                    {mostrarClave ? 'Ocultar' : 'Mostrar'}
+                  </button>
+                </div>
+              </div>
             </>
           )}
 

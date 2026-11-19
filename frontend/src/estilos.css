@@ -1271,3 +1271,55 @@ svg { flex-shrink: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Contraseña de cuentas nuevas: visible solo por decisión de quien la escribe. */
+.campo-clave-admin { display: grid; gap: 8px; min-width: 0; }
+.entrada-clave-admin { display: flex; gap: 8px; min-width: 0; }
+.entrada-clave-admin input { flex: 1; width: 100%; min-width: 0; }
+.entrada-clave-admin button { flex-shrink: 0; min-height: 44px; }
+
+/* Preparación guiada: conserva las tarjetas y colores del panel nuevo. */
+.guia-eleccion, .contexto-eleccion, .revision-publicacion, .cuentas-preparacion { padding: 22px; margin-bottom: 20px; }
+.cabecera-guia-eleccion, .contexto-eleccion { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+.guia-eleccion h2, .revision-publicacion h2, .cuentas-preparacion h2 { font-size: 18px; color: var(--azul-oscuro); margin: 0 0 8px; }
+.guia-eleccion p, .revision-publicacion p, .cuentas-preparacion p { font-size: 13px; color: var(--secundario); line-height: 1.6; }
+.pasos-eleccion { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); list-style: none; gap: 8px; margin: 20px 0 12px; padding: 0; }
+.pasos-eleccion li { min-width: 0; }
+.pasos-eleccion button { width: 100%; height: 100%; display: flex; align-items: center; gap: 8px; padding: 12px 8px; background: #F8FAFC; border: 1px solid var(--borde); border-radius: 10px; color: var(--azul-oscuro); text-align: left; font-size: 12px; }
+.pasos-eleccion button:hover:enabled { border-color: var(--azul-principal); background: var(--azul-claro); }
+.pasos-eleccion button:focus-visible { outline: 3px solid var(--azul-principal); outline-offset: 2px; }
+.pasos-eleccion strong, .pasos-eleccion small { display: block; overflow-wrap: anywhere; }
+.pasos-eleccion small { font-size: 10px; color: var(--secundario); margin-top: 4px; }
+.numero-paso { background: var(--azul-claro); border-radius: 50%; width: 24px; height: 24px; display: grid; place-items: center; flex-shrink: 0; font-weight: 700; }
+.pasos-eleccion .paso-con-datos { border-color: #A7DCC9; background: #F0FDF7; }
+.ayuda-siguiente-paso { margin: 0; padding: 12px; background: var(--azul-claro); border-radius: 8px; }
+.contexto-eleccion label { display: grid; gap: 8px; flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--azul-oscuro); }
+.contexto-eleccion select { width: 100%; max-width: 100%; padding: 10px; border: 1px solid var(--borde); border-radius: 8px; background: white; }
+.formularios-preparacion-mesas { display: grid; gap: 18px; }
+.confirmacion-preparacion { display: flex !important; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--texto); margin: 14px 0; }
+.confirmacion-preparacion input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--azul-principal); }
+.lista-mesas-preparacion { padding: 0; list-style: none; display: grid; gap: 10px; }
+.lista-mesas-preparacion li { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px; border: 1px solid var(--borde); border-radius: 8px; }
+.revision-publicacion dl { display: grid; grid-template-columns: minmax(100px, 1fr) 2fr; gap: 10px; font-size: 14px; }
+.revision-publicacion dt { color: var(--secundario); }.revision-publicacion dd { margin: 0; overflow-wrap: anywhere; font-weight: 600; }
+.tabla-preparacion-scroll { overflow-x: auto; }
+@media (max-width: 1200px) { .pasos-eleccion { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .pasos-eleccion { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .guia-eleccion, .contexto-eleccion, .revision-publicacion, .cuentas-preparacion { padding: 16px; }
+  .contexto-eleccion { flex-direction: column; align-items: stretch; }
+  .cabecera-guia-eleccion > button { width: 100%; }
+}
+
+/* El menú conserva sus colores; los estados se muestran dentro de la guía. */
+.control-guia-lateral { border: 1px solid #FFFFFF30; margin-bottom: 8px; }
+.control-guia-lateral small { margin-left: auto; font-size: 10px; color: #CBD5E1; }
+.control-guia-lateral.guia-activada { background: var(--azul-principal); border-color: #93C5FD; color: #FFFFFF; }
+.control-guia-lateral.guia-activada small { color: #DBEAFE; }
+.item-menu-lateral.activo { outline: 2px solid #93C5FD; outline-offset: -2px; }
+.pasos-eleccion .paso-con-datos { background: #DCFCE7; border-color: #22C55E; color: #14532D; }
+.pasos-eleccion .paso-con-datos small { color: #166534; }
+.paso-con-datos .numero-paso { background: #BBF7D0; color: #14532D; }
+.pasos-eleccion .paso-pendiente, .pasos-eleccion .paso-por-revisar { background: #FFFBEB; border-color: #F59E0B; color: #78350F; }
+.pasos-eleccion .paso-pendiente small, .pasos-eleccion .paso-por-revisar small { color: #92400E; }
+.paso-pendiente .numero-paso, .paso-por-revisar .numero-paso { background: #FDE68A; color: #78350F; }

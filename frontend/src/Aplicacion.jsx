@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Sesion, { ControlesSesion } from './componentes/Sesion.jsx';
 import AdministrarCuentas from './componentes/AdministrarCuentas.jsx';
+import GuiaEleccion from './componentes/GuiaEleccion.jsx';
+import { prepararEleccion } from './api/preparacionEleccion.js';
 import { consultarGraphql } from './api/clienteGraphql.js';
 import { solicitarRest } from './api/clienteRest.js';
 import { crearIdentificador } from './api/identificadores.js';
@@ -158,9 +160,6 @@ function PortalPublico() {
             <h2 style={{ color: 'var(--azul-oscuro)', marginBottom: 8 }}>
               {error ? 'No se pudo consultar la elección' : 'Todavía no hay una elección publicada'}
             </h2>
-            <p style={{ color: 'var(--secundario)', fontSize: 13 }}>
-              No se muestran cifras sin una respuesta válida de las APIs.
-            </p>
           </section>
         ) : (
           <>
@@ -380,6 +379,13 @@ function PanelPrivado(estado) {
    ========================================================================= */
 function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
   const [pestana, setPestana] = useState('resumen');
+  const [mostrarGuia, setMostrarGuia] = useState(false);
+  const [cargandoDatos, setCargandoDatos] = useState(false);
+  const [creandoProceso, setCreandoProceso] = useState(false);
+  const [modoCuenta, setModoCuenta] = useState('usuario');
+  const [asignacionesConfirmadas, setAsignacionesConfirmadas] = useState(0);
+  const [catalogoConfirmado, setCatalogoConfirmado] = useState(false);
+  const [publicacionConfirmada, setPublicacionConfirmada] = useState(false);
   const [organizaciones, setOrganizaciones] = useState([]);
   const [cuentas, setCuentas] = useState([]);
   const [org, setOrg] = useState(sesion.idOrganizacion ?? '');
@@ -396,13 +402,32 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
   const [asignacion, setAsignacion] = useState({ idMesa: '', idUsuario: '' });
 
   const actual = procesos.find(p => p.id === id);
+  const bloqueado = ocupado || ocupadoSesion || cargandoDatos;
+  const administradorGlobal = sesion.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null);
+  const preparacion = prepararEleccion({ organizacion: org, proceso: actual, cuentas, asignacionesConfirmadas });
+  function irPaso(paso) {
+    if (paso.id === 'organizacion') { setModoCuenta(administradorGlobal ? 'organizacion' : 'usuario'); setPestana('usuarios'); if (!administradorGlobal) setError('Selecciona tu organización en el selector superior.'); return; }
+    if (!org) { setError('Primero selecciona o crea una organización.'); setModoCuenta(administradorGlobal ? 'organizacion' : 'usuario'); setPestana('usuarios'); return; }
+    if (!actual && !['eleccion', 'operadores'].includes(paso.id)) { setCreandoProceso(true); setPestana('configuracion'); return; }
+    if (paso.id === 'operadores') setModoCuenta('usuario');
+    if (paso.id === 'eleccion') setCreandoProceso(!actual);
+    setError(''); setPestana(paso.destino);
+  }
+  useEffect(() => {
+    setAsignacion({ idMesa: '', idUsuario: '' }); setAsignacionesConfirmadas(0);
+    setCatalogoConfirmado(false); setPublicacionConfirmada(false);
+    setCandidato({ nombre: '', foto: '' }); setMesa({ codigo: '', unidad: '' });
+  }, [org, id]);
 
   const pedir = (ruta, op = {}) => solicitarRest(ruta, { ...op, organizacion: org });
 
   useEffect(() => {
     let v = true;
     solicitarRest('/organizaciones')
-      .then(d => { if (v) setOrganizaciones(d.elementos); })
+      .then(d => { if (v) { setOrganizaciones(d.elementos);
+        const activas = d.elementos.filter(o => o.activa);
+        setOrg(anterior => anterior || (activas.length === 1 ? activas[0].idOrganizacion : ''));
+      } })
       .catch(e => { if (v) setError(e.message); });
     return () => { v = false; };
   }, [version]);
@@ -411,8 +436,8 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
     let v = true;
     setProcesos([]);
     setCuentas([]);
-    if (!org) return;
-    establecerOrganizacion(org);
+    if (!org) { establecerOrganizacion(''); setCargandoDatos(false); return; }
+    setCargandoDatos(true); establecerOrganizacion(org);
     Promise.all([pedir('/configuracion/procesos'), pedir('/usuarios')])
       .then(([p, c]) => {
         if (v) {
@@ -422,18 +447,19 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
             ? anterior : (p.elementos.find(item => item.actual) || p.elementos[0])?.id ?? '');
         }
       })
-      .catch(e => { if (v) setError(e.message); });
+      .catch(e => { if (v) setError(e.message); })
+      .finally(() => { if (v) setCargandoDatos(false); });
     return () => { v = false; };
   }, [org, version]);
 
-  async function guardar(operacion) {
-    if (ocupado) return;
+  async function guardar(operacion, confirmacion = 'Cambios guardados correctamente.') {
+    if (bloqueado) return;
     setOcupado(true);
     setError('');
     setMensaje('');
     try {
       await operacion();
-      setMensaje('Operación confirmada por la API.');
+      setMensaje(confirmacion);
       setVersion(v => v + 1);
     } catch (e) {
       setError(e.message);
@@ -456,7 +482,14 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
         </div>
 
         <nav className="navegacion-lateral">
+          <button type="button" className={`item-menu-lateral control-guia-lateral ${mostrarGuia ? 'guia-activada' : ''}`}
+            aria-label={mostrarGuia ? 'Desactivar guía paso a paso' : 'Activar guía paso a paso'}
+            aria-pressed={mostrarGuia} aria-expanded={mostrarGuia} aria-controls="guia-preparacion-opcional"
+            onClick={() => setMostrarGuia(anterior => !anterior)}>
+            <IconoInfo tamano={18}/><span>Guía</span><small>{mostrarGuia ? 'Activada' : 'Activar'}</small>
+          </button>
           <button
+            disabled={bloqueado}
             className={`item-menu-lateral ${pestana === 'resumen' ? 'activo' : ''}`}
             onClick={() => setPestana('resumen')}
           >
@@ -464,33 +497,39 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
             <span>Resumen</span>
           </button>
           <button
+            disabled={bloqueado}
             className={`item-menu-lateral ${pestana === 'configuracion' ? 'activo' : ''}`}
-            onClick={() => setPestana('configuracion')}
+            onClick={() => irPaso({ id: 'eleccion', destino: 'configuracion' })}
           >
             <IconoEngranaje tamano={18} />
-            <span>Configuración</span>
+            <span>Elección</span>
           </button>
           <button
+            disabled={bloqueado}
             className={`item-menu-lateral ${pestana === 'candidatos' ? 'activo' : ''}`}
-            onClick={() => setPestana('candidatos')}
+            onClick={() => irPaso({ id: 'candidatos', destino: 'candidatos' })}
           >
             <IconoUsuarios tamano={18} />
             <span>Candidatos</span>
           </button>
           <button
+            disabled={bloqueado}
             className={`item-menu-lateral ${pestana === 'mesas' ? 'activo' : ''}`}
-            onClick={() => setPestana('mesas')}
+            onClick={() => irPaso({ id: 'mesas', destino: 'mesas' })}
           >
             <IconoUrna tamano={18} />
             <span>Mesas</span>
           </button>
           <button
+            disabled={bloqueado}
             className={`item-menu-lateral ${pestana === 'usuarios' ? 'activo' : ''}`}
-            onClick={() => setPestana('usuarios')}
+            onClick={() => { setModoCuenta('usuario'); setPestana('usuarios'); }}
           >
             <IconoUsuario tamano={18} />
             <span>Usuarios</span>
           </button>
+          <button disabled={bloqueado} className={`item-menu-lateral ${pestana === 'asignaciones' ? 'activo' : ''}`} onClick={() => irPaso({ id: 'asignaciones', destino: 'asignaciones' })}><IconoUsuario tamano={18}/><span>Asignar operadores</span></button>
+          <button disabled={bloqueado} className={`item-menu-lateral ${pestana === 'publicacion' ? 'activo' : ''}`} onClick={() => irPaso({ id: 'publicacion', destino: 'publicacion' })}><IconoCheck tamano={18}/><span>Publicación</span></button>
         </nav>
 
         <div className="pie-lateral-privado">
@@ -507,7 +546,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
           <div className="titulo-seccion-privada">
             <h1>Administración de la elección</h1>
             <div className="subtitulo-seccion-privada">
-              Elección actual: <strong>{actual?.nombre ?? 'Selecciona una organización y proceso'}</strong>
+              Elección seleccionada: <strong>{actual?.nombre ?? 'Selecciona una organización y proceso'}</strong>
             </div>
           </div>
 
@@ -524,6 +563,10 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
         <div className="contenido-seccion-privada">
           <Aviso error={error} mensaje={mensaje} />
 
+          {cargandoDatos && <p role="status">Cargando la configuración de tu organización…</p>}
+          <div id="guia-preparacion-opcional" hidden={!mostrarGuia}>
+            {mostrarGuia && <GuiaEleccion preparacion={preparacion} ocupado={bloqueado} alIr={irPaso}/>}
+          </div>
           {/* Selector de Organización */}
           <div className="panel-admin" style={{ padding: '16px 20px', marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -534,9 +577,9 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                 </p>
               </div>
               <select
-                aria-label="Organización de trabajo"
+                aria-label="Organización de trabajo" disabled={bloqueado}
                 value={org}
-                onChange={e => { setOrg(e.target.value); setId(''); }}
+                onChange={e => { setOrg(e.target.value); setId(''); setError(''); }}
                 className="selector-unidades-publico"
                 style={{ minWidth: 220 }}
               >
@@ -548,6 +591,15 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
             </div>
           </div>
 
+          {org && <section className="panel-admin contexto-eleccion">
+            <label>Elección que estás gestionando
+              <select value={id} disabled={bloqueado} onChange={e => { setId(e.target.value); setCreandoProceso(false); }}>
+                <option value="">Selecciona una elección</option>
+                {procesos.map(p => <option key={p.id} value={p.id}>{p.nombre}{p.actual ? ' · Visible al público' : ''}</option>)}
+              </select>
+            </label>
+            <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => { setCreandoProceso(true); setPestana('configuracion'); }}>+ Nueva elección</button>
+          </section>}
           {pestana === 'resumen' && (
             <>
               {/* 3 Métricas del Administrador (como en el mock) */}
@@ -586,7 +638,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                     <button
                       className="boton primario"
                       style={{ padding: '6px 12px', fontSize: 12 }}
-                      onClick={() => setPestana('usuarios')}
+                      onClick={() => { setModoCuenta('usuario'); setPestana('usuarios'); }}
                     >
                       + Crear operador
                     </button>
@@ -620,7 +672,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                               <td>
                                 <button
                                   className="boton-accion-tabla"
-                                  onClick={() => setPestana('mesas')}
+                                  onClick={() => irPaso({ id: 'mesas', destino: 'mesas' })}
                                 >
                                   Asignar mesa
                                 </button>
@@ -666,10 +718,10 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                               <button
                                 className="boton primario"
                                 style={{ padding: '6px 12px', fontSize: 12 }}
-                                disabled={ocupado}
-                                onClick={() => guardar(() => pedir(`/configuracion/procesos/${id}/actual`, { metodo: 'POST' }))}
+                                disabled={bloqueado}
+                                onClick={() => setPestana('publicacion')}
                               >
-                                Activar en portal
+                                Revisar publicación
                               </button>
                             )}
                           </div>
@@ -713,7 +765,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                             <input
                               type="file"
                               accept="image/jpeg,image/png"
-                              disabled={ocupado}
+                              disabled={bloqueado}
                               onChange={e => {
                                 const f = e.target.files[0];
                                 if (f) {
@@ -737,9 +789,11 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
             </>
           )}
 
-          {pestana === 'configuracion' && (
+          {pestana === 'configuracion' && org && (
             <div className="panel-admin" style={{ padding: 24 }}>
-              <h2 style={{ fontSize: 18, color: 'var(--azul-oscuro)', marginBottom: 16 }}>Configurar proceso electoral</h2>
+              <h2 style={{ fontSize: 18, color: 'var(--azul-oscuro)', marginBottom: 16 }}>{creandoProceso || procesos.length === 0 ? 'Crear una elección' : 'Elección seleccionada'}</h2>
+              {!creandoProceso && procesos.length > 0 && <p>Estás gestionando <strong>{actual?.nombre ?? 'la elección del selector superior'}</strong>. Continúa con sus candidatos o usa «Nueva elección» para crear otra.</p>}
+              {(creandoProceso || procesos.length === 0) && (
               <form
                 className="formulario-simple"
                 onSubmit={e => {
@@ -747,16 +801,16 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                   guardar(async () => {
                     const p = await pedir('/configuracion/procesos', { metodo: 'POST', datos });
                     setId(p.id);
-                    setDatos({ ...datos, nombre: '' });
+                    setDatos({ ...datos, nombre: '' }); setCreandoProceso(false); setPestana('candidatos');
                   });
                 }}
               >
                 <label>
-                  Nombre del proceso electoral
+                  Nombre de la elección
                   <input required maxLength="120" placeholder="Ej: Elección de Rector 2026" value={datos.nombre} onChange={e => setDatos({ ...datos, nombre: e.target.value })} />
                 </label>
                 <label>
-                  Cargo u objeto de la elección
+                  ¿Qué cargo se elige?
                   <input required maxLength="100" placeholder="Ej: Rector y Vicerrectores" value={datos.cargo} onChange={e => setDatos({ ...datos, cargo: e.target.value })} />
                 </label>
                 <label>
@@ -768,32 +822,16 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                   </select>
                 </label>
                 <label>
-                  Nombre de la unidad de desglose
+                  ¿Cómo se agrupan las mesas? (Facultad, Comunidad, Distrito…)
                   <input required maxLength="80" placeholder="Ej: Facultad, Parroquia, etc." value={datos.unidad} onChange={e => setDatos({ ...datos, unidad: e.target.value })} />
                 </label>
-                <button className="boton primario" disabled={ocupado} style={{ width: 'fit-content', marginTop: 10 }}>
-                  {ocupado ? 'Guardando…' : 'Crear proceso'}
+                <button className="boton primario" disabled={bloqueado} style={{ width: 'fit-content', marginTop: 10 }}>
+                  {ocupado ? 'Guardando…' : 'Crear elección y continuar'}
                 </button>
+                {procesos.length > 0 && <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => setCreandoProceso(false)}>Cancelar: conservar la elección seleccionada</button>}
               </form>
+              )}
 
-              <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--borde)' }}>
-                <label style={{ fontWeight: 600, fontSize: 13, color: 'var(--azul-oscuro)' }}>
-                  Seleccionar proceso para gestionar:
-                  <select
-                    value={id}
-                    onChange={e => setId(e.target.value)}
-                    className="selector-unidades-publico"
-                    style={{ display: 'block', marginTop: 6, minWidth: 300 }}
-                  >
-                    <option value="">Selecciona proceso</option>
-                    {procesos.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre} {p.actual ? '· Visible en portal' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
             </div>
           )}
 
@@ -838,11 +876,12 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                     }}
                   />
                 </label>
-                <button className="boton primario" disabled={ocupado} style={{ width: 'fit-content' }}>
+                <button className="boton primario" disabled={bloqueado} style={{ width: 'fit-content' }}>
                   {ocupado ? 'Registrando…' : 'Agregar candidato'}
                 </button>
               </form>
 
+              {actual.candidatos.length > 0 && <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => setPestana('mesas')}>Ya registré los candidatos: continuar con las mesas</button>}
               <div className="grid-candidatos-fotos" style={{ marginTop: 24 }}>
                 {actual.candidatos.map(c => (
                   <article key={c.id} className="tarjeta-candidato-foto">
@@ -854,7 +893,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                       <input
                         type="file"
                         accept="image/jpeg,image/png"
-                        disabled={ocupado}
+                        disabled={bloqueado}
                         onChange={e => {
                           const f = e.target.files[0];
                           if (f) {
@@ -872,14 +911,14 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
             </div>
           )}
 
-          {pestana === 'mesas' && actual && (
+          {['mesas', 'asignaciones'].includes(pestana) && actual && (
             <div className="panel-admin" style={{ padding: 24 }}>
               <h2 style={{ fontSize: 18, color: 'var(--azul-oscuro)', marginBottom: 16 }}>
-                Mesas y asignaciones ({actual.mesas.length} mesas esperadas)
+                {pestana === 'mesas' ? 'Registrar mesas' : 'Asignar responsables'} · {actual.mesas.length} mesas esperadas
               </h2>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                {/* Formulario Agregar Mesa */}
+              <div className="formularios-preparacion-mesas">
+                {pestana === 'mesas' && <>
                 <form
                   className="formulario-simple"
                   onSubmit={e => {
@@ -899,17 +938,23 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                     {actual.unidad}
                     <input required placeholder={`Ej: ${actual.unidad}`} value={mesa.unidad} onChange={e => setMesa({ ...mesa, unidad: e.target.value })} />
                   </label>
-                  <button className="boton primario" disabled={ocupado} style={{ width: 'fit-content' }}>
+                  <button className="boton primario" disabled={bloqueado} style={{ width: 'fit-content' }}>
                     Agregar mesa
                   </button>
                 </form>
 
-                {/* Formulario Asignar Operador a Mesa */}
+                <p>Registra todas las mesas esperadas. Después asigna un responsable a cada una.</p>
+                <ul className="lista-mesas-preparacion">{actual.mesas.map(m => <li key={m.id}><span><strong>{m.codigo}</strong> · {m.unidad}</span><button type="button" className="boton secundario" disabled={bloqueado} onClick={() => { setAsignacion({ idMesa: m.id, idUsuario: '' }); setPestana('asignaciones'); }}>Asignar operador</button></li>)}</ul>
+                <button type="button" className="boton primario" disabled={bloqueado || !actual.mesas.length} onClick={() => setPestana('asignaciones')}>Continuar con las asignaciones</button>
+                </>}
+                {pestana === 'asignaciones' && <>
+                {!preparacion.operadores.length && <div className="aviso">Todavía no hay operadores disponibles en esta organización. <button type="button" className="boton secundario" onClick={() => { setModoCuenta('usuario'); setPestana('usuarios'); }}>Crear operador</button></div>}
+                <p>Primero completa los candidatos. Al asignar la primera mesa se congela el catálogo. Guarda cada asignación por separado.</p>
                 <form
                   className="formulario-simple"
                   onSubmit={e => {
                     e.preventDefault();
-                    guardar(() => pedir(`/configuracion/mesas/${asignacion.idMesa}/asignar`, { metodo: 'POST', datos: { idUsuario: asignacion.idUsuario } }));
+                    guardar(async () => { await pedir(`/configuracion/mesas/${asignacion.idMesa}/asignar`, { metodo: 'POST', datos: { idUsuario: asignacion.idUsuario } }); setAsignacionesConfirmadas(n => n + 1); setAsignacion({ idMesa: '', idUsuario: '' }); }, 'Asignación guardada. Puedes asignar otra mesa o revisar la publicación.');
                   }}
                 >
                   <h3 style={{ margin: 0, fontSize: 15, color: 'var(--azul-oscuro)' }}>Asignar operador a mesa</h3>
@@ -933,22 +978,54 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                         ))}
                     </select>
                   </label>
-                  <button className="boton primario" disabled={ocupado || actual.candidatos.length === 0} style={{ width: 'fit-content' }}>
-                    Asignar operador
+                  <label className="confirmacion-preparacion"><input type="checkbox" checked={catalogoConfirmado} onChange={e => setCatalogoConfirmado(e.target.checked)} required/><span>Ya registré todos los candidatos de esta elección.</span></label>
+                  <button className="boton primario" disabled={bloqueado || !catalogoConfirmado || !actual.candidatos.length || !asignacion.idMesa || !asignacion.idUsuario} style={{ width: 'fit-content' }}>
+                    Guardar asignación
                   </button>
                 </form>
+                {asignacionesConfirmadas > 0 && <p role="status">{asignacionesConfirmadas} operaciones de asignación guardadas en esta sesión.</p>}
+                <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => setPestana('publicacion')}>Revisar publicación</button>
+                </>}
+
               </div>
             </div>
           )}
 
-          {pestana === 'usuarios' && (
+          {pestana === 'publicacion' && actual && <section className="panel-admin revision-publicacion">
+            <h2>Revisar y mostrar la elección</h2>
+            <p>Esta es la elección que verá cualquier persona al abrir TUVOTO.</p>
+            <dl><dt>Organización</dt><dd>{organizaciones.find(o => o.idOrganizacion === org)?.nombre ?? 'Organización seleccionada'}</dd><dt>Elección</dt><dd>{actual.nombre}</dd><dt>Cargo</dt><dd>{actual.cargo}</dd><dt>Candidatos</dt><dd>{actual.candidatos.length}</dd><dt>Mesas esperadas</dt><dd>{actual.mesas.length}</dd><dt>Operadores disponibles</dt><dd>{preparacion.operadores.length}</dd></dl>
+            <p>Comprueba que todas las mesas tengan un operador. La publicación no asigna responsables ni registra actas automáticamente.</p>
+            {actual.actual ? <p className="confirmacion">Esta elección ya está visible. <a href="#resultados">Abrir resultados públicos</a></p> : <>
+              {!preparacion.puedePublicar && <p className="aviso">Agrega al menos un candidato y una mesa antes de publicar.</p>}
+              <label className="confirmacion-preparacion"><input type="checkbox" checked={publicacionConfirmada} onChange={e => setPublicacionConfirmada(e.target.checked)}/><span>Revisé la elección y quiero mostrarla en el portal público. Reemplazará la elección visible anterior, si existe.</span></label>
+              <button type="button" className="boton primario" disabled={bloqueado || !preparacion.puedePublicar || !publicacionConfirmada} onClick={() => guardar(() => pedir(`/configuracion/procesos/${id}/actual`, { metodo: 'POST' }), 'Elección visible en el portal. Los operadores ya pueden registrar sus actas.')}>Confirmar y mostrar al público</button>
+            </>}
+          </section>}
+
+          {pestana === 'usuarios' && (<>
             <AdministrarCuentas
+              key={`${org}-${modoCuenta}`}
+              organizacionInicial={org}
+              accionInicial={!org && sesion.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null) ? 'organizacion' : modoCuenta}
+              rolInicial="OPERADOR"
+              alCrearOrganizacion={creada => { setOrg(creada.idOrganizacion); setId(''); setCreandoProceso(true); setPestana('configuracion'); }}
               esGlobal={sesion.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null)}
               organizaciones={organizaciones}
               cuentas={cuentas}
               idActual={sesion.idUsuario}
               alGuardar={() => setVersion(v => v + 1)}
             />
+            {org && <section className="panel-admin cuentas-preparacion">
+              <h2>Cuentas de esta organización</h2>
+              <p>El rol Operador permite registrar actas; después debes asignarle sus mesas.</p>
+              <div className="tabla-preparacion-scroll"><table className="tabla-admin"><thead><tr><th>Usuario</th><th>Roles en esta organización</th><th>Estado</th></tr></thead><tbody>
+                {cuentas.filter(c => c.roles?.some(r => r.idOrganizacion === org)).map(c => <tr key={c.idUsuario}><td>{c.usuario}</td><td>{c.roles.filter(r => r.idOrganizacion === org).map(r => r.rol).join(', ')}</td><td>{c.activo ? 'Activo' : 'Inactivo'}</td></tr>)}
+              </tbody></table></div>
+              {preparacion.operadores.length === 0 && <p>Todavía no hay una cuenta de operador habilitada para esta organización.</p>}
+              {actual && <button type="button" className="boton primario" disabled={bloqueado || !preparacion.operadores.length} onClick={() => setPestana('asignaciones')}>Continuar: asignar mesas a operadores</button>}
+            </section>}
+          </>
           )}
         </div>
       </main>
