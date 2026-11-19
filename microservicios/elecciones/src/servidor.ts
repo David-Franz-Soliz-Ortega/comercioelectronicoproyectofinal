@@ -1,177 +1,91 @@
-import { proteger, cabeceras } from "./autorizacion.js";
-import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import express, { type ErrorRequestHandler, type Request, type Response } from "express";
-import { Pool } from "pg";
-import swaggerUi from "swagger-ui-express";
-import { parse } from "yaml";
-import { z } from "zod";
+import { instalarHttp } from './http.js';
+import swagger from 'swagger-ui-express';
+import * as grpc from '@grpc/grpc-js';
+import { servicioMesas } from './servidor-grpc.js';
+import { readFileSync } from 'node:fs';
+import express, { type Request, type Response, type NextFunction } from 'express';
+import { Pool, type PoolClient } from 'pg';
+import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
+import { permiso } from './autorizacion.js';
 
-import { crearClientePadron, consultarElegibilidad, traducirErrorGrpc } from "./cliente-padron.js";
-
-const clientePadron = crearClientePadron();
-const puerto = Number(process.env.PORT ?? 3000);
-const pool = new Pool({ host: process.env.DB_HOST, port: Number(process.env.DB_PORT ?? 5432), database: process.env.DB_NAME ?? "elecciones_db", user: process.env.DB_USER, password: process.env.DB_PASSWORD, max: 10 });
-const estados = ["borrador", "programada", "en_curso", "finalizada", "anulada"] as const;
-const esquemaEntrada = z.object({ nombre: z.string().trim().min(1).max(120), estado: z.enum(estados) }).strict();
-const esquemaUuid = z.string().uuid();
-const app = express();
-app.disable("x-powered-by");
-app.use((solicitud, respuesta, siguiente) => {
-  respuesta.setHeader("X-Correlation-ID", solicitud.header("X-Correlation-ID")?.slice(0, 128) || randomUUID());
-  if (solicitud.url.startsWith("/api/v1/")) solicitud.url = solicitud.url.slice("/api/v1".length);
-  siguiente();
-});
-app.use(express.json({ limit: "32kb" }));
-
-function problema(respuesta: Response, estado: number, titulo: string, detalle: string, extras: Record<string, unknown> = {}): void {
-  respuesta.status(estado).type("application/problem+json").json({ type: `https://sigape.local/problemas/${estado}`, title: titulo, status: estado, detail: detalle, instance: respuesta.req.originalUrl, idCorrelacion: respuesta.getHeader("X-Correlation-ID"), ...extras });
+const db = new Pool({ host: process.env.DB_HOST, port: Number(process.env.DB_PORT ?? 5432), database: process.env.DB_NAME, user: process.env.DB_USER, password: process.env.DB_PASSWORD });
+const app = express(); app.disable('x-powered-by'); instalarHttp(app,'elecciones'); app.use(express.json({limit:'3mb'}));
+const uuid = z.string().uuid();
+const proceso = z.object({nombre:z.string().trim().min(1).max(120),cargo:z.string().trim().min(1).max(100),tipo:z.enum(['universidad','municipio','otra']),unidad:z.string().trim().min(1).max(80)}).strict();
+const mesa = z.object({codigo:z.string().trim().min(1).max(60),unidad:z.string().trim().min(1).max(120)}).strict();
+app.use('/docs',swagger.serveFiles(JSON.parse(readFileSync('/app/contrato.json','utf8'))),swagger.setup(JSON.parse(readFileSync('/app/contrato.json','utf8'))));
+app.get('/openapi.json',(_req,res)=>{res.type('application/json').send(readFileSync('/app/contrato.json'));});
+app.get('/api/v1/salud',async (_req,res)=>{await db.query('SELECT 1');res.json({servicio:'elecciones',estado:'saludable'});});
+async function obtener(id:string) {
+ const r=await db.query('SELECT id,nombre,cargo,tipo,unidad,actual FROM tuvoto_procesos WHERE id=$1 AND NOT archivado',[id]); if(!r.rowCount)return null;
+ const candidatos=await db.query('SELECT id,nombre,orden,foto IS NOT NULL AS "tieneFoto" FROM tuvoto_candidatos WHERE id_proceso=$1 ORDER BY orden,id',[id]);
+ const mesas=await db.query('SELECT id,codigo,unidad FROM tuvoto_mesas WHERE id_proceso=$1 ORDER BY unidad,codigo',[id]);
+ return {...r.rows[0],candidatos:candidatos.rows.map(c=>({...c,foto:c.tieneFoto?`/api/v1/publico/candidatos/${c.id}/foto`:null})),mesas:mesas.rows};
 }
-
-function validarId(id: string, respuesta: Response): boolean {
-  if (!esquemaUuid.safeParse(id).success) {
-    problema(respuesta, 400, "Identificador inválido", "El identificador debe ser un UUID válido.");
-    return false;
-  }
-  return true;
+app.get('/api/v1/publico/actual',async(_req,res)=>{const r=await db.query('SELECT id FROM tuvoto_procesos WHERE actual AND NOT archivado');res.set('Cache-Control','public,max-age=3');res.json(r.rowCount?await obtener(r.rows[0].id):null);});
+app.get('/api/v1/publico/candidatos/:id/foto',async(req,res)=>{
+ const id=uuid.parse(req.params.id);const r=await db.query('SELECT c.foto,c.mime FROM tuvoto_candidatos c JOIN tuvoto_procesos p ON p.id=c.id_proceso WHERE c.id=$1 AND p.actual AND NOT p.archivado',[id]);
+ if(!r.rowCount||!r.rows[0].foto){res.sendStatus(404);return;}res.set({'Content-Type':r.rows[0].mime,'X-Content-Type-Options':'nosniff','Cache-Control':'public,max-age=60'}).send(r.rows[0].foto);
+});
+app.use('/api/v1/configuracion',async(req:Request,res:Response,next:NextFunction)=>{try{res.locals.actor=await permiso(req,'proceso:configurar',!['GET','HEAD'].includes(req.method));next();}catch(e){res.status((e as {estado?:number}).estado??503).json({detalle:'Configuración no autorizada'});}});
+app.get('/api/v1/configuracion/procesos',async(_req,res)=>{const r=await db.query('SELECT id FROM tuvoto_procesos WHERE id_organizacion=$1 AND NOT archivado ORDER BY creado_en DESC',[res.locals.actor.idOrganizacion]);res.json({elementos:await Promise.all(r.rows.map(r=>obtener(r.id)))});});
+app.post('/api/v1/configuracion/procesos',async(req,res)=>{const d=proceso.parse(req.body),id=randomUUID();await db.query('INSERT INTO tuvoto_procesos(id,id_organizacion,nombre,cargo,tipo,unidad) VALUES($1,$2,$3,$4,$5,$6)',[id,res.locals.actor.idOrganizacion,d.nombre,d.cargo,d.tipo,d.unidad]);res.status(201).json(await obtener(id));});
+async function comprobarPropio(id:string,org:string) {const r=await db.query('SELECT 1 FROM tuvoto_procesos WHERE id=$1 AND id_organizacion=$2 AND NOT archivado',[uuid.parse(id),org]);if(!r.rowCount)throw Object.assign(new Error(),{estado:404});}
+app.get('/api/v1/configuracion/procesos/:id',async(req,res)=>{await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);res.json(await obtener(req.params.id));});
+app.put('/api/v1/configuracion/procesos/:id',async(req,res)=>{
+ await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);const d=proceso.parse(req.body);
+ const cambiado=await configurarBloqueado(req.params.id,async c=>{const r=await c.query('SELECT 1 FROM tuvoto_asignaciones a JOIN tuvoto_mesas m ON m.id=a.id_mesa WHERE m.id_proceso=$1 LIMIT 1',[req.params.id]);if(r.rowCount)return false;await c.query('UPDATE tuvoto_procesos SET nombre=$2,cargo=$3,tipo=$4,unidad=$5 WHERE id=$1',[req.params.id,d.nombre,d.cargo,d.tipo,d.unidad]);return true;});
+ if(!cambiado){res.status(409).json({detalle:'Configuración congelada: existen mesas asignadas'});return;}res.json(await obtener(req.params.id));
+});
+app.delete('/api/v1/configuracion/procesos/:id',async(req,res)=>{
+ await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);
+ const cambiado=await configurarBloqueado(req.params.id,async c=>{const r=await c.query('SELECT 1 FROM tuvoto_asignaciones a JOIN tuvoto_mesas m ON m.id=a.id_mesa WHERE m.id_proceso=$1 LIMIT 1',[req.params.id]);if(r.rowCount)return false;await c.query('UPDATE tuvoto_procesos SET archivado=true,actual=false WHERE id=$1',[req.params.id]);return true;});
+ if(!cambiado){res.status(409).json({detalle:'No se archiva un proceso con mesas asignadas'});return;}res.sendStatus(204);
+});
+app.post('/api/v1/configuracion/procesos/:id/actual',async(req,res)=>{
+ await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);const c=await db.connect();try{await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(607001)');const anterior=await c.query('SELECT id_organizacion FROM tuvoto_procesos WHERE actual FOR UPDATE');if(anterior.rowCount&&anterior.rows[0].id_organizacion!==res.locals.actor.idOrganizacion&&!res.locals.actor.administradorGlobal)throw Object.assign(new Error(),{estado:403});await c.query('UPDATE tuvoto_procesos SET actual=false WHERE actual');await c.query('UPDATE tuvoto_procesos SET actual=true WHERE id=$1',[req.params.id]);await c.query('COMMIT');}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}res.json(await obtener(req.params.id));
+});
+function leerImagen(valor?:string){
+ let foto:Buffer|null=null,mime:string|null=null;
+ if(valor){const m=/^data:(image\/(?:jpeg|png));base64,([A-Za-z0-9+/=]+)$/.exec(valor);if(!m)throw Object.assign(new Error(),{estado:422});foto=Buffer.from(m[2],'base64');mime=m[1];if(foto.length>2000000||!(mime==='image/jpeg'?foto.subarray(0,3).equals(Buffer.from([255,216,255])):foto.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))))throw Object.assign(new Error(),{estado:422});}
+ return {foto,mime};
 }
-
-function validarPagina(solicitud: Request, respuesta: Response): { pagina: number; limite: number } | null {
-  const pagina = Number(solicitud.query.pagina ?? 1);
-  const limite = Number(solicitud.query.limite ?? 20);
-  if (!Number.isInteger(pagina) || pagina < 1 || !Number.isInteger(limite) || limite < 1 || limite > 100) {
-    problema(respuesta, 400, "Paginación inválida", "pagina debe ser mayor que cero y limite debe estar entre 1 y 100.");
-    return null;
-  }
-  return { pagina, limite };
+async function configurarBloqueado<T>(id:string,operacion:(c:PoolClient)=>Promise<T>):Promise<T>{
+ const c=await db.connect();try{await c.query('BEGIN');await c.query('SELECT id FROM tuvoto_procesos WHERE id=$1 FOR UPDATE',[id]);const resultado=await operacion(c);await c.query('COMMIT');return resultado;}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
 }
-
-async function inicializar(): Promise<void> {
-  await pool.query(`CREATE TABLE IF NOT EXISTS elecciones (
-    id_eleccion UUID PRIMARY KEY,
-    nombre VARCHAR(120) NOT NULL CHECK (length(trim(nombre)) > 0),
-    estado VARCHAR(16) NOT NULL CHECK (estado IN ('borrador', 'programada', 'en_curso', 'finalizada', 'anulada')),
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
-    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
-  )`);
-  await pool.query("CREATE INDEX IF NOT EXISTS elecciones_estado_creado_idx ON elecciones (estado, creado_en DESC)");
-}
-
-app.get("/salud", async (_solicitud, respuesta) => {
-  try { await pool.query("SELECT 1"); respuesta.json({ estado: "saludable", servicio: "elecciones" }); }
-  catch { problema(respuesta, 503, "Base no disponible", "No se pudo consultar la base de elecciones."); }
+app.post('/api/v1/configuracion/procesos/:id/candidatos',async(req,res)=>{
+ await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);
+ const d=z.object({nombre:z.string().trim().min(1).max(120),foto:z.string().max(2800000).optional()}).strict().parse(req.body);
+ const {foto,mime}=leerImagen(d.foto);
+ const r=await configurarBloqueado(req.params.id,c=>c.query('INSERT INTO tuvoto_candidatos(id,id_proceso,nombre,foto,mime) SELECT $1,$2,$3,$4,$5 WHERE NOT EXISTS(SELECT 1 FROM tuvoto_asignaciones a JOIN tuvoto_mesas m ON m.id=a.id_mesa WHERE m.id_proceso=$2) RETURNING id',[randomUUID(),req.params.id,d.nombre,foto,mime]));
+ if(!r.rowCount){res.status(409).json({detalle:'El catálogo se congela al asignar mesas. Configure candidatos primero.'});return;}res.status(201).json(await obtener(req.params.id));
 });
-app.get("/openapi.yaml", async (_solicitud, respuesta, siguiente) => {
-  try { respuesta.type("application/yaml").send(await readFile(new URL("../contrato.yaml", import.meta.url), "utf8")); }
-  catch (error) { siguiente(error); }
+app.put('/api/v1/configuracion/candidatos/:id/foto',async(req,res)=>{
+ const id=uuid.parse(req.params.id),d=z.object({foto:z.string().min(1).max(2800000)}).strict().parse(req.body);
+ const propio=await db.query('SELECT 1 FROM tuvoto_candidatos c JOIN tuvoto_procesos p ON p.id=c.id_proceso WHERE c.id=$1 AND p.id_organizacion=$2',[id,res.locals.actor.idOrganizacion]);
+ if(!propio.rowCount){res.sendStatus(404);return;}
+ const {foto,mime}=leerImagen(d.foto);await db.query('UPDATE tuvoto_candidatos SET foto=$2,mime=$3 WHERE id=$1',[id,foto,mime]);res.sendStatus(204);
 });
-// Servir HTML, inicializador y assets bajo el mismo prefijo canónico.
-const contratoDocumentacion = parse(await readFile(new URL("../contrato.yaml", import.meta.url), "utf8"));
-const opcionesDocumentacion = { swaggerOptions: { validatorUrl: null }, customSiteTitle: "API de elecciones SIGAPE" };
-app.use("/docs", swaggerUi.serveFiles(contratoDocumentacion, opcionesDocumentacion), swaggerUi.setup(contratoDocumentacion, opcionesDocumentacion));
-
-app.use(proteger(pool,"elecciones","id_eleccion","elecciones","elecciones"));
-
-app.get("/elecciones", async (solicitud, respuesta) => {
-  const pagina = validarPagina(solicitud, respuesta);
-  if (!pagina) return;
-  const condiciones: string[] = ["id_organizacion = $1"];
-  const valores: unknown[] = [respuesta.locals.organizacion];
-  if (solicitud.query.estado !== undefined) {
-    const estado = z.enum(estados).safeParse(solicitud.query.estado);
-    if (!estado.success) return problema(respuesta, 400, "Filtro inválido", "estado no es un estado reconocido.");
-    valores.push(estado.data); condiciones.push(`estado = $${valores.length}`);
-  }
-  if (solicitud.query.nombre !== undefined) {
-    const nombre = z.string().trim().min(1).max(120).safeParse(solicitud.query.nombre);
-    if (!nombre.success) return problema(respuesta, 400, "Filtro inválido", "nombre debe contener entre 1 y 120 caracteres.");
-    valores.push(`%${nombre.data}%`); condiciones.push(`nombre ILIKE $${valores.length}`);
-  }
-  const where = condiciones.length ? `WHERE ${condiciones.join(" AND ")}` : "";
-  try {
-    const total = await pool.query<{ total: string }>(`SELECT count(*) AS total FROM elecciones ${where}`, valores);
-    valores.push(pagina.limite, (pagina.pagina - 1) * pagina.limite);
-    const datos = await pool.query(`SELECT id_eleccion AS "idEleccion", nombre, estado, creado_en AS "creadoEn", actualizado_en AS "actualizadoEn" FROM elecciones ${where} ORDER BY creado_en DESC, id_eleccion LIMIT $${valores.length - 1} OFFSET $${valores.length}`, valores);
-    respuesta.json({ elementos: datos.rows, pagina: pagina.pagina, limite: pagina.limite, total: Number(total.rows[0].total) });
-  } catch { problema(respuesta, 500, "Error interno", "No se pudo listar las elecciones."); }
+app.post('/api/v1/configuracion/procesos/:id/mesas',async(req,res)=>{await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);const d=mesa.parse(req.body);await db.query('INSERT INTO tuvoto_mesas(id,id_proceso,codigo,unidad) VALUES($1,$2,$3,$4)',[randomUUID(),req.params.id,d.codigo,d.unidad]);res.status(201).json(await obtener(req.params.id));});
+app.post('/api/v1/configuracion/mesas/:id/asignar',async(req,res)=>{
+ const id=uuid.parse(req.params.id),d=z.object({idUsuario:uuid}).strict().parse(req.body);
+ const r=await db.query('SELECT p.id FROM tuvoto_mesas m JOIN tuvoto_procesos p ON p.id=m.id_proceso WHERE m.id=$1 AND p.id_organizacion=$2',[id,res.locals.actor.idOrganizacion]);if(!r.rowCount){res.sendStatus(404);return;}
+ const resp=await fetch((process.env.IDENTIDAD_URL??'http://identidad:3000')+'/api/v1/usuarios',{headers:{Cookie:req.header('Cookie')??'','X-Organizacion':res.locals.actor.idOrganizacion},signal:AbortSignal.timeout(3000)});
+ if(!resp.ok){res.status(503).json({detalle:'No se pudo verificar la cuenta'});return;}
+ const usuarios=await resp.json();if(!usuarios.elementos.some((u:{idUsuario:string;activo:boolean;roles:{rol:string;idOrganizacion:string|null}[]})=>u.idUsuario===d.idUsuario&&u.activo&&u.roles.some(r=>r.rol==='OPERADOR'&&r.idOrganizacion===res.locals.actor.idOrganizacion)&&!u.roles.some(r=>r.rol==='ADMINISTRADOR'&&(r.idOrganizacion===null||r.idOrganizacion===res.locals.actor.idOrganizacion)))){res.status(403).json({detalle:'Cuenta fuera del alcance autorizado'});return;}
+ const asignada=await configurarBloqueado(r.rows[0].id,async c=>{const candidatos=await c.query('SELECT 1 FROM tuvoto_candidatos WHERE id_proceso=$1 LIMIT 1',[r.rows[0].id]);if(!candidatos.rowCount)return false;await c.query('INSERT INTO tuvoto_asignaciones(id_mesa,id_usuario) VALUES($1,$2) ON CONFLICT DO NOTHING',[id,d.idUsuario]);return true;});
+ if(!asignada){res.status(409).json({detalle:'Configure candidatos antes de asignar mesas'});return;}res.sendStatus(204);
 });
-
-app.post("/elecciones", async (solicitud, respuesta) => {
-  const entrada = esquemaEntrada.safeParse(solicitud.body);
-  if (!entrada.success) return problema(respuesta, 422, "Datos inválidos", entrada.error.issues.map((error) => `${error.path.join(".")}: ${error.message}`).join("; "));
-  try {
-    const id = randomUUID();
-    const resultado = await pool.query(`INSERT INTO elecciones(id_organizacion, id_eleccion, nombre, estado) VALUES($1, $2, $3, $4) RETURNING id_eleccion AS "idEleccion", nombre, estado, creado_en AS "creadoEn", actualizado_en AS "actualizadoEn"`, [respuesta.locals.organizacion,id, entrada.data.nombre, entrada.data.estado]);
-    respuesta.location(`/api/v1/elecciones/${id}`).status(201).json(resultado.rows[0]);
-  } catch { problema(respuesta, 500, "Error interno", "No se pudo crear la elección."); }
-});
-
-app.get("/elecciones/:idEleccion/inscripciones/:idInscripcion/elegibilidad", async (solicitud, respuesta) => {
-  if (!validarId(solicitud.params.idEleccion, respuesta) || !validarId(solicitud.params.idInscripcion, respuesta)) return;
-  try {
-    const existe = await pool.query("SELECT 1 FROM elecciones WHERE id_eleccion = $1", [solicitud.params.idEleccion]);
-    if (!existe.rowCount) return problema(respuesta, 404, "No encontrado", "La elección solicitada no existe.");
-  } catch { return problema(respuesta, 503, "Base no disponible", "No se pudo consultar la base de elecciones."); }
-  const controlador = new AbortController();
-  const cancelar = () => { if (!respuesta.writableEnded) controlador.abort(); };
-  respuesta.on("close", cancelar);
-  const idCorrelacion = String(respuesta.getHeader("X-Correlation-ID"));
-  try {
-    const resultado = await consultarElegibilidad(clientePadron, {
-      idCorrelacion, idProcesoElectoral: solicitud.params.idEleccion, idInscripcion: solicitud.params.idInscripcion,
-    }, undefined, controlador.signal, cabeceras(solicitud));
-    console.log(JSON.stringify({ evento: "cliente_padron_grpc", idCorrelacion, codigoGrpc: 0 }));
-    if (!respuesta.destroyed) respuesta.json({ idEleccion: solicitud.params.idEleccion, idInscripcion: solicitud.params.idInscripcion,
-      elegible: resultado.resultado === "RESULTADO_ELEGIBILIDAD_ELEGIBLE", idCorrelacion });
-  } catch (error) {
-    const { estadoHttp, detalle, codigoGrpc, estadoGrpc } = traducirErrorGrpc(error);
-    console.log(JSON.stringify({ evento: "cliente_padron_grpc", idCorrelacion, codigoGrpc }));
-    if (!respuesta.destroyed) problema(respuesta, estadoHttp, "Consulta de elegibilidad no disponible", detalle, { codigoGrpc, estadoGrpc });
-  } finally { respuesta.off("close", cancelar); }
-});
-
-app.get("/elecciones/:idEleccion", async (solicitud, respuesta) => {
-  if (!validarId(solicitud.params.idEleccion, respuesta)) return;
-  try {
-    const resultado = await pool.query(`SELECT id_eleccion AS "idEleccion", nombre, estado, creado_en AS "creadoEn", actualizado_en AS "actualizadoEn" FROM elecciones WHERE id_eleccion = $1`, [solicitud.params.idEleccion]);
-    if (!resultado.rowCount) return problema(respuesta, 404, "No encontrado", "La elección solicitada no existe.");
-    respuesta.json(resultado.rows[0]);
-  } catch { problema(respuesta, 500, "Error interno", "No se pudo consultar la elección."); }
-});
-
-app.put("/elecciones/:idEleccion", async (solicitud, respuesta) => {
-  if (!validarId(solicitud.params.idEleccion, respuesta)) return;
-  const entrada = esquemaEntrada.safeParse(solicitud.body);
-  if (!entrada.success) return problema(respuesta, 422, "Datos inválidos", entrada.error.issues.map((error) => `${error.path.join(".")}: ${error.message}`).join("; "));
-  try {
-    const actual = await pool.query<{ estado: string }>("SELECT estado FROM elecciones WHERE id_eleccion = $1", [solicitud.params.idEleccion]);
-    if (!actual.rowCount) return problema(respuesta, 404, "No encontrado", "La elección solicitada no existe.");
-    if (actual.rows[0].estado !== "borrador") return problema(respuesta, 409, "Conflicto de estado", "Solo se pueden actualizar elecciones en borrador.");
-    const resultado = await pool.query(`UPDATE elecciones SET nombre = $2, estado = $3, actualizado_en = now() WHERE id_eleccion = $1 RETURNING id_eleccion AS "idEleccion", nombre, estado, creado_en AS "creadoEn", actualizado_en AS "actualizadoEn"`, [solicitud.params.idEleccion, entrada.data.nombre, entrada.data.estado]);
-    respuesta.json(resultado.rows[0]);
-  } catch { problema(respuesta, 500, "Error interno", "No se pudo actualizar la elección."); }
-});
-
-app.delete("/elecciones/:idEleccion", async (solicitud, respuesta) => {
-  if (!validarId(solicitud.params.idEleccion, respuesta)) return;
-  try {
-    const resultado = await pool.query("DELETE FROM elecciones WHERE id_eleccion = $1 AND estado = 'borrador'", [solicitud.params.idEleccion]);
-    if (!resultado.rowCount) {
-      const existe = await pool.query("SELECT 1 FROM elecciones WHERE id_eleccion = $1", [solicitud.params.idEleccion]);
-      return problema(respuesta, existe.rowCount ? 409 : 404, existe.rowCount ? "Conflicto de estado" : "No encontrado", existe.rowCount ? "Solo se pueden eliminar elecciones en borrador." : "La elección solicitada no existe.");
-    }
-    respuesta.status(204).end();
-  } catch { problema(respuesta, 500, "Error interno", "No se pudo eliminar la elección."); }
-});
-
-app.use((_solicitud, respuesta) => problema(respuesta, 404, "No encontrado", "La ruta solicitada no existe."));
-const errores: ErrorRequestHandler = (error, _solicitud, respuesta, _siguiente) => problema(respuesta, error instanceof SyntaxError ? 400 : 500, "Solicitud inválida", error instanceof SyntaxError ? "El cuerpo debe contener JSON válido." : "Ocurrió un error inesperado.");
-app.use(errores);
-await inicializar();
-await pool.query("ALTER TABLE elecciones ADD COLUMN IF NOT EXISTS id_organizacion UUID");
-await pool.query("CREATE INDEX IF NOT EXISTS elecciones_organizacion ON elecciones(id_organizacion)");
-const servidorHttp = app.listen(puerto, "0.0.0.0", () => console.log(`Servicio elecciones disponible en puerto ${puerto}`));
-for (const senal of ["SIGTERM", "SIGINT"]) process.once(senal, () => {
-  servidorHttp.close(() => { clientePadron.close(); void pool.end(); });
-  setTimeout(() => process.exit(1), 10000).unref();
-});
+app.get('/api/v1/mis-mesas',async(req,res)=>{try{const a=await permiso(req,'actas:consultar',false);const r=await db.query('SELECT m.id,m.codigo,m.unidad,m.id_proceso AS "idProceso",p.nombre FROM tuvoto_mesas m JOIN tuvoto_procesos p ON p.id=m.id_proceso WHERE p.id_organizacion=$2 AND p.actual AND NOT p.archivado AND ($3 OR EXISTS(SELECT 1 FROM tuvoto_asignaciones a WHERE a.id_mesa=m.id AND a.id_usuario=$1))',[a.idUsuario,a.idOrganizacion,Boolean(a.esAuditor)]);res.json({elementos:r.rows});}catch(e){res.status((e as any).estado??503).json({detalle:'Mesas no autorizadas'});}});
+app.get('/api/v1/mesas/:id/contexto',async(req,res)=>{try{const a=await permiso(req,'actas:consultar',false);const r=await db.query('SELECT m.id,m.id_proceso AS "idProceso",m.codigo,m.unidad FROM tuvoto_mesas m JOIN tuvoto_procesos p ON p.id=m.id_proceso JOIN tuvoto_asignaciones a ON a.id_mesa=m.id WHERE m.id=$1 AND a.id_usuario=$2 AND p.id_organizacion=$3 AND p.actual AND NOT p.archivado',[uuid.parse(req.params.id),a.idUsuario,a.idOrganizacion]);if(!r.rowCount){res.sendStatus(403);return;}const p=await obtener(r.rows[0].idProceso);res.json({...r.rows[0],candidatos:p!.candidatos});}catch(e){res.status((e as any).estado??503).json({detalle:'Mesa no autorizada'});}});
+app.use((e:any,_req:Request,res:Response,_next:NextFunction)=>{res.status(e instanceof z.ZodError?422:e.code==='23505'?409:e.estado??500).json({detalle:e.code==='23505'?'Registro duplicado':'No se pudo completar la operación'});});
+await db.query(`CREATE TABLE IF NOT EXISTS tuvoto_procesos(id UUID PRIMARY KEY,id_organizacion UUID NOT NULL,nombre TEXT NOT NULL,cargo TEXT NOT NULL,tipo TEXT NOT NULL,unidad TEXT NOT NULL,actual BOOLEAN NOT NULL DEFAULT false,archivado BOOLEAN NOT NULL DEFAULT false,creado_en TIMESTAMPTZ NOT NULL DEFAULT now());
+ALTER TABLE tuvoto_procesos ADD COLUMN IF NOT EXISTS archivado BOOLEAN NOT NULL DEFAULT false;
+CREATE UNIQUE INDEX IF NOT EXISTS tuvoto_actual_unico ON tuvoto_procesos(actual) WHERE actual;
+CREATE TABLE IF NOT EXISTS tuvoto_candidatos(id UUID PRIMARY KEY,id_proceso UUID NOT NULL REFERENCES tuvoto_procesos(id),nombre TEXT NOT NULL,orden SERIAL,foto BYTEA,mime TEXT,UNIQUE(id_proceso,nombre));
+CREATE TABLE IF NOT EXISTS tuvoto_mesas(id UUID PRIMARY KEY,id_proceso UUID NOT NULL REFERENCES tuvoto_procesos(id),codigo TEXT NOT NULL,unidad TEXT NOT NULL,UNIQUE(id_proceso,codigo));
+CREATE TABLE IF NOT EXISTS tuvoto_asignaciones(id_mesa UUID NOT NULL REFERENCES tuvoto_mesas(id),id_usuario UUID NOT NULL,PRIMARY KEY(id_mesa,id_usuario));`);
+const interno=servicioMesas(db,async(cabeceras,accion,plazo)=>permiso({header:(nombre:string)=>cabeceras[nombre.toLowerCase()]} as Request,accion,false,AbortSignal.timeout(plazo)),process.env.CLAVE_CLIENTE_ACTAS??'',process.env.CONTRATO_GRPC??'/app/mesa-v1.proto');
+await new Promise<void>((aceptar,rechazar)=>interno.bindAsync('0.0.0.0:'+Number(process.env.PUERTO_GRPC??50051),grpc.ServerCredentials.createInsecure(),error=>error?rechazar(error):aceptar()));
+app.listen(Number(process.env.PORT??3000),'0.0.0.0');

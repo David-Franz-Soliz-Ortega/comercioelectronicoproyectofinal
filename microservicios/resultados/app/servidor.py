@@ -1,100 +1,68 @@
-from starlette.concurrency import run_in_threadpool
-from app.autorizacion import autorizar, comprobar_eleccion, Acceso
+import hashlib
+import redis
+import json
+import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
-from uuid import UUID, uuid4
-
-from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, FileResponse
-from pymongo.errors import PyMongoError
-from starlette.exceptions import HTTPException
-
-from app.configuracion import conectar_mongo
+from datetime import datetime, timezone, timedelta
+from uuid import UUID
+from urllib.request import urlopen
+from urllib.error import URLError
+from fastapi import FastAPI, HTTPException
+from .configuracion import conectar_mongo
+from .proyeccion import resumir
 
 
 @asynccontextmanager
-async def ciclo_vida(app):
-    cliente, base = conectar_mongo()
-    app.state.cliente = cliente
-    app.state.base = base
+async def vida(app):
+    cliente, base = conectar_mongo(); app.state.cliente = cliente; app.state.base = base
+    base.informes.create_index([('idOrganizacion',1),('activo',1),('creadoEn',-1)])
     yield
     cliente.close()
 
 
-app = FastAPI(title="SIGAPE: conteo de registros sintéticos", version="1.0.0", lifespan=ciclo_vida)
+app = FastAPI(title='TUVOTO · Resultados preliminares', lifespan=vida, docs_url=None)
 
 
-def problema(solicitud, codigo, detalle):
-    return JSONResponse(status_code=codigo, media_type="application/problem+json", content={
-        "type": "about:blank", "title": "Error de solicitud", "status": codigo,
-        "detail": detalle, "instance": solicitud.url.path,
-        "idCorrelacion": getattr(solicitud.state, "correlacion", ""),
-    })
+@app.get('/api/v1/salud')
+def salud():
+    app.state.cliente.admin.command('ping')
+    desde = datetime.now(timezone.utc) - timedelta(seconds=20)
+    vivos = {r['_id'] for r in app.state.base.salud_consumidores.find({'instante': {'$gte': desde}})}
+    if not {'conteo', 'auditoria'}.issubset(vivos): raise HTTPException(503, 'Consumidores no disponibles')
+    return {'servicio': 'resultados', 'estado': 'saludable'}
 
 
-@app.middleware("http")
-async def controlar_acceso(solicitud: Request,siguiente):
-    if not solicitud.url.path.startswith('/api/v1/resultados/'):return await siguiente(solicitud)
+@app.get('/api/v1/publico/resultados/{id_proceso}')
+def resultados(id_proceso: UUID, unidad: str | None = None):
     try:
-        await run_in_threadpool(autorizar,solicitud,'resultados:leer')
-        identificador=solicitud.url.path.split('/')[4]
-        await run_in_threadpool(comprobar_eleccion,solicitud,identificador)
-        return await siguiente(solicitud)
-    except Acceso as e:
-        return JSONResponse(status_code=e.codigo,media_type='application/problem+json',content={'type':'about:blank','title':'Acceso no disponible','status':e.codigo,'detail':'Sesión requerida' if e.codigo==401 else 'Permiso denegado' if e.codigo==403 else 'Elección no disponible'})
-
-
-@app.middleware("http")
-async def correlacion(solicitud: Request, siguiente):
-    solicitud.state.correlacion = solicitud.headers.get("X-Correlation-ID") or str(uuid4())
-    respuesta = await siguiente(solicitud)
-    respuesta.headers["X-Correlation-ID"] = solicitud.state.correlacion
-    return respuesta
-
-
-@app.exception_handler(RequestValidationError)
-async def error_validacion(solicitud, error):
-    return problema(solicitud, 422, "El identificador debe ser UUID")
-
-
-@app.exception_handler(HTTPException)
-async def error_http(solicitud, error):
-    return problema(solicitud, error.status_code, str(error.detail))
-
-
-@app.exception_handler(PyMongoError)
-async def error_persistencia(solicitud, error):
-    return problema(solicitud, 503, "Persistencia no disponible")
-
-
-@app.get("/api/v1/salud")
-def salud(solicitud: Request):
+        with urlopen(os.environ['ELECCIONES_URL']+'/api/v1/publico/actual', timeout=4) as r: proceso = json.load(r)
+    except (URLError, OSError, ValueError): raise HTTPException(503, 'Configuración no disponible') from None
+    if not proceso or proceso['id'] != str(id_proceso): raise HTTPException(404, 'No es la elección pública actual')
+    if unidad:
+        mesas_unidad = [m for m in proceso['mesas'] if m['unidad'] == unidad]
+        if not mesas_unidad: raise HTTPException(404, 'Unidad no configurada')
+        proceso = {**proceso, 'mesas': mesas_unidad}
+    cache = redis.Redis(host=os.getenv('REDIS_HOST','cache-redis'),socket_connect_timeout=1,socket_timeout=1)
+    clave = 'tuvoto:publico:'+str(id_proceso)+':'+hashlib.sha256(json.dumps(proceso,sort_keys=True).encode()).hexdigest()
     try:
-        solicitud.app.state.cliente.admin.command("ping")
-        limite = datetime.now(timezone.utc) - timedelta(seconds=15)
-        activos = {fila["_id"] for fila in solicitud.app.state.base.salud_consumidores.find({"instante": {"$gte": limite}})}
-        estados = {nombre: nombre in activos for nombre in ("conteo", "auditoria")}
-        disponible = all(estados.values())
-        return JSONResponse(status_code=200 if disponible else 503, content={
-            "servicio": "resultados", "mongodb": True, "consumidores": estados,
-        })
-    except PyMongoError:
-        return JSONResponse(status_code=503, content={"servicio": "resultados", "mongodb": False})
+        guardado = cache.get(clave)
+        if guardado: return json.loads(guardado)
+    except redis.RedisError: pass
+    mesas = list(app.state.base.mesas_actas.find({'idProceso': str(id_proceso), 'idMesa': {'$in': [m['id'] for m in proceso['mesas']]}}))
+    resultado = resumir(proceso, mesas)
+    resultado['actualizadoEn'] = max((m['actualizadoEn'] for m in mesas if m.get('actualizadoEn') is not None), default=None)
+    try: cache.setex(clave,3,json.dumps(resultado,default=lambda valor:valor.isoformat()))
+    except redis.RedisError: pass
+    return resultado
 
 
-@app.get("/api/v1/resultados/{idEleccion}")
-def consultar(idEleccion: UUID, solicitud: Request):
-    total = solicitud.app.state.base.registros_conteo.count_documents({"idEleccion": str(idEleccion)})
-    return {"idEleccion": str(idEleccion), "totalRegistros": total}
+@app.get('/docs',include_in_schema=False)
+def documentacion_interactiva():
+    from fastapi.openapi.docs import get_swagger_ui_html
+    return get_swagger_ui_html(openapi_url='/api/v1/esquemas/resultados',title='TUVOTO · resultados')
 
+from .informes import router as informes
+app.include_router(informes)
 
-@app.get("/api/v1/resultados/{idEleccion}/auditoria")
-def consultar_auditoria(idEleccion: UUID, solicitud: Request):
-    total = solicitud.app.state.base.registros_auditoria.count_documents({"idEleccion": str(idEleccion)})
-    return {"idEleccion": str(idEleccion), "totalEventosAuditados": total}
-
-
-@app.get("/openapi.yaml", include_in_schema=False)
-def contrato():
-    return FileResponse("/app/contrato.yaml", media_type="application/yaml")
+from .http import instalar_http
+instalar_http(app,'resultados')

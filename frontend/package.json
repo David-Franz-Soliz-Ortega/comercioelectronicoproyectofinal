@@ -1,5 +1,5 @@
 {
-  "name": "sigape-frontend",
+  "name": "tuvoto-frontend",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,6 @@
   "scripts": {
     "desarrollar": "vite --host 0.0.0.0",
     "compilar": "vite build",
-    "probar-navegador": "node pruebas/navegador.mjs",
     "probar": "node --test --test-isolation=none pruebas/*.test.mjs"
   },
   "dependencies": {

@@ -1,0 +1,634 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TUVOTO · Identidad",
+    "version": "0.1.0",
+    "description": "TUVOTO: implementación de desarrollo, sin certificación electoral. Las escrituras requieren Origin autorizado, cookie CSRF y X-CSRF-Token. X-Organizacion selecciona alcance; no concede permisos. Las contraseñas admiten máximo 72 bytes UTF-8."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "paths": {
+    "/autenticacion/csrf": {
+      "get": {
+        "summary": "Obtener CSRF antes del login",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        }
+      }
+    },
+    "/autenticacion/login": {
+      "post": {
+        "summary": "Iniciar sesión",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "usuario",
+                  "contrasena"
+                ],
+                "properties": {
+                  "usuario": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "contrasena": {
+                    "type": "string",
+                    "writeOnly": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/autenticacion/yo": {
+      "get": {
+        "summary": "Consultar identidad y roles efectivos",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      }
+    },
+    "/autenticacion/logout": {
+      "post": {
+        "summary": "Revocar sesión actual",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      }
+    },
+    "/organizaciones": {
+      "get": {
+        "summary": "Organizaciones autorizadas",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Crear organización (ADMINISTRADOR con alcance global)",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          },
+          "201": {
+            "description": "Registro creado"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "nombre"
+                ],
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios": {
+      "get": {
+        "summary": "Listar hasta 100 cuentas autorizadas",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Crear administrador de organización u operador",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          },
+          "201": {
+            "description": "Registro creado"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "usuario",
+                  "contrasena",
+                  "idOrganizacion",
+                  "rol"
+                ],
+                "properties": {
+                  "usuario": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "contrasena": {
+                    "type": "string",
+                    "minLength": 12,
+                    "writeOnly": true
+                  },
+                  "idOrganizacion": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "rol": {
+                    "enum": [
+                      "ADMINISTRADOR",
+                      "OPERADOR"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizaciones/{id}": {
+      "put": {
+        "summary": "Editar organización",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nombre",
+                  "activa"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "activa": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso/CSRF/alcance denegado"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/usuarios/{id}/roles": {
+      "post": {
+        "summary": "Asignar o revocar rol en organización",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "rol",
+                  "idOrganizacion",
+                  "revocar"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "rol": {
+                    "enum": [
+                      "ADMINISTRADOR",
+                      "OPERADOR"
+                    ]
+                  },
+                  "idOrganizacion": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "revocar": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso/CSRF/alcance denegado"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/autenticacion/organizacion": {
+      "post": {
+        "summary": "Seleccionar organización de una asignación",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "idOrganizacion"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "idOrganizacion": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso/CSRF/alcance denegado"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        }
+      }
+    },
+    "/usuarios/{id}": {
+      "get": {
+        "summary": "Consultar cuentas",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registro consultado o actualizado"
+          },
+          "204": {
+            "description": "Retirado sin borrar historial"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol o alcance denegado"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Datos inválidos"
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar cuentas",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registro consultado o actualizado"
+          },
+          "204": {
+            "description": "Retirado sin borrar historial"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol o alcance denegado"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Datos inválidos"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "usuario"
+                ],
+                "properties": {
+                  "usuario": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 80
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Desactivar o archivar cuentas",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registro consultado o actualizado"
+          },
+          "204": {
+            "description": "Retirado sin borrar historial"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol o alcance denegado"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Datos inválidos"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sesion": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "tuvoto-sesion"
+      }
+    }
+  }
+}

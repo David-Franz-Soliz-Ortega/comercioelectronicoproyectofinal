@@ -1,0 +1,675 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TUVOTO · Elecciones",
+    "version": "0.1.0",
+    "description": "TUVOTO: implementación de desarrollo, sin certificación electoral."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "paths": {
+    "/publico/actual": {
+      "get": {
+        "summary": "Elección pública actual o null",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        }
+      }
+    },
+    "/configuracion/procesos": {
+      "get": {
+        "summary": "Procesos de la organización autorizada",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Crear proceso",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "nombre",
+                  "cargo",
+                  "tipo",
+                  "unidad"
+                ],
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "cargo": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "tipo": {
+                    "enum": [
+                      "universidad",
+                      "municipio",
+                      "otra"
+                    ]
+                  },
+                  "unidad": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/configuracion/procesos/{id}/actual": {
+      "post": {
+        "summary": "Seleccionar única elección pública",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/configuracion/procesos/{id}/candidatos": {
+      "post": {
+        "summary": "Agregar candidato antes de asignar mesas",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nombre"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "foto": {
+                    "type": "string",
+                    "description": "JPEG/PNG en data URL; máximo 2 MB"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/configuracion/procesos/{id}/mesas": {
+      "post": {
+        "summary": "Agregar mesa esperada",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "codigo",
+                  "unidad"
+                ],
+                "properties": {
+                  "codigo": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "unidad": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/configuracion/mesas/{id}/asignar": {
+      "post": {
+        "summary": "Asignar cuenta a mesa sin conceder roles",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "idUsuario"
+                ],
+                "properties": {
+                  "idUsuario": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/mis-mesas": {
+      "get": {
+        "summary": "Mesas asignadas al operador de la elección actual",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      }
+    },
+    "/mesas/{id}/contexto": {
+      "get": {
+        "summary": "Comprobar asignación y obtener candidatos",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/publico/candidatos/{id}/foto": {
+      "get": {
+        "summary": "Fotografía del candidato de la elección actual",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/configuracion/candidatos/{id}/foto": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "put": {
+        "summary": "Actualizar solo fotografía sin cambiar el catálogo ni los votos",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "foto"
+                ],
+                "properties": {
+                  "foto": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Fotografía actualizada"
+          },
+          "403": {
+            "description": "Acceso denegado"
+          },
+          "404": {
+            "description": "Candidato no disponible"
+          },
+          "422": {
+            "description": "JPEG/PNG inválido"
+          }
+        }
+      }
+    },
+    "/configuracion/procesos/{id}": {
+      "get": {
+        "summary": "Consultar procesos",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registro consultado o actualizado"
+          },
+          "204": {
+            "description": "Retirado sin borrar historial"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol o alcance denegado"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Datos inválidos"
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar procesos",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registro consultado o actualizado"
+          },
+          "204": {
+            "description": "Retirado sin borrar historial"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol o alcance denegado"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Datos inválidos"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "nombre",
+                  "cargo",
+                  "tipo",
+                  "unidad"
+                ],
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "cargo": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "tipo": {
+                    "enum": [
+                      "universidad",
+                      "municipio",
+                      "otra"
+                    ]
+                  },
+                  "unidad": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Desactivar o archivar procesos",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registro consultado o actualizado"
+          },
+          "204": {
+            "description": "Retirado sin borrar historial"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol o alcance denegado"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Datos inválidos"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sesion": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "tuvoto-sesion"
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+syntax = "proto3";
+package tuvoto.mesas.v1;
+// Actas consulta el catálogo y la asignación; solo Elecciones accede a su base.
+service ServicioMesas {
+  rpc ConsultarMesa (SolicitudMesa) returns (RespuestaMesa);
+}
+message SolicitudMesa { string id_mesa = 1; bool para_registro = 2; }
+message Candidato { string id = 1; string nombre = 2; }
+message RespuestaMesa {
+  string id = 1;
+  string id_proceso = 2;
+  string codigo = 3;
+  string unidad = 4;
+  repeated Candidato candidatos = 5;
+}

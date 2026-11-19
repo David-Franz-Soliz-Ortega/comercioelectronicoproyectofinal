@@ -1,81 +1,83 @@
-import PaginaUsuarios from './paginas/PaginaUsuarios.jsx';
 import React, { useEffect, useState } from 'react';
-import { puedeVerSeccion, tienePermiso } from './navegacion/planPermisos.js';
 import Sesion, { ControlesSesion } from './componentes/Sesion.jsx';
+import AdministrarCuentas from './componentes/AdministrarCuentas.jsx';
 import { consultarGraphql } from './api/clienteGraphql.js';
-import { resolverSeccion, secciones, seccionesRegistros } from './navegacion/secciones.js';
-import Navegacion from './componentes/Navegacion.jsx';
-import ResumenRegistros from './componentes/ResumenRegistros.jsx';
-import FormularioEleccion from './componentes/FormularioEleccion.jsx';
-import Icono from './componentes/Icono.jsx';
-import PaginaInicio from './paginas/PaginaInicio.jsx';
-import PaginaRegistros from './paginas/PaginaRegistros.jsx';
-import PaginaPendiente from './paginas/PaginaPendiente.jsx';
+import { solicitarRest } from './api/clienteRest.js';
+import { establecerOrganizacion } from './api/clienteSesion.js';
 
+const consulta = `query Portal($unidad:String) { portal(unidad:$unidad) { recepcion { idProceso mesasConActa versiones } proceso { id nombre cargo tipo unidad unidades candidatos { id nombre foto } } resultados { esperadas contabilizadas pendientes observadas avance blancos nulos total validos actualizadoEn candidatos { id nombre foto votos porcentaje } unidades { unidad esperadas contabilizadas pendientes } } } }`;
+const numero = n => new Intl.NumberFormat('es-VE').format(n);
+const archivoComoTexto = archivo => new Promise((aceptar, rechazar) => { const lector = new FileReader(); lector.onload = () => aceptar(lector.result); lector.onerror = () => rechazar(new Error('No se pudo leer la imagen')); lector.readAsDataURL(archivo); });
+function Cabecera({ children }) { return <header className="barra-tuvoto"><a href="#resultados" className="marca-tuvoto">TUVOTO<small>Seguimiento de resultados electorales</small></a>{children}</header>; }
+function Aviso({ error, mensaje }) { return <>{error && <p className="aviso" role="alert">{error}</p>}{mensaje && <p className="confirmacion" role="status">{mensaje}</p>}</>; }
 export default function Aplicacion() {
-  return <Sesion>{estado => <AplicacionAutenticada key={`${estado.sesion.idUsuario}-${estado.sesion.idOrganizacion ?? ''}`} {...estado} />}</Sesion>;
+ const [panel, cambiarPanel] = useState(location.hash === '#panel');
+ useEffect(() => { const escuchar = () => cambiarPanel(location.hash === '#panel'); window.addEventListener('hashchange', escuchar); return () => window.removeEventListener('hashchange', escuchar); }, []);
+ return panel ? <><Cabecera><a className="boton secundario" href="#resultados">Ver resultados públicos</a></Cabecera><Sesion>{estado => <PanelPrivado key={`${estado.sesion.idUsuario}-${estado.sesion.idOrganizacion ?? ''}`} {...estado} />}</Sesion></> : <PortalPublico />;
 }
-function AplicacionAutenticada({ sesion, ocupado, error, salir, seleccionar }) {
-  const [solicitada, cambiarSeccion] = useState(() => resolverSeccion(location.hash));
-  const [version, cambiarVersion] = useState(0);
-  const [reinicioListado, cambiarReinicioListado] = useState(0);
-  const [resumen, cambiarResumen] = useState(null);
-  const [cargandoResumen, cambiarCargandoResumen] = useState(false);
-  const [instanteResumen, cambiarInstanteResumen] = useState(null);
-  const [errorResumen, cambiarErrorResumen] = useState('');
-  const [mensaje, cambiarMensaje] = useState('');
-  const [formularioAbierto, cambiarFormularioAbierto] = useState(false);
-  const permitida = puedeVerSeccion(sesion, solicitada);
-  const seccion = permitida ? solicitada : 'inicio';
-  const visibles = Object.keys(seccionesRegistros).filter(clave => puedeVerSeccion(sesion, clave));
-  const consultaResumen = `query ResumenSigape { ${visibles.map(clave => `${seccionesRegistros[clave].recurso}(limite:1) { total }`).join(' ')} }`;
-  const esListado = Object.hasOwn(seccionesRegistros, seccion);
-  const configuracion = secciones[seccion];
-  const actualizar = () => cambiarVersion(valor => valor + 1);
-  useEffect(() => {
-    const escuchar = () => {
-      // El enlace de accesibilidad apunta al contenido, no a otra página.
-      if (location.hash !== '#contenido') cambiarSeccion(resolverSeccion(location.hash));
-    };
-    window.addEventListener('hashchange', escuchar);
-    return () => window.removeEventListener('hashchange', escuchar);
-  }, []);
-  useEffect(() => {
-    if (!visibles.length || (!esListado && seccion !== 'inicio')) return;
-    const controlador = new AbortController(); let vigente = true;
-    cambiarErrorResumen(''); cambiarResumen(null); cambiarInstanteResumen(null); cambiarCargandoResumen(true);
-    consultarGraphql(consultaResumen, {}, controlador.signal)
-      .then(({ datos }) => { if (vigente) { cambiarResumen(datos); cambiarInstanteResumen(new Date()); } })
-      .catch(fallo => { if (vigente) { cambiarResumen(null); cambiarErrorResumen(fallo.message); } })
-      .finally(() => { if (vigente) cambiarCargandoResumen(false); });
-    return () => { vigente = false; controlador.abort(); };
-  }, [version, esListado, seccion, consultaResumen]);
-  function navegar(destino) {
-    if (!Object.hasOwn(secciones, destino) || !puedeVerSeccion(sesion, destino)) return;
-    cambiarSeccion(destino);
-    location.hash = destino;
-  }
-  function alGuardar(creada) {
-    cambiarFormularioAbierto(false);
-    cambiarMensaje(`Elección «${creada.nombre}» guardada correctamente.`);
-    cambiarReinicioListado(valor => valor + 1);
-    navegar('elecciones'); actualizar();
-  }
-  return <div className="aplicacion">
-    <a className="saltar" href="#contenido">Ir al contenido</a>
-    <Navegacion seccion={seccion} navegar={navegar} sesion={sesion} />
-    <div className="zona-principal">
-      <header className="cabecera"><span>Espacio de gestión <span className="miga">/</span> <strong>{configuracion.titulo}</strong></span><ControlesSesion {...{ sesion, ocupado, salir, seleccionar }} /></header>
-      <main id="contenido" tabIndex="-1">
-        {error && <p className="aviso" role="alert">{error}</p>}
-        {!permitida && <p className="aviso" role="alert">No tienes permiso para acceder a esta sección.</p>}
-        <div className="presentacion"><div><p className="sobretitulo">SISTEMA DE PROCESOS ELECTORALES</p><h1>{seccion === 'inicio' ? 'Cada proceso, en un solo lugar.' : configuracion.titulo}</h1><p className="descripcion">{esListado ? configuracion.descripcion : seccion === 'inicio' ? 'Organiza y consulta la información de tus procesos electorales.' : 'Servicios académicos de SIGAPE y alcance disponible en esta interfaz.'}</p></div>{tienePermiso(sesion, 'elecciones:crear') && (esListado || seccion === 'inicio') && <button className="boton primario nueva-eleccion" onClick={() => cambiarFormularioAbierto(true)}><Icono nombre="mas" />Nueva elección</button>}</div>
-        {visibles.length > 0 && (esListado || seccion === 'inicio') && <ResumenRegistros cargando={cargandoResumen} instante={instanteResumen} visibles={visibles} resumen={resumen} seccion={seccion} navegar={navegar} error={errorResumen} />}
-        {mensaje && <div className="confirmacion" role="status"><Icono nombre="marca" />{mensaje}<button onClick={() => cambiarMensaje('')} aria-label="Cerrar confirmación">×</button></div>}
-        {esListado ? <PaginaRegistros key={`${seccion}-${reinicioListado}`} seccion={seccion} version={version} actualizar={actualizar} sesion={sesion} /> : seccion === 'inicio' ? <PaginaInicio {...{ actualizar, version, sesion, navegar }} /> : seccion === 'usuarios' ? <PaginaUsuarios /> : <PaginaPendiente seccion={seccion} />}
-        <footer className="pie-aplicacion"><span>SIGAPE <span>·</span> Sistema de Gestión y Administración de Procesos Electorales</span><span>COM-600</span></footer>
-      </main>
-    </div>
-    {formularioAbierto && tienePermiso(sesion, 'elecciones:crear') && <FormularioEleccion alGuardar={alGuardar} alCerrar={() => cambiarFormularioAbierto(false)} />}
-  </div>;
+function PortalPublico() {
+ const [portal, cambiarPortal] = useState(null), [cargando, cambiarCargando] = useState(true), [error, cambiarError] = useState(''), [unidad, cambiarUnidad] = useState('');
+ useEffect(() => { let vigente = true, temporizador; const controlador = new AbortController();
+  async function cargar() { try { const { datos } = await consultarGraphql(consulta, {unidad:unidad||null}, controlador.signal); if(vigente){cambiarPortal(datos.portal); cambiarError('');} } catch(e){if(vigente)cambiarError(e.message);} finally {if(vigente){cambiarCargando(false);temporizador=setTimeout(cargar,10000);}} }
+  cambiarPortal(null);cambiarCargando(true);cargar(); return () => {vigente=false;clearTimeout(temporizador);controlador.abort();};
+ }, [unidad]);
+ const r=portal?.resultados;
+ return <><Cabecera><a href="#panel" className="boton secundario">Acceso al personal</a></Cabecera><main className="portal-tuvoto">
+  <p className="sobretitulo">RESULTADOS PRELIMINARES · ACTAS CONFIRMADAS</p>
+  <h1>{portal?.proceso.nombre ?? 'Elección actual'}</h1>{portal && <p>{portal.proceso.cargo} · {r.actualizadoEn ? `Última incorporación: ${new Date(r.actualizadoEn).toLocaleString('es-VE')}` : 'Conteo aún no iniciado'}</p>}
+  {unidad&&<p>Resultados y avance de: <strong>{unidad}</strong></p>}<Aviso error={error} />{error && portal && <p>Se conserva la última respuesta recibida; no se acredita una actualización reciente.</p>}
+  {cargando ? <p role="status">Consultando elección y resultados…</p> : !portal ? <section className="panel estado-listado"><h2>{error ? 'No se pudo consultar la elección' : 'Todavía no hay una elección publicada'}</h2><p>No se muestran cifras sin una respuesta válida de las APIs.</p></section> : <>
+   <section className="tarjetas-tuvoto">{[['Mesas contabilizadas',`${r.contabilizadas} / ${r.esperadas}`],['Mesas pendientes',numero(r.pendientes)],['Actas observadas',numero(r.observadas)],['Votos contabilizados',numero(r.total)]].map(([titulo,valor])=><article className="panel" key={titulo}><span>{titulo}</span><strong>{valor}</strong></article>)}</section>
+   <section className="panel progreso-tuvoto"><label htmlFor="avance">{r.avance}% de mesas contabilizadas</label><progress id="avance" max="100" value={r.avance} /><small>{portal.recepcion ? `${portal.recepcion.mesasConActa} mesas con acta recibida en todo el proceso. ` : 'Recepción de actas no disponible. '}Las observadas están incluidas en las pendientes. Mesas y votos tienen avances diferentes.</small></section>
+   <div className="columnas-tuvoto"><section className="panel"><div className="titulo-panel"><h2>Votos por candidatura</h2></div><div className="candidatos-tuvoto">{r.candidatos.length===0?<p>No hay candidaturas configuradas.</p>:r.candidatos.map(c=><article key={c.id}>{c.foto?<img src={c.foto} alt={`Fotografía de ${c.nombre}`} />:<span className="sin-foto" aria-label="Sin fotografía">{c.nombre.slice(0,1)}</span>}<div><strong>{c.nombre}</strong><progress max="100" value={c.porcentaje} aria-label={`${c.porcentaje}% de votos válidos`} /></div><span><strong>{numero(c.votos)}</strong><small>{c.porcentaje}% de votos válidos</small></span></article>)}<p>Blancos: {numero(r.blancos)} · Nulos: {numero(r.nulos)}</p></div></section>
+   <section className="panel"><div className="titulo-panel"><h2>Avance por {portal.proceso.unidad.toLowerCase()}</h2><select aria-label="Filtrar unidad" value={unidad} onChange={e=>cambiarUnidad(e.target.value)}><option value="">Todas las unidades</option>{portal.proceso.unidades.map(u=><option key={u}>{u}</option>)}</select></div><div className="contenedor-tabla"><table><caption className="solo-lectores">Avance de mesas de la unidad seleccionada; las cifras de votos usan el mismo filtro</caption><thead><tr><th>Unidad</th><th>Contabilizadas</th><th>Pendientes</th></tr></thead><tbody>{r.unidades.filter(u=>!unidad||u.unidad===unidad).map(u=><tr key={u.unidad}><td>{u.unidad}</td><td>{u.contabilizadas} / {u.esperadas}</td><td>{u.pendientes}</td></tr>)}</tbody></table></div></section></div>
+   <p className="nota-alcance">Consulta pública sin login. Solo se suman aportes confirmados; las correcciones reemplazan el aporte anterior de la mesa. No son resultados oficiales certificados.</p>
+  </>}
+ </main></>;
+}
+function PanelPrivado(estado) {
+ const {sesion}=estado; const admin=sesion.roles.some(r=>r.rol==='ADMINISTRADOR'&&(r.idOrganizacion===null||r.idOrganizacion===sesion.idOrganizacion));
+ const auditor=sesion.roles.some(r=>r.rol==='AUDITOR'&&r.idOrganizacion===sesion.idOrganizacion);
+ const operador=sesion.roles.some(r=>r.rol==='OPERADOR'&&r.idOrganizacion===sesion.idOrganizacion);
+ return <main className="portal-tuvoto"><div className="titulo-panel"><h1>{admin?'Administración':operador?'Registro de actas':auditor?'Consulta de auditoría':'Acceso sin funciones asignadas'}</h1><ControlesSesion {...estado}/></div><Aviso error={estado.error}/>{admin?<PanelAdministrador sesion={sesion}/>:operador?<PanelOperador/>:auditor?<PanelAuditor/>:<p>Solicita al administrador un rol y una organización autorizados.</p>}</main>;
+}
+function PanelAdministrador({sesion}) {
+ const [organizaciones,setOrganizaciones]=useState([]),[cuentas,setCuentas]=useState([]),[org,setOrg]=useState(sesion.idOrganizacion??''),[procesos,setProcesos]=useState([]),[id,setId]=useState(''),[error,setError]=useState(''),[mensaje,setMensaje]=useState(''),[ocupado,setOcupado]=useState(false),[version,setVersion]=useState(0);
+ const [datos,setDatos]=useState({nombre:'',cargo:'',tipo:'universidad',unidad:'Facultad'}),[candidato,setCandidato]=useState({nombre:'',foto:''}),[mesa,setMesa]=useState({codigo:'',unidad:''}),[asignacion,setAsignacion]=useState({idMesa:'',idUsuario:''});
+ const actual=procesos.find(p=>p.id===id);
+ const pedir=(ruta,op={})=>solicitarRest(ruta,{...op,organizacion:org});
+ useEffect(()=>{let v=true;solicitarRest('/organizaciones').then(d=>{if(v)setOrganizaciones(d.elementos)}).catch(e=>{if(v)setError(e.message)});return()=>{v=false};},[version]);
+ useEffect(()=>{let v=true;setProcesos([]);setCuentas([]);if(!org)return;establecerOrganizacion(org);
+  Promise.all([pedir('/configuracion/procesos'),pedir('/usuarios')]).then(([p,c])=>{if(v){setProcesos(p.elementos);setCuentas(c.elementos)}}).catch(e=>{if(v)setError(e.message)});return()=>{v=false};
+ },[org,version]);
+ async function guardar(operacion){if(ocupado)return;setOcupado(true);setError('');setMensaje('');try{await operacion();setMensaje('Operación confirmada por la API.');setVersion(v=>v+1);}catch(e){setError(e.message)}finally{setOcupado(false)}}
+ return <><Aviso {...{error,mensaje}}/><section className="panel bloque-tuvoto"><h2>Organización de trabajo</h2><select aria-label="Organización de trabajo" value={org} onChange={e=>{setOrg(e.target.value);setId('')}}><option value="">Selecciona organización</option>{organizaciones.filter(o=>o.activa).map(o=><option key={o.idOrganizacion} value={o.idOrganizacion}>{o.nombre}</option>)}</select><p>El administrador configura y asigna. No modifica votos ni publica actas.</p></section>
+ {<AdministrarCuentas esGlobal={sesion.roles.some(r=>r.rol==='ADMINISTRADOR'&&r.idOrganizacion===null)} organizaciones={organizaciones} cuentas={cuentas} idActual={sesion.idUsuario} alGuardar={()=>setVersion(v=>v+1)}/>}
+ {org&&<><section className="panel bloque-tuvoto"><h2>Configurar proceso</h2><form className="form-tuvoto" onSubmit={e=>{e.preventDefault();guardar(async()=>{const p=await pedir('/configuracion/procesos',{metodo:'POST',datos});setId(p.id);setDatos({...datos,nombre:''})})}}>
+  <label>Nombre<input required maxLength="120" value={datos.nombre} onChange={e=>setDatos({...datos,nombre:e.target.value})}/></label><label>Cargo<input required maxLength="100" value={datos.cargo} onChange={e=>setDatos({...datos,cargo:e.target.value})}/></label><label>Tipo<select value={datos.tipo} onChange={e=>setDatos({...datos,tipo:e.target.value})}><option value="universidad">Universidad</option><option value="municipio">Municipio</option><option value="otra">Otra organización</option></select></label><label>Nombre de unidad<input required value={datos.unidad} onChange={e=>setDatos({...datos,unidad:e.target.value})}/></label><button className="boton primario" disabled={ocupado}>Crear proceso</button></form>
+  <label>Proceso a configurar<select value={id} onChange={e=>setId(e.target.value)}><option value="">Selecciona proceso</option>{procesos.map(p=><option key={p.id} value={p.id}>{p.nombre}{p.actual?' · Visible':''}</option>)}</select></label>
+ </section>{actual&&<section className="panel bloque-tuvoto"><h2>{actual.nombre}</h2><button className="boton primario" disabled={ocupado||actual.actual} onClick={()=>guardar(()=>pedir(`/configuracion/procesos/${id}/actual`,{metodo:'POST'}))}>{actual.actual?'Visible en el portal':'Mostrar en el portal público'}</button>
+  <h3>Candidaturas y fotografías</h3><p>Configure candidatos antes de asignar las mesas. El catálogo queda congelado al asignar operadores.</p><ul>{actual.candidatos.map(c=><li key={c.id}>{c.nombre} {c.tieneFoto?'· Con fotografía':'· Sin fotografía'} <label>Cambiar fotografía<input type="file" accept="image/jpeg,image/png" disabled={ocupado} onChange={e=>{const f=e.target.files[0];if(f)guardar(async()=>{if(f.size>2000000)throw Error('Máximo 2 MB');await pedir(`/configuracion/candidatos/${c.id}/foto`,{metodo:'PUT',datos:{foto:await archivoComoTexto(f)}})})}}/></label></li>)}</ul>
+  <form className="form-tuvoto" onSubmit={e=>{e.preventDefault();guardar(async()=>{await pedir(`/configuracion/procesos/${id}/candidatos`,{metodo:'POST',datos:candidato});setCandidato({nombre:'',foto:''})})}}><label>Nombre del candidato<input required maxLength="120" value={candidato.nombre} onChange={e=>setCandidato({...candidato,nombre:e.target.value})}/></label><label>Fotografía JPEG/PNG (máximo 2 MB)<input type="file" accept="image/jpeg,image/png" onChange={async e=>{try{const f=e.target.files[0];if(f){if(f.size>2000000)throw Error('Máximo 2 MB');setCandidato({...candidato,foto:await archivoComoTexto(f)})}}catch(e){setError(e.message)}}}/></label><button className="boton primario" disabled={ocupado}>Agregar candidato</button></form>
+  <h3>Mesas esperadas</h3><form className="form-tuvoto" onSubmit={e=>{e.preventDefault();guardar(async()=>{await pedir(`/configuracion/procesos/${id}/mesas`,{metodo:'POST',datos:mesa});setMesa({codigo:'',unidad:''})})}}><label>Código de mesa<input required value={mesa.codigo} onChange={e=>setMesa({...mesa,codigo:e.target.value})}/></label><label>{actual.unidad}<input required value={mesa.unidad} onChange={e=>setMesa({...mesa,unidad:e.target.value})}/></label><button className="boton primario" disabled={ocupado}>Agregar mesa</button></form>
+  <p>{actual.mesas.length} mesas esperadas</p><h3>Asignar operadores</h3><form className="form-tuvoto" onSubmit={e=>{e.preventDefault();guardar(()=>pedir(`/configuracion/mesas/${asignacion.idMesa}/asignar`,{metodo:'POST',datos:{idUsuario:asignacion.idUsuario}}))}}><label>Mesa<select required value={asignacion.idMesa} onChange={e=>setAsignacion({...asignacion,idMesa:e.target.value})}><option value="">Selecciona mesa</option>{actual.mesas.map(m=><option value={m.id} key={m.id}>{m.codigo} · {m.unidad}</option>)}</select></label><label>Cuenta<select required value={asignacion.idUsuario} onChange={e=>setAsignacion({...asignacion,idUsuario:e.target.value})}><option value="">Selecciona cuenta</option>{cuentas.filter(c=>c.activo&&c.roles?.some(r=>r.rol==='OPERADOR'&&r.idOrganizacion===org)&&!c.roles.some(r=>r.rol==='ADMINISTRADOR'&&(r.idOrganizacion===null||r.idOrganizacion===org))).map(c=><option key={c.idUsuario} value={c.idUsuario}>{c.usuario}</option>)}</select></label><button className="boton primario" disabled={ocupado||actual.candidatos.length===0}>Asignar mesa</button></form><p>La asignación no concede roles. La cuenta debe tener OPERADOR en esta organización para registrar actas.</p>
+ </section>}</>}
+ </>;
+}
+function PanelOperador(){
+ const [mesas,setMesas]=useState([]),[id,setId]=useState(''),[contexto,setContexto]=useState(null),[historial,setHistorial]=useState(null),[foto,setFoto]=useState(''),[votos,setVotos]=useState({}),[blancos,setBlancos]=useState(0),[nulos,setNulos]=useState(0),[total,setTotal]=useState(0),[confirmado,setConfirmado]=useState(false),[solicitud,setSolicitud]=useState(crypto.randomUUID()),[version,setVersion]=useState(0),[error,setError]=useState(''),[mensaje,setMensaje]=useState(''),[ocupado,setOcupado]=useState(false);
+ useEffect(()=>{solicitarRest('/mis-mesas').then(d=>setMesas(d.elementos)).catch(e=>setError(e.message))},[]);
+ useEffect(()=>{let v=true;setContexto(null);setHistorial(null);setFoto('');setConfirmado(false);setError('');if(!id)return;Promise.all([solicitarRest(`/mesas/${id}/contexto`),solicitarRest(`/actas/mesa/${id}`)]).then(([c,h])=>{if(v){setContexto(c);setHistorial(h);setVotos(Object.fromEntries(c.candidatos.map(c=>[c.id,0])));setBlancos(0);setNulos(0);setTotal(0);setSolicitud(crypto.randomUUID())}}).catch(e=>{if(v)setError(e.message)});return()=>{v=false};},[id,version]);
+ const cambiar=(setter,valor)=>{setter(valor);setConfirmado(false);setSolicitud(crypto.randomUUID())};
+ async function publicar(e){e.preventDefault();if(ocupado||!historial)return;setOcupado(true);setError('');try{const datos={idMesa:id,idSolicitud:solicitud,versionAnterior:historial.versionAnterior,foto,votos:Object.entries(votos).map(([idCandidato,cantidad])=>({idCandidato,cantidad})),blancos,nulos,total,confirmado};const r=historial.versionAnterior>0?await solicitarRest('/actas/mesas/'+id,{metodo:'PUT',datos}):(await consultarGraphql('mutation Registrar($entrada:NuevaActa!){registrarActa(entrada:$entrada){id version estado}}',{entrada:datos})).datos.registrarActa;setMensaje(r.estado==='publicada'?'Acta confirmada. La publicación de resultados se procesa en segundo plano.':'Acta observada: las sumas no coinciden. No se incorpora un aporte nuevo.');setVersion(v=>v+1)}catch(e){setError(e.message)}finally{setOcupado(false)}}
+ return <><Aviso {...{error,mensaje}}/><section className="panel bloque-tuvoto"><h2>Mis mesas asignadas</h2><select aria-label="Mesa asignada" value={id} onChange={e=>setId(e.target.value)}><option value="">Selecciona mesa</option>{mesas.map(m=><option key={m.id} value={m.id}>{m.codigo} · {m.unidad}</option>)}</select>{mesas.length===0&&<p>No hay mesas asignadas de la elección actual. Solicita la asignación al administrador.</p>}</section>
+ {contexto&&historial&&<section className="panel bloque-tuvoto"><h2>Mesa {contexto.codigo} · {contexto.unidad}</h2><p>Registro manual respaldado por fotografía. OCR pendiente de integración; no se generan cifras automáticamente.</p><form onSubmit={publicar}><div className="columnas-tuvoto"><div><label>Fotografiar o subir acta JPEG/PNG (máximo 10 MB)<input type="file" accept="image/jpeg,image/png" capture="environment" required disabled={ocupado} onChange={async e=>{try{const f=e.target.files[0];if(f){if(f.size>10000000)throw Error('Máximo 10 MB');cambiar(setFoto,await archivoComoTexto(f))}}catch(e){setError(e.message)}}}/></label>{foto&&<img className="foto-acta" src={foto} alt="Fotografía a comparar con el conteo"/>}</div><div className="form-tuvoto">{contexto.candidatos.map(c=><label key={c.id}>{c.nombre}<input type="number" min="0" max="1000000" step="1" required disabled={ocupado} value={votos[c.id]??0} onChange={e=>cambiar(setVotos,{...votos,[c.id]:Number(e.target.value)})}/></label>)}{[['Blancos',blancos,setBlancos],['Nulos',nulos,setNulos],['Total del acta',total,setTotal]].map(([nombre,valor,setter])=><label key={nombre}>{nombre}<input type="number" min="0" max="1000000" step="1" required disabled={ocupado} value={valor} onChange={e=>cambiar(setter,Number(e.target.value))}/></label>)}<p>Suma ingresada: {Object.values(votos).reduce((a,b)=>a+b,0)+blancos+nulos}</p><label><input type="checkbox" required checked={confirmado} disabled={ocupado} onChange={e=>setConfirmado(e.target.checked)}/>He comparado cada cifra con la fotografía.</label><button className="boton primario" disabled={ocupado||!foto||!confirmado||contexto.candidatos.length===0}>{ocupado?'Procesando…':'Confirmar y publicar'}</button></div></div></form><h3>Historial inmutable de la mesa</h3><ul>{historial.elementos.map(a=><li key={a.id}>Versión {a.version} · {a.estado} · {new Date(a.creado_en).toLocaleString('es-VE')} · <a href={`/api/v1/actas/${a.id}/foto`} target="_blank" rel="noreferrer">Ver original</a></li>)}</ul></section>}
+ </>;
+}
+
+function PanelAuditor(){
+ const [mesas,setMesas]=useState([]),[id,setId]=useState(''),[datos,setDatos]=useState(null),[error,setError]=useState('');
+ useEffect(()=>{solicitarRest('/mis-mesas').then(d=>setMesas(d.elementos)).catch(e=>setError(e.message))},[]);
+ useEffect(()=>{let vigente=true;setDatos(null);setError('');if(id)solicitarRest(`/actas/mesa/${id}`).then(d=>{if(vigente)setDatos(d)}).catch(e=>{if(vigente)setError(e.message)});return()=>{vigente=false}},[id]);
+ return <section className="panel bloque-tuvoto"><h2>Actas de la organización · solo lectura</h2><p>El auditor puede consultar originales y versiones; no registra ni corrige cifras.</p><Aviso error={error}/><label>Mesa<select value={id} onChange={e=>setId(e.target.value)}><option value="">Selecciona mesa</option>{mesas.map(m=><option key={m.id} value={m.id}>{m.codigo} · {m.unidad}</option>)}</select></label>{datos&&<ul>{datos.elementos.map(a=><li key={a.id}>Versión {a.version} · {a.estado} · <a href={`/api/v1/actas/${a.id}/foto`} target="_blank" rel="noreferrer">Ver original</a></li>)}</ul>}</section>;
 }

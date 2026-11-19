@@ -6,12 +6,13 @@ let organizacion = '';
 export function establecerOrganizacion(valor) { organizacion = valor ?? ''; }
 export function cabecerasSesion() {
   const cookies = typeof document === 'undefined' ? [] : document.cookie.split(';').map(valor => valor.trim());
-  const csrf = cookies.find(valor => /^(?:__Host-)?sigape-csrf=/.test(valor))?.split('=').slice(1).join('=');
+  const csrf = cookies.find(valor => /^(?:__Host-)?tuvoto-csrf=/.test(valor))?.split('=').slice(1).join('=');
   return { ...(csrf ? { 'X-CSRF-Token': csrf } : {}), ...(organizacion ? { 'X-Organizacion': organizacion } : {}) };
 }
 export function comprobarAcceso(estado, notificar = true) {
   if (estado !== 401 && estado !== 403) return;
-  if (estado === 401 && notificar && typeof window !== 'undefined') window.dispatchEvent(new Event('sigape:sesion-caducada'));
+  if (estado === 401 && notificar && typeof window !== 'undefined') window.dispatchEvent(new Event('tuvoto:sesion-caducada'));
+  if (estado === 403 && notificar && typeof window !== 'undefined') window.dispatchEvent(new Event('tuvoto:comprobar-sesion'));
   throw new ErrorAcceso(estado, estado === 401 ? 'La sesión terminó. Inicia sesión de nuevo.' : 'No tienes permiso para esta operación o su organización.');
 }
 async function solicitar(ruta, metodo = 'GET', datos, notificar = true) {

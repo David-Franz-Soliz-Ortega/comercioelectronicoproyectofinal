@@ -16,3 +16,8 @@ pruebas
 gateway/*
 !gateway/graphql
 infraestructura
+archivo/
+secrets/
+**/*.pem
+**/*.key
+.respaldo-local/

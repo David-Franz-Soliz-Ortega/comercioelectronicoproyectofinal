@@ -34,3 +34,10 @@ venv/
 .vscode/frontend/pruebas/evidencias-desarrollo/secretos.json
 # Archivos privados
 frontend/pruebas/evidencias-desarrollo/secretos.jsonfrontend/pruebas/evidencias-desarrollo/
+
+# TUVOTO: plantilla pública y configuración privada fuera de Git.
+# Evidencias y dependencias históricas se conservan localmente, fuera de la entrega nueva.
+archivo/**/evidencias*/
+archivo/**/node_modules/
+archivo/**/dist/
+.respaldo-local/

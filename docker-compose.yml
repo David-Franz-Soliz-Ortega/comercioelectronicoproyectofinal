@@ -1,372 +1,195 @@
-name: sigape
+name: tuvoto
+
+x-python: &salud-python
+  interval: 10s
+  timeout: 5s
+  retries: 12
+  start_period: 20s
+x-actas: &entorno-actas
+  DB_HOST: base-postgres
+  DB_NAME: actas_db
+  DB_USER: actas_app
+  DB_PASSWORD: ${TUVOTO_ACTAS_CLAVE:?Define credenciales TUVOTO independientes}
+  IDENTIDAD_URL: http://identidad:3000
+  ELECCIONES_URL: http://elecciones:3000
+  ELECCIONES_GRPC: elecciones:50051
+  CLAVE_SERVICIO: ${TUVOTO_INTERNA_ACTAS:?Define clave interna de actas}
+  RABBITMQ_HOST: mensajeria-rabbitmq
+  RABBITMQ_USUARIO: tuvoto_app
+  RABBITMQ_CLAVE: ${TUVOTO_RABBIT_CLAVE:?Define clave RabbitMQ}
+x-resultados: &entorno-resultados
+  MONGODB_HOST: base-mongodb
+  MONGODB_DATABASE: resultados_db
+  MONGODB_USERNAME: resultados_app
+  MONGODB_PASSWORD: ${TUVOTO_RESULTADOS_CLAVE:?Define clave de resultados}
+  RABBITMQ_HOST: mensajeria-rabbitmq
+  RABBITMQ_USUARIO: tuvoto_app
+  RABBITMQ_CLAVE: ${TUVOTO_RABBIT_CLAVE:?Define clave RabbitMQ}
+  ELECCIONES_URL: http://elecciones:3000
+  REDIS_HOST: cache-redis
+  IDENTIDAD_URL: http://identidad:3000
+  CLAVE_SERVICIO: ${TUVOTO_INTERNA_RESULTADOS:?Define clave interna de resultados}
 
 services:
   base-postgres:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_ADMIN_USUARIO:?Define POSTGRES_ADMIN_USUARIO en .env}
-      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_CLAVE:?Define POSTGRES_ADMIN_CLAVE en .env}
+      POSTGRES_USER: tuvoto_admin
+      POSTGRES_PASSWORD: ${TUVOTO_POSTGRES_CLAVE:?Define clave PostgreSQL}
       POSTGRES_DB: postgres
-      IDENTIDAD_DB: identidad_db
-      IDENTIDAD_DB_USUARIO: ${IDENTIDAD_DB_USUARIO:?Define IDENTIDAD_DB_USUARIO en .env}
-      IDENTIDAD_DB_CLAVE: ${IDENTIDAD_DB_CLAVE:?Define IDENTIDAD_DB_CLAVE en .env}
-      ELECCIONES_DB: elecciones_db
-      ELECCIONES_DB_USUARIO: ${ELECCIONES_DB_USUARIO:?Define ELECCIONES_DB_USUARIO en .env}
-      ELECCIONES_DB_CLAVE: ${ELECCIONES_DB_CLAVE:?Define ELECCIONES_DB_CLAVE en .env}
-      PADRON_ELECTORAL_DB: padron_electoral_db
-      PADRON_ELECTORAL_DB_USUARIO: ${PADRON_ELECTORAL_DB_USUARIO:?Define PADRON_ELECTORAL_DB_USUARIO en .env}
-      PADRON_ELECTORAL_DB_CLAVE: ${PADRON_ELECTORAL_DB_CLAVE:?Define PADRON_ELECTORAL_DB_CLAVE en .env}
-      VOTACION_DB: votacion_db
-      VOTACION_DB_USUARIO: ${VOTACION_DB_USUARIO:?Define VOTACION_DB_USUARIO en .env}
-      VOTACION_DB_CLAVE: ${VOTACION_DB_CLAVE:?Define VOTACION_DB_CLAVE en .env}
+      IDENTIDAD_DB_USUARIO: identidad_app
+      IDENTIDAD_DB_CLAVE: ${TUVOTO_IDENTIDAD_CLAVE:?Define clave de identidad}
+      ELECCIONES_DB_USUARIO: elecciones_app
+      ELECCIONES_DB_CLAVE: ${TUVOTO_ELECCIONES_CLAVE:?Define clave de elecciones}
+      ACTAS_DB_USUARIO: actas_app
+      ACTAS_DB_CLAVE: ${TUVOTO_ACTAS_CLAVE:?Define clave de actas}
     volumes:
       - datos_postgres:/var/lib/postgresql/data
-      - ./infraestructura/docker/inicializar-postgres.sh:/docker-entrypoint-initdb.d/10-inicializar-bases.sh:ro
-    networks:
-      - red_interna
+      - ./infraestructura/tuvoto/inicializar-postgres.sh:/docker-entrypoint-initdb.d/10-bases.sh:ro
+    networks: [interna]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      test: [CMD-SHELL, 'pg_isready -U tuvoto_admin -d postgres']
       interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
-
-  identidad:
-    build:
-      context: .
-      dockerfile: microservicios/identidad/Dockerfile
-    restart: unless-stopped
-    environment:
-      PORT: "3000"
-      DB_HOST: base-postgres
-      DB_PORT: "5432"
-      DB_NAME: identidad_db
-      DB_USER: ${IDENTIDAD_DB_USUARIO:?Define IDENTIDAD_DB_USUARIO en .env}
-      DB_PASSWORD: ${IDENTIDAD_DB_CLAVE:?Define IDENTIDAD_DB_CLAVE en .env}
-      ORIGEN_PUBLICO: ${ORIGEN_PUBLICO:-http://localhost:8080}
-      COOKIE_SEGURA: ${COOKIE_SEGURA:-false}
-      SESION_SEGUNDOS: ${SESION_SEGUNDOS:-1800}
-      CLAVE_SERVICIO: ${CLAVE_INTERNA_IDENTIDAD:?Define CLAVE_INTERNA_IDENTIDAD en .env}
-      CLAVE_INTERNA_IDENTIDAD: ${CLAVE_INTERNA_IDENTIDAD:?Define CLAVE_INTERNA_IDENTIDAD en .env}
-      CLAVE_INTERNA_ELECCIONES: ${CLAVE_INTERNA_ELECCIONES:?Define CLAVE_INTERNA_ELECCIONES en .env}
-      CLAVE_INTERNA_PADRON_ELECTORAL: ${CLAVE_INTERNA_PADRON_ELECTORAL:?Define CLAVE_INTERNA_PADRON_ELECTORAL en .env}
-      CLAVE_INTERNA_CANDIDATURAS: ${CLAVE_INTERNA_CANDIDATURAS:?Define CLAVE_INTERNA_CANDIDATURAS en .env}
-      CLAVE_INTERNA_VOTACION: ${CLAVE_INTERNA_VOTACION:?Define CLAVE_INTERNA_VOTACION en .env}
-      CLAVE_INTERNA_RESULTADOS: ${CLAVE_INTERNA_RESULTADOS:?Define CLAVE_INTERNA_RESULTADOS en .env}
-      CLAVE_INTERNA_GATEWAY_GRAPHQL: ${CLAVE_INTERNA_GATEWAY_GRAPHQL:?Define CLAVE_INTERNA_GATEWAY_GRAPHQL en .env}
-    networks: [red_interna]
-    depends_on:
-      base-postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-      start_period: 20s
-
-  elecciones:
-    build:
-      context: .
-      dockerfile: microservicios/elecciones/Dockerfile
-    restart: unless-stopped
-    environment:
-      PORT: "3000"
-      PADRON_GRPC_DIRECCION: padron-electoral:50051
-      PADRON_GRPC_PLAZO_MS: "1200"
-      DB_HOST: base-postgres
-      DB_PORT: "5432"
-      DB_NAME: elecciones_db
-      DB_USER: ${ELECCIONES_DB_USUARIO:?Define ELECCIONES_DB_USUARIO en .env}
-      DB_PASSWORD: ${ELECCIONES_DB_CLAVE:?Define ELECCIONES_DB_CLAVE en .env}
-      IDENTIDAD_URL: http://identidad:3000
-      CLAVE_SERVICIO: ${CLAVE_INTERNA_ELECCIONES:?Define CLAVE_INTERNA_ELECCIONES en .env}
-    networks: [red_interna]
-    depends_on:
-      base-postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-      start_period: 20s
-
+      timeout: 3s
+      retries: 15
   base-mongodb:
     image: mongo:8.0
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ADMIN_USUARIO:?Define MONGODB_ADMIN_USUARIO en .env}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ADMIN_CLAVE:?Define MONGODB_ADMIN_CLAVE en .env}
-      CANDIDATURAS_DB: candidaturas_db
-      CANDIDATURAS_DB_USUARIO: ${CANDIDATURAS_DB_USUARIO:?Define CANDIDATURAS_DB_USUARIO en .env}
-      CANDIDATURAS_DB_CLAVE: ${CANDIDATURAS_DB_CLAVE:?Define CANDIDATURAS_DB_CLAVE en .env}
-      RESULTADOS_DB: resultados_db
-      RESULTADOS_DB_USUARIO: ${RESULTADOS_DB_USUARIO:?Define RESULTADOS_DB_USUARIO en .env}
-      RESULTADOS_DB_CLAVE: ${RESULTADOS_DB_CLAVE:?Define RESULTADOS_DB_CLAVE en .env}
+      MONGO_INITDB_ROOT_USERNAME: tuvoto_admin
+      MONGO_INITDB_ROOT_PASSWORD: ${TUVOTO_MONGO_CLAVE:?Define clave MongoDB}
+      RESULTADOS_DB_CLAVE: ${TUVOTO_RESULTADOS_CLAVE:?Define clave de resultados}
     volumes:
       - datos_mongodb:/data/db
-      - ./infraestructura/docker/inicializar-mongodb.sh:/docker-entrypoint-initdb.d/10-inicializar-bases.sh:ro
-    networks:
-      - red_interna
+      - configuracion_mongodb:/data/configdb
+      - ./infraestructura/tuvoto/inicializar-mongodb.sh:/docker-entrypoint-initdb.d/10-bases.sh:ro
+    networks: [interna]
     healthcheck:
-      test:
-        - CMD-SHELL
-        - >-
-          mongosh --quiet --username "$$MONGO_INITDB_ROOT_USERNAME"
-          --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin
-          --eval "db.adminCommand('ping').ok" | grep -q 1
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 20s
-
-  candidaturas:
-    build:
-      context: .
-      dockerfile: microservicios/candidaturas/Dockerfile
-    restart: unless-stopped
-    environment:
-      MONGODB_HOST: base-mongodb
-      MONGODB_PORT: "27017"
-      MONGODB_DATABASE: candidaturas_db
-      MONGODB_USERNAME: ${CANDIDATURAS_DB_USUARIO:?Define CANDIDATURAS_DB_USUARIO en .env}
-      MONGODB_PASSWORD: ${CANDIDATURAS_DB_CLAVE:?Define CANDIDATURAS_DB_CLAVE en .env}
-      MONGODB_AUTH_SOURCE: candidaturas_db
-      ELECCIONES_URL: http://elecciones:3000
-      IDENTIDAD_URL: http://identidad:3000
-      CLAVE_SERVICIO: ${CLAVE_INTERNA_CANDIDATURAS:?Define CLAVE_INTERNA_CANDIDATURAS en .env}
-    networks: [red_interna]
-    depends_on:
-      base-mongodb:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/salud', timeout=3)"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-      start_period: 25s
-
-  padron-electoral:
-    build:
-      context: .
-      dockerfile: microservicios/padron-electoral/Dockerfile
-    restart: unless-stopped
-    environment:
-      PORT: "3000"
-      GRPC_DIRECCION: 0.0.0.0:50051
-      DB_HOST: base-postgres
-      DB_PORT: "5432"
-      DB_NAME: padron_electoral_db
-      DB_USER: ${PADRON_ELECTORAL_DB_USUARIO:?Define PADRON_ELECTORAL_DB_USUARIO en .env}
-      DB_PASSWORD: ${PADRON_ELECTORAL_DB_CLAVE:?Define PADRON_ELECTORAL_DB_CLAVE en .env}
-      ELECCIONES_URL: http://elecciones:3000
-      IDENTIDAD_URL: http://identidad:3000
-      CLAVE_SERVICIO: ${CLAVE_INTERNA_PADRON_ELECTORAL:?Define CLAVE_INTERNA_PADRON_ELECTORAL en .env}
-    networks: [red_interna]
-    depends_on:
-      base-postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-      start_period: 20s
-
+      <<: *salud-python
+      test: [CMD, mongosh, --quiet, --eval, 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)']
   cache-redis:
     image: redis:7-alpine
     restart: unless-stopped
-    environment:
-      REDIS_CLAVE: ${REDIS_CLAVE:?Define REDIS_CLAVE en .env}
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_CLAVE:?Define REDIS_CLAVE en .env}"]
-    volumes:
-      - datos_redis:/data
-    networks:
-      - red_interna
+    networks: [interna]
+    command: [redis-server, --save, '', --appendonly, 'no']
     healthcheck:
-      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_CLAVE\" redis-cli ping | grep -q PONG"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-
+      <<: *salud-python
+      test: [CMD, redis-cli, ping]
   mensajeria-rabbitmq:
     image: rabbitmq:4-management
-    hostname: sigape-rabbitmq
+    restart: unless-stopped
+    hostname: tuvoto-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: tuvoto_app
+      RABBITMQ_DEFAULT_PASS: ${TUVOTO_RABBIT_CLAVE:?Define clave RabbitMQ}
+    volumes: [datos_rabbitmq:/var/lib/rabbitmq]
+    networks: [interna]
+    healthcheck:
+      <<: *salud-python
+      test: [CMD, rabbitmq-diagnostics, -q, ping]
+  identidad:
+    build: {context: ., dockerfile: microservicios/identidad/Dockerfile}
     restart: unless-stopped
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_ADMIN_USUARIO:?Define RABBITMQ_ADMIN_USUARIO en .env}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_ADMIN_CLAVE:?Define RABBITMQ_ADMIN_CLAVE en .env}
-    volumes:
-      - datos_rabbitmq:/var/lib/rabbitmq
-    networks:
-      - red_interna
+      PORT: '3000'
+      DB_HOST: base-postgres
+      DB_PORT: '5432'
+      DB_NAME: identidad_db
+      DB_USER: identidad_app
+      DB_PASSWORD: ${TUVOTO_IDENTIDAD_CLAVE:?Define clave de identidad}
+      ORIGEN_PUBLICO: ${TUVOTO_ORIGEN:?Define origen público exacto}
+      COOKIE_SEGURA: ${TUVOTO_COOKIE_SEGURA:?Define true para HTTPS o false para HTTP local}
+      CLAVE_INTERNA_ELECCIONES: ${TUVOTO_INTERNA_ELECCIONES:?Define clave interna de elecciones}
+      CLAVE_INTERNA_ACTAS: ${TUVOTO_INTERNA_ACTAS:?Define clave interna de actas}
+      CLAVE_INTERNA_RESULTADOS: ${TUVOTO_INTERNA_RESULTADOS:?Define clave interna de resultados}
+    networks: [interna]
+    depends_on: {base-postgres: {condition: service_healthy}}
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 20s
-
-  configurar-mensajeria:
-    image: rabbitmq:4-management
-    entrypoint: ["rabbitmqadmin"]
-    command: ["definitions", "import", "--file", "/etc/rabbitmq/definiciones.json", "--non-interactive"]
-    environment:
-      RABBITMQADMIN_TARGET_HOST: mensajeria-rabbitmq
-      RABBITMQADMIN_USERNAME: ${RABBITMQ_ADMIN_USUARIO:?Define RABBITMQ_ADMIN_USUARIO en .env}
-      RABBITMQADMIN_PASSWORD: ${RABBITMQ_ADMIN_CLAVE:?Define RABBITMQ_ADMIN_CLAVE en .env}
-      RABBITMQADMIN_NON_INTERACTIVE_MODE: "true"
-    volumes:
-      - ./infraestructura/docker/definiciones-rabbitmq.json:/etc/rabbitmq/definiciones.json:ro
-    networks:
-      - red_interna
-    depends_on:
-      mensajeria-rabbitmq:
-        condition: service_healthy
-    restart: "no"
-
-  entrada-nginx:
-    image: nginx:1.29-alpine
-    restart: unless-stopped
-    depends_on:
-      identidad:
-        condition: service_healthy
-      elecciones:
-        condition: service_healthy
-      candidaturas:
-        condition: service_healthy
-      padron-electoral:
-        condition: service_healthy
-      votacion:
-        condition: service_healthy
-      resultados:
-        condition: service_healthy
-      gateway-graphql:
-        condition: service_healthy
-      frontend:
-        condition: service_healthy
-    ports:
-      - "${PUERTO_HTTP_PUBLICO:-8080}:80"
-    volumes:
-      - ./infraestructura/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    networks:
-      - red_entrada
-      - red_interna
-    healthcheck:
-      test: ["CMD-SHELL", "nginx -t && kill -0 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  votacion:
-    build:
-      context: .
-      dockerfile: microservicios/votacion/Dockerfile
+      <<: *salud-python
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/v1/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+  elecciones:
+    build: {context: ., dockerfile: microservicios/elecciones/Dockerfile}
     restart: unless-stopped
     environment:
       DB_HOST: base-postgres
-      DB_NAME: votacion_db
-      DB_USER: ${VOTACION_DB_USUARIO:?Define VOTACION_DB_USUARIO en .env}
-      DB_PASSWORD: ${VOTACION_DB_CLAVE:?Define VOTACION_DB_CLAVE en .env}
-      REDIS_HOST: cache-redis
-      REDIS_CLAVE: ${REDIS_CLAVE:?Define REDIS_CLAVE en .env}
-      RABBITMQ_HOST: mensajeria-rabbitmq
-      RABBITMQ_USUARIO: ${RABBITMQ_ADMIN_USUARIO:?Define RABBITMQ_ADMIN_USUARIO en .env}
-      RABBITMQ_CLAVE: ${RABBITMQ_ADMIN_CLAVE:?Define RABBITMQ_ADMIN_CLAVE en .env}
-      ELECCIONES_URL: http://elecciones:3000
+      DB_NAME: elecciones_db
+      DB_USER: elecciones_app
+      DB_PASSWORD: ${TUVOTO_ELECCIONES_CLAVE:?Define clave de elecciones}
       IDENTIDAD_URL: http://identidad:3000
-      CLAVE_SERVICIO: ${CLAVE_INTERNA_VOTACION:?Define CLAVE_INTERNA_VOTACION en .env}
-    networks: [red_interna]
-    depends_on:
-      base-postgres: {condition: service_healthy}
-      cache-redis: {condition: service_healthy}
-      mensajeria-rabbitmq: {condition: service_healthy}
-
-  resultados:
-    build: &imagen_resultados
-      context: .
-      dockerfile: microservicios/resultados/Dockerfile
+      CLAVE_SERVICIO: ${TUVOTO_INTERNA_ELECCIONES:?Define clave interna de elecciones}
+      CLAVE_CLIENTE_ACTAS: ${TUVOTO_INTERNA_ACTAS:?Define clave de cliente gRPC}
+    networks: [interna]
+    depends_on: {base-postgres: {condition: service_healthy}, identidad: {condition: service_healthy}}
+    healthcheck:
+      <<: *salud-python
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/v1/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+  actas:
+    build: {context: ., dockerfile: microservicios/actas/Dockerfile}
     restart: unless-stopped
-    environment: &entorno_resultados
-      MONGODB_HOST: base-mongodb
-      MONGODB_DATABASE: resultados_db
-      MONGODB_USERNAME: ${RESULTADOS_DB_USUARIO:?Define RESULTADOS_DB_USUARIO en .env}
-      MONGODB_PASSWORD: ${RESULTADOS_DB_CLAVE:?Define RESULTADOS_DB_CLAVE en .env}
-      MONGODB_AUTH_SOURCE: resultados_db
-      RABBITMQ_HOST: mensajeria-rabbitmq
-      RABBITMQ_USUARIO: ${RABBITMQ_ADMIN_USUARIO:?Define RABBITMQ_ADMIN_USUARIO en .env}
-      RABBITMQ_CLAVE: ${RABBITMQ_ADMIN_CLAVE:?Define RABBITMQ_ADMIN_CLAVE en .env}
-      ELECCIONES_URL: http://elecciones:3000
-      IDENTIDAD_URL: http://identidad:3000
-      CLAVE_SERVICIO: ${CLAVE_INTERNA_RESULTADOS:?Define CLAVE_INTERNA_RESULTADOS en .env}
-    networks: [red_interna]
-    depends_on:
-      base-mongodb: {condition: service_healthy}
-      resultados-conteo: {condition: service_healthy}
-      resultados-auditoria: {condition: service_healthy}
-
+    environment: *entorno-actas
+    networks: [interna]
+    depends_on: {base-postgres: {condition: service_healthy}, identidad: {condition: service_healthy}, elecciones: {condition: service_healthy}, mensajeria-rabbitmq: {condition: service_healthy}}
+    healthcheck:
+      <<: *salud-python
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/salud',timeout=3)"]
   resultados-conteo:
-    build: *imagen_resultados
+    build: {context: ., dockerfile: microservicios/resultados/Dockerfile}
     restart: unless-stopped
     command: [python, -m, app.consumidor]
-    environment:
-      <<: *entorno_resultados
-      CONSUMIDOR: conteo
-    networks: [red_interna]
-    depends_on:
-      base-mongodb: {condition: service_healthy}
-      mensajeria-rabbitmq: {condition: service_healthy}
-
+    environment: {<<: *entorno-resultados, MODO_CONSUMIDOR: conteo}
+    networks: [interna]
+    depends_on: {base-mongodb: {condition: service_healthy}, mensajeria-rabbitmq: {condition: service_healthy}}
+    healthcheck:
+      <<: *salud-python
+      test: [CMD, python, -c, "import os,time; assert time.time()-os.stat('/tmp/salud-consumidor').st_mtime<20"]
   resultados-auditoria:
-    build: *imagen_resultados
+    build: {context: ., dockerfile: microservicios/resultados/Dockerfile}
     restart: unless-stopped
     command: [python, -m, app.consumidor]
-    environment:
-      <<: *entorno_resultados
-      CONSUMIDOR: auditoria
-    networks: [red_interna]
-    depends_on:
-      base-mongodb: {condition: service_healthy}
-      mensajeria-rabbitmq: {condition: service_healthy}
-
+    environment: {<<: *entorno-resultados, MODO_CONSUMIDOR: auditoria}
+    networks: [interna]
+    depends_on: {base-mongodb: {condition: service_healthy}, mensajeria-rabbitmq: {condition: service_healthy}}
+    healthcheck:
+      <<: *salud-python
+      test: [CMD, python, -c, "import os,time; assert time.time()-os.stat('/tmp/salud-consumidor').st_mtime<20"]
+  resultados:
+    build: {context: ., dockerfile: microservicios/resultados/Dockerfile}
+    restart: unless-stopped
+    environment: *entorno-resultados
+    networks: [interna]
+    depends_on: {base-mongodb: {condition: service_healthy}, resultados-conteo: {condition: service_healthy}, resultados-auditoria: {condition: service_healthy}}
+    healthcheck:
+      <<: *salud-python
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/salud',timeout=3)"]
   gateway-graphql:
-    build:
-      context: .
-      dockerfile: gateway/graphql/Dockerfile
+    build: {context: ., dockerfile: gateway/graphql/Dockerfile}
     restart: unless-stopped
     environment:
       ELECCIONES_URL: http://elecciones:3000
-      CANDIDATURAS_URL: http://candidaturas:8000
-      PADRON_URL: http://padron-electoral:3000
-      MAXIMO_PAGINAS_LOTE: "20"
-      IDENTIDAD_URL: http://identidad:3000
-      CLAVE_SERVICIO: ${CLAVE_INTERNA_GATEWAY_GRAPHQL:?Define CLAVE_INTERNA_GATEWAY_GRAPHQL en .env}
-    networks: [red_interna]
-    depends_on:
-      elecciones: {condition: service_healthy}
-      candidaturas: {condition: service_healthy}
-      padron-electoral: {condition: service_healthy}
-
+      RESULTADOS_URL: http://resultados:8000
+      ACTAS_URL: http://actas:8000
+    networks: [interna]
+    depends_on: {elecciones: {condition: service_healthy}, resultados: {condition: service_healthy}}
   frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
+    build: {context: ., dockerfile: frontend/Dockerfile}
     restart: unless-stopped
-    networks: [red_interna]
-    depends_on:
-      gateway-graphql: {condition: service_healthy}
-
+    networks: [interna]
+  entrada-nginx:
+    image: nginx:1.29-alpine
+    restart: unless-stopped
+    ports: ['127.0.0.1:${TUVOTO_PUERTO:?Define un puerto libre distinto de 8080 y 8888}:80']
+    volumes: ['./infraestructura/tuvoto/nginx.conf:/etc/nginx/conf.d/default.conf:ro']
+    networks: [entrada, interna]
+    depends_on: {frontend: {condition: service_healthy}, gateway-graphql: {condition: service_healthy}, actas: {condition: service_healthy}}
+    healthcheck:
+      <<: *salud-python
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1/salud]
 networks:
-  red_entrada:
-    driver: bridge
-  red_interna:
-    driver: bridge
-    internal: true
-
+  entrada: {}
+  interna: {internal: true}
 volumes:
-  datos_postgres:
-  datos_mongodb:
-  datos_redis:
-  datos_rabbitmq:
+  datos_postgres: {}
+  datos_mongodb: {}
+  configuracion_mongodb: {}
+  datos_rabbitmq: {}

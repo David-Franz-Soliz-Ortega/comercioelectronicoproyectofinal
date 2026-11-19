@@ -1,38 +1,17 @@
-# Instrucciones del repositorio
+# Instrucciones del repositorio — TUVOTO
 
-SIGAPE es el proyecto final COM-600: Sistema de Gestión y Administración de Procesos Electorales. Este repositorio es un monorepositorio y sus microservicios se desarrollan de manera independiente.
+TUVOTO reemplaza el flujo activo SIGAPE por seguimiento académico de resultados preliminares basados en actas. El usuario autorizó archivar componentes sustituidos. El material SIGAPE retirado se conserva en `.respaldo-local/`, ignorado por Git/Docker; no desplegarlo como TUVOTO.
 
-## Idioma del proyecto
+- Español para archivos propios, dominio, comentarios y mensajes. Conservar nombres técnicos de frameworks y herramientas.
+- Cuatro servicios de negocio activos: identidad (Node/TypeScript/PostgreSQL), elecciones (Node/TypeScript/PostgreSQL), actas (FastAPI/PostgreSQL), resultados (FastAPI/MongoDB; Redis como caché pública).
+- Cada servicio consulta exclusivamente su persistencia lógica. Integraciones mediante REST/OpenAPI, GraphQL o eventos explícitos en `compartido/contratos/`. El gateway no es dueño de reglas de negocio ni de datos.
+- Roles asignables: ADMINISTRADOR, OPERADOR y AUDITOR. Administrador configura procesos/usuarios/asignaciones; operador registra únicamente sus mesas; auditor consulta sin modificar y público consulta sin login. No conceder al administrador el permiso de publicar actas.
+- No reintroducir voto individual ni padrón. No contar fotos recibidas como mesas procesadas ni sumar una corrección dos veces.
+- Conservar originales y versiones; una huella no certifica autenticidad. Nunca publicar imágenes de actas o identificadores de operadores en eventos/resultados públicos.
+- No simular OCR, resultados o salud. Sin datos, mostrar estados vacíos. OCR sigue pendiente.
+- Mantener pruebas, configuración y código de cada servicio bajo `microservicios/`.
+- No agregar secretos, credenciales ni información electoral real. Entornos sensibles fuera de Git y del contexto Docker.
+- No borrar datos/volúmenes antiguos ni desplegar sobre proyectos existentes sin autorización. El Compose nuevo usa proyecto `tuvoto` y variables nuevas `TUVOTO_*`.
+- Conservar los cambios locales del usuario. No hacer commit/push/tags sin solicitud explícita.
 
-- El español es el idioma permanente del proyecto. Los nombres de carpetas, archivos propios, documentación, variables y clases de dominio, funciones de negocio, comentarios y mensajes deben estar en español.
-- Se mantienen en inglés únicamente los nombres técnicos estandarizados y los exigidos por herramientas, bibliotecas y frameworks, como `frontend`, `gateway`, `graphql`, `Dockerfile`, `docker-compose.yml`, `package.json`, `package-lock.json`, `go.mod`, `pyproject.toml`, `README.md`, `AGENTS.md` y `.gitignore`.
-
-## Decisiones arquitectónicas
-
-- Cada microservicio es responsable de su modelo y de su propia base de datos lógica. Ningún servicio consulta ni modifica directamente la base de datos de otro servicio.
-- Las integraciones entre servicios se realizan mediante contratos explícitos: REST documentado con OpenAPI, gRPC o eventos asíncronos por RabbitMQ, según corresponda al caso de uso.
-- Los contratos compartidos viven en `compartido/contratos/`; no se comparten modelos internos ni acceso a persistencia entre servicios.
-- `gateway/graphql/` contiene la capa GraphQL de entrada. DataLoader se utiliza para agrupar y deduplicar cargas durante una operación, sin convertir al gateway en dueño de reglas de negocio o datos.
-- No se agregan secretos reales al repositorio. La configuración local sensible debe permanecer fuera de Git y del contexto de construcción Docker.
-- La infraestructura de desarrollo incluye Docker Compose y NGINX. Kubernetes, Helm, Argo CD y monitoreo permanecen como objetivos posteriores.
-
-## Servicios y tecnologías
-
-| Servicio | Tecnología | Persistencia |
-| --- | --- | --- |
-| `identidad` | Node.js y TypeScript | PostgreSQL |
-| `elecciones` | Node.js y TypeScript | PostgreSQL |
-| `candidaturas` | Python y FastAPI | MongoDB |
-| `padron-electoral` | Node.js y TypeScript | PostgreSQL |
-| `votacion` | Go | PostgreSQL y Redis |
-| `resultados` | Python y FastAPI | MongoDB |
-
-## Estado P1 y límites
-
-- `identidad`, `elecciones`, `candidaturas` y `padron-electoral` tienen una primera API CRUD REST académica, documentada en sus OpenAPI y con persistencia en sus propias bases.
-- Los cuatro OpenAPI están marcados como propuestas pendientes de revisión por las personas responsables. Mantener productor, contrato, consumidor y pruebas coordinados en cada cambio.
-- Los modelos son mínimos y sintéticos; no representan reglas electorales completas ni permiten procesar elecciones reales.
-- El padrón de demostración almacena únicamente una inscripción sintética, su elección asociada y elegibilidad. No incluir identidad ni datos personales de electores.
-- No afirmar que votación sea anónima criptográficamente sin análisis y verificación especializados.
-
-Mantener el código, las pruebas y la configuración de cada microservicio dentro de `microservicios/`. No agregar secretos reales ni datos electorales reales.
+- La rúbrica oficial está desglosada en `docs/presentaciones/requisitos.md`: conservar 4 CRUD reales, GraphQL de 3 servicios, gRPC, eventos y avances P2/P3; nunca marcar evidencia no ejecutada como cumplida.

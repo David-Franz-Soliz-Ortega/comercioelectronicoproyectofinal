@@ -1,9 +1,17 @@
 {
-  "name": "sigape-gateway-graphql",
+  "name": "tuvoto-gateway-graphql",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": {"node": ">=24"},
-  "scripts": {"iniciar": "node src/servidor.js", "verificar": "node --test pruebas/*.test.js"},
-  "dependencies": {"dataloader": "2.2.3", "graphql": "16.11.0"}
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "iniciar": "node src/servidor.js",
+    "verificar": "node --test --test-isolation=none pruebas/*.test.js"
+  },
+  "dependencies": {
+    "dataloader": "2.2.3",
+    "graphql": "16.11.0"
+  }
 }

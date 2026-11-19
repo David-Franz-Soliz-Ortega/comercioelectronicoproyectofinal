@@ -213,3 +213,38 @@ thead { background: #F0F5FD; }
 .nombre-registro { line-height: 1.6; } .identificador { overflow-wrap: anywhere; }
 @media (max-width: 900px) { .servicios { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .alcance-sesion { grid-template-columns: 1fr; padding: 20px; } .servicios { grid-template-columns: 1fr; padding-inline: 18px; } .resumen { grid-template-columns: 1fr; } .tarjeta-resumen { display: flex; min-height: 110px; gap: 16px; align-items: center; padding: 18px; } .icono-resumen { margin-bottom: 0; } .dato-resumen > span { font-size: 12px; } .dato-resumen small { font-size: 10px; } .pie-panel { flex-wrap: wrap; } .alcance-aviso { margin-inline: 18px; } }
+
+/* TUVOTO: portal público de una elección y panel privado de actas. */
+.barra-tuvoto { background: var(--azul-oscuro); color: white; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 24px max(20px, calc((100vw - 1400px)/2)); flex-wrap: wrap; }
+.marca-tuvoto { font-size: 28px; font-weight: 800; text-decoration: none; letter-spacing: 1px; }
+.marca-tuvoto small { display: block; font-size: 11px; font-weight: 400; letter-spacing: 0; margin-top: 6px; }
+.portal-tuvoto { max-width: 1440px; }
+.tarjetas-tuvoto { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; margin: 28px 0; }
+.tarjetas-tuvoto article { padding: 24px; margin: 0; border-top: 4px solid var(--azul-principal); }
+.tarjetas-tuvoto span { display: block; color: var(--secundario); font-size: 13px; }
+.tarjetas-tuvoto strong { display: block; font-size: 30px; margin-top: 12px; color: var(--azul-oscuro); }
+.columnas-tuvoto { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; align-items: start; }
+.columnas-tuvoto > .panel { margin: 0; min-width: 0; }
+.progreso-tuvoto { padding: 22px; } progress { accent-color: var(--azul-principal); height: 16px; width: 100%; }
+.progreso-tuvoto small { display: block; margin-top: 10px; color: var(--secundario); }
+.candidatos-tuvoto { padding: 0 24px 24px; } .candidatos-tuvoto article { display: flex; align-items: center; gap: 16px; padding: 16px 0; }
+.candidatos-tuvoto img, .sin-foto { width: 64px; height: 64px; object-fit: cover; border-radius: 50%; flex-shrink: 0; }
+.sin-foto { display: grid; place-items: center; background: var(--azul-claro); color: var(--azul-oscuro); font-size: 24px; }
+.candidatos-tuvoto article > div { flex: 1; min-width: 0; } .candidatos-tuvoto small { display: block; font-size: 10px; color: var(--secundario); margin-top: 5px; }
+.bloque-tuvoto { padding: 26px; } .bloque-tuvoto h2 { margin-bottom: 20px; }
+.form-tuvoto { display: grid; gap: 16px; margin: 20px 0; } .form-tuvoto label, .bloque-tuvoto > label { display: grid; gap: 8px; }
+.bloque-tuvoto input:not([type=checkbox]), .bloque-tuvoto select, .titulo-panel select { min-width: 0; max-width: 100%; border: 1px solid var(--borde); background: white; padding: 10px; border-radius: 8px; }
+.bloque-tuvoto p { color: var(--secundario); line-height: 1.7; font-size: 13px; } .foto-acta { width: 100%; max-height: 650px; object-fit: contain; margin-top: 20px; }
+@media(max-width:900px) { .tarjetas-tuvoto { grid-template-columns: repeat(2,1fr); } .columnas-tuvoto { grid-template-columns: 1fr; } }
+@media(max-width:520px) { .tarjetas-tuvoto { gap: 10px; } .tarjetas-tuvoto article { padding: 16px; } .tarjetas-tuvoto strong { font-size: 24px; } .candidatos-tuvoto article { gap: 10px; flex-wrap: wrap; } .bloque-tuvoto { padding: 18px; } }
+/* El contenido largo no debe ensanchar el documento en móviles ni tabletas. */
+.portal-tuvoto, .portal-tuvoto > *, .form-tuvoto > *, .bloque-tuvoto > *, .barra-tuvoto > * { min-width: 0; }
+.marca-tuvoto small, .candidatos-tuvoto strong, .portal-tuvoto h1, .portal-tuvoto h2 { overflow-wrap: anywhere; }
+.controles-sesion select { max-width: 100%; }
+@media(max-width:520px) {
+ .barra-tuvoto { padding: 20px 18px; gap: 16px; }
+ .titulo-panel { align-items: stretch; flex-direction: column; }
+ .titulo-panel select, .form-tuvoto input:not([type=checkbox]), .form-tuvoto select { width: 100%; }
+ .controles-sesion { width: 100%; }
+ .boton, button { min-height: 44px; }
+}

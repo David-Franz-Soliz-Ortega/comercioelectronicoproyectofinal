@@ -1,116 +1,58 @@
-"""Cada proceso consume su propia cola y confirma solo tras persistir el evento."""
+import hashlib
 import json
-import logging
 import os
-from pathlib import Path
-import signal
-import threading
 import time
 from datetime import datetime, timezone
-from uuid import UUID
+from pathlib import Path
 
-from jsonschema import Draft202012Validator, FormatChecker
-from pymongo.errors import DuplicateKeyError, PyMongoError
 import pika
+from jsonschema import Draft202012Validator, FormatChecker
+from pymongo.errors import DuplicateKeyError
+from .configuracion import conectar_mongo, parametros_rabbit, declarar_topologia
 
-from app.configuracion import conectar_mongo, declarar_topologia, parametros_rabbit
-
-REGISTRO = logging.getLogger("resultados")
-CONTRATO = Path(os.getenv("CONTRATO_EVENTO", "/app/evento.schema.json"))
-SALUD = Path("/tmp/consumidor-salud.json")
-
-
-def cargar_validador():
-    esquema = json.loads(CONTRATO.read_text())
-    Draft202012Validator.check_schema(esquema)
-    return Draft202012Validator(esquema, format_checker=FormatChecker())
+validador = Draft202012Validator(json.loads(Path(os.getenv('CONTRATO_EVENTO','/app/evento.schema.json')).read_text()), format_checker=FormatChecker())
+modo = os.environ['MODO_CONSUMIDOR']
+if modo not in ('conteo', 'auditoria'): raise RuntimeError('Consumidor inválido')
 
 
-def interpretar(cuerpo, validador):
-    if len(cuerpo) > 8192:
-        raise ValueError("Evento demasiado grande")
-    evento = json.loads(cuerpo)
+def procesar(base, evento):
     validador.validate(evento)
-    # Canonicalizar evita que variantes de mayúsculas dupliquen el mismo UUID.
-    evento["idEvento"] = str(UUID(evento["idEvento"]))
-    evento["datos"]["idEleccion"] = str(UUID(evento["datos"]["idEleccion"]))
-    return evento
+    d = evento['datos']; conteo = d['conteo']
+    if conteo and (len({v['idCandidato'] for v in conteo['votos']}) != len(conteo['votos']) or sum(v['cantidad'] for v in conteo['votos']) + conteo['blancos'] + conteo['nulos'] != conteo['total']): raise ValueError('Conteo inválido')
+    huella = hashlib.sha256(json.dumps(evento, sort_keys=True).encode()).hexdigest()
+    if modo == 'auditoria':
+        try: base.auditoria_actas.insert_one({'_id': evento['idEvento'], 'huella': huella, 'evento': evento})
+        except DuplicateKeyError:
+            if base.auditoria_actas.find_one({'_id': evento['idEvento']})['huella'] != huella: raise ValueError('Evento reutilizado')
+    else:
+        clave = d['idProceso'] + ':' + d['idMesa']
+        nuevo = {**d, 'huella': huella, 'actualizadoEn': datetime.now(timezone.utc)}
+        try: base.mesas_actas.update_one({'_id': clave, 'versionActa': {'$lt': d['versionActa']}}, {'$set': nuevo}, upsert=True)
+        except DuplicateKeyError:
+            anterior = base.mesas_actas.find_one({'_id': clave})
+            if anterior['versionActa'] == d['versionActa'] and anterior['huella'] != huella: raise ValueError('Versión conflictiva')
 
 
-def guardar_evento(coleccion, evento):
-    documento = {"_id": evento["idEvento"], "idEleccion": evento["datos"]["idEleccion"], "evento": evento}
+while True:
     try:
-        coleccion.insert_one(documento)
-    except DuplicateKeyError:
-        anterior = coleccion.find_one({"_id": documento["_id"]})
-        if anterior is None or anterior["evento"] != evento:
-            raise ValueError("Identificador reutilizado con otro contenido")
-    # La unicidad de _id hace atómico persistir y deduplicar, sin transacciones
-    # multidocumento ni conjuntos crecientes dentro de un solo documento.
-
-
-def ejecutar():
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    nombre = os.environ.get("CONSUMIDOR", "conteo")
-    if nombre not in ("conteo", "auditoria"):
-        raise ValueError("Consumidor desconocido")
-    detener = threading.Event()
-    for senal in (signal.SIGTERM, signal.SIGINT):
-        signal.signal(senal, lambda *_: detener.set())
-    validador = cargar_validador()
-    cliente, base = conectar_mongo()
-    coleccion = base["registros_" + nombre]
-    cola = "resultados." + nombre + ".v1"
-    while not detener.is_set():
-        conexion = None
-        try:
-            coleccion.create_index("idEleccion")
-            conexion = pika.BlockingConnection(parametros_rabbit())
-            canal = conexion.channel()
-            declarar_topologia(canal)
-            canal.basic_qos(prefetch_count=1)
-
-            def recibir(canal, entrega, propiedades, cuerpo):
-                try:
-                    evento = interpretar(cuerpo, validador)
-                except Exception:
-                    REGISTRO.warning("Evento inválido enviado a DLQ: %s", nombre)
-                    canal.basic_nack(delivery_tag=entrega.delivery_tag, requeue=False)
-                    return
-                try:
-                    guardar_evento(coleccion, evento)
-                except ValueError:
-                    REGISTRO.warning("Conflicto de idempotencia enviado a DLQ: %s", nombre)
-                    canal.basic_nack(delivery_tag=entrega.delivery_tag, requeue=False)
-                except PyMongoError:
-                    # basic.reject incrementa delivery-count también en RabbitMQ 4.3+;
-                    # basic.nack con requeue ya no cuenta como fallo en esas versiones.
-                    REGISTRO.warning("Escritura fallida; se reintentará: %s", nombre)
-                    detener.wait(1)
-                    canal.basic_reject(delivery_tag=entrega.delivery_tag, requeue=True)
-                else:
-                    canal.basic_ack(delivery_tag=entrega.delivery_tag)
-
-            canal.basic_consume(queue=cola, on_message_callback=recibir, auto_ack=False)
-            while not detener.is_set() and conexion.is_open:
-                conexion.process_data_events(time_limit=1)
-                ahora = datetime.now(timezone.utc)
-                base.salud_consumidores.update_one({"_id": nombre}, {"$set": {"instante": ahora}}, upsert=True)
-                temporal = SALUD.with_suffix(".tmp")
-                temporal.write_text(json.dumps({"instante": time.time()}))
-                temporal.replace(SALUD)
-        except (pika.exceptions.AMQPError, PyMongoError, OSError):
-            REGISTRO.warning("Dependencia no disponible; reconectando consumidor %s", nombre)
-        finally:
-            SALUD.unlink(missing_ok=True)
-            if conexion and conexion.is_open:
-                try:
-                    conexion.close()
-                except pika.exceptions.AMQPError:
-                    pass
-        detener.wait(2)
-    cliente.close()
-
-
-if __name__ == "__main__":
-    ejecutar()
+        cliente, base = conectar_mongo(); cliente.admin.command('ping')
+        base.mesas_actas.create_index('idProceso')
+        conexion = pika.BlockingConnection(parametros_rabbit()); canal = conexion.channel(); declarar_topologia(canal); canal.basic_qos(prefetch_count=1)
+        def recibir(ch, entrega, _propiedades, cuerpo):
+            try:
+                procesar(base, json.loads(cuerpo)); ch.basic_ack(entrega.delivery_tag)
+            except (ValueError, json.JSONDecodeError): ch.basic_reject(entrega.delivery_tag, requeue=False)
+            except Exception as e:
+                from jsonschema.exceptions import ValidationError
+                ch.basic_reject(entrega.delivery_tag, requeue=not isinstance(e, ValidationError))
+        canal.basic_consume(queue='resultados.'+modo+'.v1', on_message_callback=recibir, auto_ack=False)
+        while conexion.is_open:
+            conexion.process_data_events(time_limit=1)
+            base.salud_consumidores.update_one({'_id': modo}, {'$set': {'instante': datetime.now(timezone.utc)}}, upsert=True)
+            Path('/tmp/salud-consumidor').touch()
+    except Exception:
+        try: conexion.close()
+        except Exception: pass
+        try: cliente.close()
+        except Exception: pass
+        time.sleep(2)

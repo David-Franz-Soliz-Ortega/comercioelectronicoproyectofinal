@@ -1,0 +1,541 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TUVOTO · Actas",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/salud": {
+      "get": {
+        "summary": "Salud",
+        "operationId": "salud_api_v1_salud_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/actas/mesa/{id_mesa}": {
+      "get": {
+        "summary": "Consultar",
+        "operationId": "consultar_api_v1_actas_mesa__id_mesa__get",
+        "parameters": [
+          {
+            "name": "id_mesa",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id Mesa"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+      }
+    },
+    "/api/v1/actas/{id_acta}/foto": {
+      "get": {
+        "summary": "Foto",
+        "operationId": "foto_api_v1_actas__id_acta__foto_get",
+        "parameters": [
+          {
+            "name": "id_acta",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id Acta"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+      }
+    },
+    "/api/v1/actas": {
+      "post": {
+        "summary": "Registrar",
+        "operationId": "registrar_api_v1_actas_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NuevaActa"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+      },
+      "get": {
+        "summary": "Listar Actas",
+        "operationId": "listar_actas_api_v1_actas_get",
+        "parameters": [
+          {
+            "name": "pagina",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Pagina"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limite"
+            }
+          },
+          {
+            "name": "estado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Estado"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+      }
+    },
+    "/api/v1/publico/actas/{id_proceso}/avance": {
+      "get": {
+        "summary": "Avance Publico",
+        "operationId": "avance_publico_api_v1_publico_actas__id_proceso__avance_get",
+        "parameters": [
+          {
+            "name": "id_proceso",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id Proceso"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/actas/mesas/{id_mesa}": {
+      "put": {
+        "summary": "Corregir Acta",
+        "operationId": "corregir_acta_api_v1_actas_mesas__id_mesa__put",
+        "parameters": [
+          {
+            "name": "id_mesa",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id Mesa"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NuevaActa"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+      },
+      "delete": {
+        "summary": "Anular Acta",
+        "operationId": "anular_acta_api_v1_actas_mesas__id_mesa__delete",
+        "parameters": [
+          {
+            "name": "id_mesa",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id Mesa"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Anulacion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Anulacion": {
+        "properties": {
+          "idSolicitud": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idsolicitud"
+          },
+          "versionAnterior": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Versionanterior"
+          },
+          "motivo": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 5,
+            "title": "Motivo"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "idSolicitud",
+          "versionAnterior",
+          "motivo"
+        ],
+        "title": "Anulacion"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "NuevaActa": {
+        "properties": {
+          "idMesa": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idmesa"
+          },
+          "idSolicitud": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idsolicitud"
+          },
+          "versionAnterior": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Versionanterior"
+          },
+          "foto": {
+            "type": "string",
+            "maxLength": 14000000,
+            "title": "Foto"
+          },
+          "votos": {
+            "items": {
+              "$ref": "#/components/schemas/Voto"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Votos"
+          },
+          "blancos": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Blancos"
+          },
+          "nulos": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Nulos"
+          },
+          "total": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Total"
+          },
+          "confirmado": {
+            "type": "boolean",
+            "title": "Confirmado"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "idMesa",
+          "idSolicitud",
+          "versionAnterior",
+          "foto",
+          "votos",
+          "blancos",
+          "nulos",
+          "total",
+          "confirmado"
+        ],
+        "title": "NuevaActa"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Voto": {
+        "properties": {
+          "idCandidato": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idcandidato"
+          },
+          "cantidad": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Cantidad"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "idCandidato",
+          "cantidad"
+        ],
+        "title": "Voto"
+      }
+    },
+    "securitySchemes": {
+      "sesion": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "tuvoto-sesion"
+      }
+    }
+  }
+}

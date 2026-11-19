@@ -1,0 +1,25 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import grpc from '@grpc/grpc-js';
+import loader from '@grpc/proto-loader';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
+const contrato=resolve('compartido/contratos/grpc/mesa-v1.proto');
+const {servicioMesas}=await import(pathToFileURL(resolve(process.env.TUVOTO_COMPILACION_ELECCIONES,'servidor-grpc.js')));
+const paquete=grpc.loadPackageDefinition(loader.loadSync(contrato,{keepCase:true,defaults:true}));
+const id='11111111-1111-4111-8111-111111111111';
+test('gRPC real local: contrato, autenticación, permisos y deadline sin bases reales',async t=>{
+ let modo='normal';
+ const db={async query(q){if(modo==='lento')await new Promise(r=>setTimeout(r,100));return q.text.includes('tuvoto_candidatos')?{rows:[{id,nombre:'Candidato sintético'}]}:{rowCount:1,rows:[{id,id_proceso:id,codigo:'Mesa sintética',unidad:'Prueba'}]};}};
+ const servidor=servicioMesas(db,async()=>{if(modo==='denegado')throw{estado:403};return{idUsuario:id,idOrganizacion:id};},'a'.repeat(32),contrato);
+ const puerto=await new Promise((ok,no)=>servidor.bindAsync('127.0.0.1:0',grpc.ServerCredentials.createInsecure(),(e,p)=>e?no(e):ok(p)));
+ const cliente=new paquete.tuvoto.mesas.v1.ServicioMesas(`127.0.0.1:${puerto}`,grpc.credentials.createInsecure());
+ t.after(()=>{cliente.close();servidor.forceShutdown();});
+ const llamar=(clave='a'.repeat(32),plazo=1000,mesa=id)=>new Promise((ok,no)=>{const m=new grpc.Metadata();m.set('x-clave-servicio',clave);cliente.ConsultarMesa({id_mesa:mesa,para_registro:true},m,plazo?{deadline:Date.now()+plazo}:{},(e,r)=>e?no(e):ok(r));});
+ assert.equal((await llamar()).candidatos.length,1);
+ await assert.rejects(llamar('incorrecta'),e=>e.code===grpc.status.UNAUTHENTICATED);
+ await assert.rejects(llamar(undefined,1000,'inválida'),e=>e.code===grpc.status.INVALID_ARGUMENT);
+ await assert.rejects(llamar(undefined,0),e=>e.code===grpc.status.INVALID_ARGUMENT);
+ modo='denegado';await assert.rejects(llamar(),e=>e.code===grpc.status.PERMISSION_DENIED);
+ modo='lento';await assert.rejects(llamar(undefined,25),e=>e.code===grpc.status.DEADLINE_EXCEEDED);
+});

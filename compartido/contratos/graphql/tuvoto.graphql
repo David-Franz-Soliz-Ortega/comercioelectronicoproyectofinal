@@ -1,0 +1,12 @@
+type Candidato { id: ID!, nombre: String!, foto: String, votos: Int, porcentaje: Float }
+type Mesa { id: ID!, codigo: String!, unidad: String! }
+type Proceso { id: ID!, nombre: String!, cargo: String!, tipo: String!, unidad: String!, unidades: [String!]!, candidatos: [Candidato!]!, mesas: [Mesa!]! }
+type Unidad { unidad: String!, esperadas: Int!, contabilizadas: Int!, pendientes: Int! }
+type Resultado { esperadas: Int!, contabilizadas: Int!, pendientes: Int!, observadas: Int!, avance: Float!, blancos: Int!, nulos: Int!, total: Int!, validos: Int!, candidatos: [Candidato!]!, unidades: [Unidad!]!, actualizadoEn: String }
+type RecepcionActas { idProceso: ID!, mesasConActa: Int!, versiones: Int! }
+type Portal { proceso: Proceso!, resultados: Resultado!, recepcion: RecepcionActas }
+input VotoActa { idCandidato: ID!, cantidad: Int! }
+input NuevaActa { idMesa: ID!, idSolicitud: ID!, versionAnterior: Int!, foto: String!, votos: [VotoActa!]!, blancos: Int!, nulos: Int!, total: Int!, confirmado: Boolean! }
+type Acta { id: ID!, version: Int!, estado: String! }
+type Query { portal(unidad: String): Portal }
+type Mutation { registrarActa(entrada: NuevaActa!): Acta! }

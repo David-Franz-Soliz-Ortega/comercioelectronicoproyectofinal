@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { obtenerSesion, iniciarSesion, finalizarSesion, seleccionarOrganizacion, establecerOrganizacion } from '../api/clienteSesion.js';
 
 export default function Sesion({ children }) {
+  const revision = useRef(0); const operando = useRef(false);
   const [sesion, cambiarSesion] = useState(null);
   const [cargando, cambiarCargando] = useState(true);
   const [ocupado, cambiarOcupado] = useState(false);
@@ -10,24 +11,41 @@ export default function Sesion({ children }) {
   const [contrasena, cambiarContrasena] = useState('');
   function aceptar(datos) { establecerOrganizacion(datos?.idOrganizacion); cambiarSesion(datos); }
   useEffect(() => {
-    let vigente = true;
-    const caducar = () => { aceptar(null); cambiarError('La sesión terminó. Inicia sesión de nuevo.'); };
-    window.addEventListener('sigape:sesion-caducada', caducar);
-    obtenerSesion().then(datos => { if (vigente) aceptar(datos); })
-      .catch(fallo => { if (vigente) cambiarError(fallo.estado === 401 ? '' : fallo.message); })
-      .finally(() => { if (vigente) cambiarCargando(false); });
-    return () => { vigente = false; window.removeEventListener('sigape:sesion-caducada', caducar); };
+    let vigente = true, enCurso = false;
+    const caducar = () => { ++revision.current; aceptar(null); cambiarError('La sesión terminó. Inicia sesión de nuevo.'); };
+    const revisar = async () => {
+      if (enCurso || operando.current) return;
+      enCurso = true; const actual = ++revision.current;
+      try { const datos = await obtenerSesion(); if (vigente && actual === revision.current) aceptar(datos); }
+      catch (fallo) { if (vigente && actual === revision.current) cambiarError(fallo.estado === 401 ? '' : fallo.message); }
+      finally { enCurso = false; if (vigente) cambiarCargando(false); }
+    };
+    const alMostrar = () => { if (document.visibilityState === 'visible') revisar(); };
+    window.addEventListener('tuvoto:sesion-caducada', caducar);
+    window.addEventListener('tuvoto:comprobar-sesion', revisar);
+    window.addEventListener('focus', revisar);
+    document.addEventListener('visibilitychange', alMostrar);
+    revisar();
+    return () => {
+      vigente = false;
+      window.removeEventListener('tuvoto:sesion-caducada', caducar);
+      window.removeEventListener('tuvoto:comprobar-sesion', revisar);
+      window.removeEventListener('focus', revisar);
+      document.removeEventListener('visibilitychange', alMostrar);
+    };
   }, []);
   async function ejecutar(operacion) {
+    const actual = ++revision.current; operando.current = true;
     cambiarOcupado(true); cambiarError('');
-    try { aceptar(await operacion()); } catch (fallo) { cambiarError(fallo.message); }
-    finally { cambiarOcupado(false); }
+    try { const datos = await operacion(); if (actual === revision.current) aceptar(datos); }
+    catch (fallo) { if (actual === revision.current) cambiarError(fallo.message); }
+    finally { operando.current = false; cambiarOcupado(false); }
   }
   if (cargando) return <main className="acceso" role="status">Restaurando sesión…</main>;
   if (!sesion) return <main className="acceso"><form className="panel formulario-acceso" onSubmit={evento => {
     evento.preventDefault(); const clave = contrasena; cambiarContrasena('');
     ejecutar(() => iniciarSesion(usuario, clave));
-  }}><p className="sobretitulo">SIGAPE · ENTORNO ACADÉMICO</p><h1>Iniciar sesión</h1>
+  }}><p className="sobretitulo">TUVOTO · ACCESO DEL PERSONAL</p><h1>Iniciar sesión</h1>
     <label htmlFor="usuario">Usuario</label><input id="usuario" autoComplete="username" value={usuario} onChange={e => cambiarUsuario(e.target.value)} required disabled={ocupado} />
     <label htmlFor="contrasena">Contraseña</label><input id="contrasena" type="password" autoComplete="current-password" value={contrasena} onChange={e => cambiarContrasena(e.target.value)} required disabled={ocupado} />
     {error && <p className="aviso" role="alert">{error}</p>}

@@ -1,6 +1,6 @@
 import { cabecerasSesion, comprobarAcceso } from './clienteSesion.js';
 export async function solicitarRest(ruta, { metodo = 'GET', datos, organizacion, senal } = {}) {
-  if (!/^\/(?:identidades|usuarios|organizaciones|elecciones|candidaturas|inscripciones)(?:[/?]|$)/.test(ruta)) throw new Error('Recurso REST no permitido.');
+  if (!/^\/(?:usuarios|organizaciones|configuracion|mis-mesas|mesas|actas|informes)(?:[/?]|$)/.test(ruta)) throw new Error('Recurso REST no permitido.');
   let respuesta;
   try {
     respuesta = await fetch('/api/v1' + ruta, { method: metodo, credentials: 'same-origin', cache: 'no-store',

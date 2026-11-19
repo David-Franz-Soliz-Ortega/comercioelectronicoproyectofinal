@@ -6,7 +6,7 @@ export async function consultarGraphql(query, variables = {}, senal) {
     body: JSON.stringify({ query, variables }),
     signal: senal ? AbortSignal.any([senal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
   }); } catch (fallo) {
-    throw new Error(fallo.name === 'TimeoutError' ? 'La consulta tardó demasiado. Vuelve a actualizar.' : 'No se pudo conectar con SIGAPE. Revisa tu conexión y vuelve a intentarlo.');
+    throw new Error(fallo.name === 'TimeoutError' ? 'La consulta tardó demasiado. Vuelve a actualizar.' : 'No se pudo conectar con TUVOTO. Revisa tu conexión y vuelve a intentarlo.');
   }
   comprobarAcceso(respuesta.status);
   if (!respuesta.ok) throw new Error('No se pudo completar la consulta. Intenta actualizar en unos momentos.');
