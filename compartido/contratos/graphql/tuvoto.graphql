@@ -8,5 +8,7 @@ type Portal { proceso: Proceso!, resultados: Resultado!, recepcion: RecepcionAct
 input VotoActa { idCandidato: ID!, cantidad: Int! }
 input NuevaActa { idMesa: ID!, idSolicitud: ID!, versionAnterior: Int!, foto: String!, votos: [VotoActa!]!, blancos: Int!, nulos: Int!, total: Int!, confirmado: Boolean! }
 type Acta { id: ID!, version: Int!, estado: String! }
-type Query { portal(unidad: String): Portal }
+type CargoPublico { id: ID!, nombre: String!, cargo: String! }
+type EventoPublico { id: ID!, nombre: String!, tipo: String!, destacado: Boolean!, procesos: [CargoPublico!]! }
+type Query { eventos: [EventoPublico!]!, portal(idProceso: ID, unidad: String): Portal }
 type Mutation { registrarActa(entrada: NuevaActa!): Acta! }

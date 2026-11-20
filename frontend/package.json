@@ -10,7 +10,8 @@
     "desarrollar": "vite --host 0.0.0.0",
     "compilar": "vite build",
     "probar": "node --test --test-isolation=none pruebas/*.test.mjs",
-    "probar-interfaz": "node pruebas/observatorio.mjs"
+    "probar-interfaz": "node pruebas/observatorio.mjs",
+    "probar-conexion": "node pruebas/conexion-real.mjs"
   },
   "dependencies": {
     "react": "19.1.1",

@@ -206,7 +206,7 @@ app.openapi = documentacion
 
 @app.get('/api/v1/publico/actas/{id_proceso}/avance')
 def avance_publico(id_proceso:UUID):
-    actual = remoto(os.environ['ELECCIONES_URL']+'/api/v1/publico/actual',{})
+    actual = remoto(os.environ['ELECCIONES_URL']+'/api/v1/publico/procesos/'+str(id_proceso),{})
     if not actual or actual['id']!=str(id_proceso):raise HTTPException(404,'Proceso no publicado')
     with conectar() as db:
         fila=db.execute('SELECT count(DISTINCT id_mesa)::int AS "mesasConActa",count(*)::int AS versiones FROM versiones_actas WHERE id_proceso=%s',(id_proceso,)).fetchone()

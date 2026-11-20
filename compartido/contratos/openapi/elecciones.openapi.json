@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "TUVOTO · Elecciones",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "TUVOTO: implementación de desarrollo, sin certificación electoral."
   },
   "servers": [
@@ -13,7 +13,7 @@
   "paths": {
     "/publico/actual": {
       "get": {
-        "summary": "Elección pública actual o null",
+        "summary": "Proceso actual para recepción de actas; compatibilidad con consumidores anteriores",
         "responses": {
           "200": {
             "description": "Operación completada"
@@ -125,7 +125,7 @@
     },
     "/configuracion/procesos/{id}/actual": {
       "post": {
-        "summary": "Seleccionar única elección pública",
+        "summary": "Publicar cargo y destacar su evento; seleccionar proceso actual para recepción de actas",
         "responses": {
           "200": {
             "description": "Operación completada"
@@ -661,6 +661,134 @@
           }
         }
       }
+    },
+    "/publico/eventos": {
+      "get": {
+        "summary": "Eventos con cargos publicados; destacado primero, Rectorado antes de otros cargos",
+        "description": "Agrupa por organización y nombre exacto del evento. Excluye borradores y archivados. No incluye cuentas, asignaciones ni imágenes de actas.",
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "elementos"
+                  ],
+                  "properties": {
+                    "elementos": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EventoPublico"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/publico/procesos/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Configuración pública de un cargo publicado",
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcesoPublico"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cargo privado, retirado, archivado o inexistente"
+          },
+          "422": {
+            "description": "Identificador inválido"
+          }
+        }
+      }
+    },
+    "/configuracion/procesos/{id}/publicacion": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "put": {
+        "summary": "Publicar u ocultar un cargo de la organización autorizada",
+        "description": "No cambia la selección destacada al publicar. Al ocultar también desactiva actual si corresponde. Solo ADMINISTRADOR; requiere sesión, organización y CSRF. No registra actas.",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "publicado"
+                ],
+                "properties": {
+                  "publicado": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcesoPublico"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión"
+          },
+          "403": {
+            "description": "Permiso denegado"
+          },
+          "404": {
+            "description": "Fuera de organización o archivado"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -669,6 +797,136 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "tuvoto-sesion"
+      }
+    },
+    "schemas": {
+      "CargoPublico": {
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "cargo"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "cargo": {
+            "type": "string"
+          }
+        }
+      },
+      "EventoPublico": {
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "tipo",
+          "destacado",
+          "procesos"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identificador estable derivado de organización y nombre de evento"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "destacado": {
+            "type": "boolean"
+          },
+          "procesos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CargoPublico"
+            }
+          }
+        }
+      },
+      "ProcesoPublico": {
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "cargo",
+          "tipo",
+          "unidad",
+          "actual",
+          "publicado",
+          "candidatos",
+          "mesas"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "cargo": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "unidad": {
+            "type": "string"
+          },
+          "actual": {
+            "type": "boolean"
+          },
+          "publicado": {
+            "type": "boolean"
+          },
+          "candidatos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "nombre": {
+                  "type": "string"
+                },
+                "foto": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "mesas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "codigo": {
+                  "type": "string"
+                },
+                "unidad": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

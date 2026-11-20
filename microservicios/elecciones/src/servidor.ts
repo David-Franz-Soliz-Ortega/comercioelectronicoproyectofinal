@@ -1,3 +1,4 @@
+import { agruparEventos } from './catalogo-publico.js';
 import { instalarHttp } from './http.js';
 import swagger from 'swagger-ui-express';
 import * as grpc from '@grpc/grpc-js';
@@ -14,18 +15,30 @@ const app = express(); app.disable('x-powered-by'); instalarHttp(app,'elecciones
 const uuid = z.string().uuid();
 const proceso = z.object({nombre:z.string().trim().min(1).max(120),cargo:z.string().trim().min(1).max(100),tipo:z.enum(['universidad','municipio','otra']),unidad:z.string().trim().min(1).max(80)}).strict();
 const mesa = z.object({codigo:z.string().trim().min(1).max(60),unidad:z.string().trim().min(1).max(120)}).strict();
-app.use('/docs',swagger.serveFiles(JSON.parse(readFileSync('/app/contrato.json','utf8'))),swagger.setup(JSON.parse(readFileSync('/app/contrato.json','utf8'))));
-app.get('/openapi.json',(_req,res)=>{res.type('application/json').send(readFileSync('/app/contrato.json'));});
+const contrato = readFileSync(process.env.CONTRATO_OPENAPI ?? '/app/contrato.json','utf8');
+app.use('/docs',swagger.serveFiles(JSON.parse(contrato)),swagger.setup(JSON.parse(contrato)));
+app.get('/openapi.json',(_req,res)=>{res.type('application/json').send(contrato);});
 app.get('/api/v1/salud',async (_req,res)=>{await db.query('SELECT 1');res.json({servicio:'elecciones',estado:'saludable'});});
 async function obtener(id:string) {
- const r=await db.query('SELECT id,nombre,cargo,tipo,unidad,actual FROM tuvoto_procesos WHERE id=$1 AND NOT archivado',[id]); if(!r.rowCount)return null;
+ const r=await db.query('SELECT id,nombre,cargo,tipo,unidad,actual,publicado FROM tuvoto_procesos WHERE id=$1 AND NOT archivado',[id]); if(!r.rowCount)return null;
  const candidatos=await db.query('SELECT id,nombre,orden,foto IS NOT NULL AS "tieneFoto" FROM tuvoto_candidatos WHERE id_proceso=$1 ORDER BY orden,id',[id]);
  const mesas=await db.query('SELECT id,codigo,unidad FROM tuvoto_mesas WHERE id_proceso=$1 ORDER BY unidad,codigo',[id]);
  return {...r.rows[0],candidatos:candidatos.rows.map(c=>({...c,foto:c.tieneFoto?`/api/v1/publico/candidatos/${c.id}/foto`:null})),mesas:mesas.rows};
 }
 app.get('/api/v1/publico/actual',async(_req,res)=>{const r=await db.query('SELECT id FROM tuvoto_procesos WHERE actual AND NOT archivado');res.set('Cache-Control','public,max-age=3');res.json(r.rowCount?await obtener(r.rows[0].id):null);});
+app.get('/api/v1/publico/eventos',async(_req,res)=>{
+ const r=await db.query('SELECT id,id_organizacion AS "idOrganizacion",nombre,cargo,tipo,actual,publicado,archivado FROM tuvoto_procesos WHERE (publicado OR actual) AND NOT archivado ORDER BY nombre,id');
+ res.set('Cache-Control','public,max-age=3');res.json({elementos:agruparEventos(r.rows)});
+});
+app.get('/api/v1/publico/procesos/:id',async(req,res)=>{
+ const id=uuid.parse(req.params.id);
+ const r=await db.query('SELECT id FROM tuvoto_procesos WHERE id=$1 AND (publicado OR actual) AND NOT archivado',[id]);
+ if(!r.rowCount){res.status(404).json({detalle:'Proceso no publicado'});return;}
+ const datos=await obtener(id);if(!datos || !(datos.publicado || datos.actual)){res.sendStatus(404);return;}
+ res.set('Cache-Control','public,max-age=3');res.json(datos);
+});
 app.get('/api/v1/publico/candidatos/:id/foto',async(req,res)=>{
- const id=uuid.parse(req.params.id);const r=await db.query('SELECT c.foto,c.mime FROM tuvoto_candidatos c JOIN tuvoto_procesos p ON p.id=c.id_proceso WHERE c.id=$1 AND p.actual AND NOT p.archivado',[id]);
+ const id=uuid.parse(req.params.id);const r=await db.query('SELECT c.foto,c.mime FROM tuvoto_candidatos c JOIN tuvoto_procesos p ON p.id=c.id_proceso WHERE c.id=$1 AND (p.publicado OR p.actual) AND NOT p.archivado',[id]);
  if(!r.rowCount||!r.rows[0].foto){res.sendStatus(404);return;}res.set({'Content-Type':r.rows[0].mime,'X-Content-Type-Options':'nosniff','Cache-Control':'public,max-age=60'}).send(r.rows[0].foto);
 });
 app.use('/api/v1/configuracion',async(req:Request,res:Response,next:NextFunction)=>{try{res.locals.actor=await permiso(req,'proceso:configurar',!['GET','HEAD'].includes(req.method));next();}catch(e){res.status((e as {estado?:number}).estado??503).json({detalle:'Configuración no autorizada'});}});
@@ -40,11 +53,21 @@ app.put('/api/v1/configuracion/procesos/:id',async(req,res)=>{
 });
 app.delete('/api/v1/configuracion/procesos/:id',async(req,res)=>{
  await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);
- const cambiado=await configurarBloqueado(req.params.id,async c=>{const r=await c.query('SELECT 1 FROM tuvoto_asignaciones a JOIN tuvoto_mesas m ON m.id=a.id_mesa WHERE m.id_proceso=$1 LIMIT 1',[req.params.id]);if(r.rowCount)return false;await c.query('UPDATE tuvoto_procesos SET archivado=true,actual=false WHERE id=$1',[req.params.id]);return true;});
+ const cambiado=await configurarBloqueado(req.params.id,async c=>{const r=await c.query('SELECT 1 FROM tuvoto_asignaciones a JOIN tuvoto_mesas m ON m.id=a.id_mesa WHERE m.id_proceso=$1 LIMIT 1',[req.params.id]);if(r.rowCount)return false;await c.query('UPDATE tuvoto_procesos SET archivado=true,actual=false,publicado=false WHERE id=$1',[req.params.id]);return true;});
  if(!cambiado){res.status(409).json({detalle:'No se archiva un proceso con mesas asignadas'});return;}res.sendStatus(204);
 });
 app.post('/api/v1/configuracion/procesos/:id/actual',async(req,res)=>{
- await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);const c=await db.connect();try{await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(607001)');const anterior=await c.query('SELECT id_organizacion FROM tuvoto_procesos WHERE actual FOR UPDATE');if(anterior.rowCount&&anterior.rows[0].id_organizacion!==res.locals.actor.idOrganizacion&&!res.locals.actor.administradorGlobal)throw Object.assign(new Error(),{estado:403});await c.query('UPDATE tuvoto_procesos SET actual=false WHERE actual');await c.query('UPDATE tuvoto_procesos SET actual=true WHERE id=$1',[req.params.id]);await c.query('COMMIT');}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}res.json(await obtener(req.params.id));
+ await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);const c=await db.connect();try{await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(607001)');const anterior=await c.query('SELECT id_organizacion FROM tuvoto_procesos WHERE actual FOR UPDATE');if(anterior.rowCount&&anterior.rows[0].id_organizacion!==res.locals.actor.idOrganizacion&&!res.locals.actor.administradorGlobal)throw Object.assign(new Error(),{estado:403});await c.query('UPDATE tuvoto_procesos SET actual=false WHERE actual');await c.query('UPDATE tuvoto_procesos SET actual=true,publicado=true WHERE id=$1',[req.params.id]);await c.query('COMMIT');}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}res.json(await obtener(req.params.id));
+});
+app.put('/api/v1/configuracion/procesos/:id/publicacion',async(req,res)=>{
+ await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);
+ const d=z.object({publicado:z.boolean()}).strict().parse(req.body);
+ const c=await db.connect();try{
+  await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(607001)');
+  await c.query('UPDATE tuvoto_procesos SET publicado=$2,actual=CASE WHEN $2 THEN actual ELSE false END WHERE id=$1 AND id_organizacion=$3 AND NOT archivado',[req.params.id,d.publicado,res.locals.actor.idOrganizacion]);
+  await c.query('COMMIT');
+ }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
+ res.json(await obtener(req.params.id));
 });
 function leerImagen(valor?:string){
  let foto:Buffer|null=null,mime:string|null=null;
@@ -82,6 +105,8 @@ app.get('/api/v1/mesas/:id/contexto',async(req,res)=>{try{const a=await permiso(
 app.use((e:any,_req:Request,res:Response,_next:NextFunction)=>{res.status(e instanceof z.ZodError?422:e.code==='23505'?409:e.estado??500).json({detalle:e.code==='23505'?'Registro duplicado':'No se pudo completar la operación'});});
 await db.query(`CREATE TABLE IF NOT EXISTS tuvoto_procesos(id UUID PRIMARY KEY,id_organizacion UUID NOT NULL,nombre TEXT NOT NULL,cargo TEXT NOT NULL,tipo TEXT NOT NULL,unidad TEXT NOT NULL,actual BOOLEAN NOT NULL DEFAULT false,archivado BOOLEAN NOT NULL DEFAULT false,creado_en TIMESTAMPTZ NOT NULL DEFAULT now());
 ALTER TABLE tuvoto_procesos ADD COLUMN IF NOT EXISTS archivado BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE tuvoto_procesos ADD COLUMN IF NOT EXISTS publicado BOOLEAN NOT NULL DEFAULT false;
+UPDATE tuvoto_procesos SET publicado=true WHERE actual AND NOT archivado AND NOT publicado;
 CREATE UNIQUE INDEX IF NOT EXISTS tuvoto_actual_unico ON tuvoto_procesos(actual) WHERE actual;
 CREATE TABLE IF NOT EXISTS tuvoto_candidatos(id UUID PRIMARY KEY,id_proceso UUID NOT NULL REFERENCES tuvoto_procesos(id),nombre TEXT NOT NULL,orden SERIAL,foto BYTEA,mime TEXT,UNIQUE(id_proceso,nombre));
 CREATE TABLE IF NOT EXISTS tuvoto_mesas(id UUID PRIMARY KEY,id_proceso UUID NOT NULL REFERENCES tuvoto_procesos(id),codigo TEXT NOT NULL,unidad TEXT NOT NULL,UNIQUE(id_proceso,codigo));

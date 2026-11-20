@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
 from urllib.request import urlopen
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from fastapi import FastAPI, HTTPException
 from .configuracion import conectar_mongo
 from .proyeccion import resumir
@@ -35,9 +35,11 @@ def salud():
 @app.get('/api/v1/publico/resultados/{id_proceso}')
 def resultados(id_proceso: UUID, unidad: str | None = None):
     try:
-        with urlopen(os.environ['ELECCIONES_URL']+'/api/v1/publico/actual', timeout=4) as r: proceso = json.load(r)
+        with urlopen(os.environ['ELECCIONES_URL']+'/api/v1/publico/procesos/'+str(id_proceso), timeout=4) as r: proceso = json.load(r)
+    except HTTPError as error:
+        raise HTTPException(404 if error.code == 404 else 503, 'Proceso no publicado o configuración no disponible') from None
     except (URLError, OSError, ValueError): raise HTTPException(503, 'Configuración no disponible') from None
-    if not proceso or proceso['id'] != str(id_proceso): raise HTTPException(404, 'No es la elección pública actual')
+    if not proceso or proceso['id'] != str(id_proceso): raise HTTPException(404, 'Proceso no publicado')
     if unidad:
         mesas_unidad = [m for m in proceso['mesas'] if m['unidad'] == unidad]
         if not mesas_unidad: raise HTTPException(404, 'Unidad no configurada')

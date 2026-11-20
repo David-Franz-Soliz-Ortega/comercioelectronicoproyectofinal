@@ -25,3 +25,21 @@ test('conserva login con CSRF, consulta de sesión y logout',async t=>{
  await iniciarSesion('solo-prueba','valor-ficticio-no-credencial');await finalizarSesion();
  assert.deepEqual(rutas.map(r=>r.split('/').at(-1)),['csrf','login','yo','logout']);
 });
+
+test('distingue una API caída, saturación y falta de conexión sin inventar datos', async t => {
+ const respuesta = t.mock.method(globalThis, 'fetch', async () => new Response(null, { status: 503 }));
+ await assert.rejects(consultarGraphql('{ eventos { id } }'), /servicio de resultados no está disponible/);
+ respuesta.mock.mockImplementation(async () => new Response(null, { status: 429 }));
+ await assert.rejects(consultarGraphql('{ eventos { id } }'), /muchas consultas/);
+ respuesta.mock.mockImplementation(async () => { throw new TypeError('Failed to fetch'); });
+ await assert.rejects(consultarGraphql('{ eventos { id } }'), /No se pudo conectar/);
+});
+
+test('una respuesta ajena a GraphQL produce un mensaje legible', async t => {
+ const respuesta = t.mock.method(globalThis, 'fetch', async () => new Response('<html>Servicio caído</html>'));
+ await assert.rejects(consultarGraphql('{ eventos { id } }'), /respuesta recibida no es válida/);
+ for (const valor of [null, [], { errors: 'fallo' }]) {
+  respuesta.mock.mockImplementation(async () => Response.json(valor));
+  await assert.rejects(consultarGraphql('{ eventos { id } }'), /respuesta recibida no es válida/);
+ }
+});

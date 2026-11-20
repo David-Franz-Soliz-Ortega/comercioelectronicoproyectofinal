@@ -9,12 +9,22 @@ export async function consultarGraphql(query, variables = {}, senal) {
     throw new Error(fallo.name === 'TimeoutError' ? 'La consulta tardó demasiado. Vuelve a actualizar.' : 'No se pudo conectar con TUVOTO. Revisa tu conexión y vuelve a intentarlo.');
   }
   comprobarAcceso(respuesta.status);
-  if (!respuesta.ok) throw new Error('No se pudo completar la consulta. Intenta actualizar en unos momentos.');
+  if (!respuesta.ok) {
+    const mensaje = respuesta.status >= 500
+      ? 'El servicio de resultados no está disponible en este momento. Vuelve a intentarlo en unos instantes.'
+      : respuesta.status === 429
+        ? 'Hay muchas consultas en este momento. Espera unos instantes y vuelve a intentarlo.'
+        : 'No se pudo completar la consulta. Intenta actualizar en unos momentos.';
+    throw new Error(mensaje);
+  }
   let contenido;
   try { contenido = await respuesta.json(); } catch { throw new Error('La respuesta recibida no es válida. Vuelve a actualizar.'); }
+  if (!contenido || typeof contenido !== 'object' || Array.isArray(contenido) || (contenido.errors !== undefined && !Array.isArray(contenido.errors))) {
+    throw new Error('La respuesta recibida no es válida. Vuelve a actualizar.');
+  }
   const errores = contenido.errors ?? [];
-  if (errores.some(error => error.extensions?.code === 'NO_AUTENTICADO')) comprobarAcceso(401);
-  if (errores.some(error => error.extensions?.code === 'NO_AUTORIZADO')) comprobarAcceso(403);
+  if (errores.some(error => error?.extensions?.code === 'NO_AUTENTICADO')) comprobarAcceso(401);
+  if (errores.some(error => error?.extensions?.code === 'NO_AUTORIZADO')) comprobarAcceso(403);
   if (!contenido.data) {
     const codigo = contenido.errors?.[0]?.extensions?.code;
     const mensaje = codigo === 'ENTRADA_INVALIDA' ? 'Revisa los datos ingresados e inténtalo de nuevo.' :

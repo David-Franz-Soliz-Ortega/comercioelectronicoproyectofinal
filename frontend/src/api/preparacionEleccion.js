@@ -12,7 +12,7 @@ export function prepararEleccion({ organizacion, proceso, cuentas = [], asignaci
     { id: 'mesas', titulo: 'Mesas', destino: 'mesas', listo: mesas > 0, detalle: `${mesas} registradas. Incluye todas las mesas esperadas.` },
     { id: 'operadores', titulo: 'Operadores', destino: 'usuarios', listo: operadores.length > 0, detalle: `${operadores.length} cuentas habilitadas para registrar actas.` },
     { id: 'asignaciones', titulo: 'Asignaciones', destino: 'asignaciones', listo: asignacionesConfirmadas > 0, detalle: asignacionesConfirmadas > 0 ? `${asignacionesConfirmadas} operaciones de asignación confirmadas en esta sesión; revisa que todas las mesas tengan responsable.` : 'Asigna cada mesa a un operador. Las asignaciones anteriores no se vuelven a contar aquí.' },
-    { id: 'publicacion', titulo: 'Publicación', destino: 'publicacion', listo: !!proceso?.actual, detalle: proceso?.actual ? 'Esta elección ya es visible para el público.' : 'Revisa la configuración y elige qué verá el público.' },
+    { id: 'publicacion', titulo: 'Publicación', destino: 'publicacion', listo: !!(proceso?.actual || proceso?.publicado), detalle: (proceso?.actual || proceso?.publicado) ? 'Esta elección ya es visible para el público.' : 'Revisa la configuración y elige qué verá el público.' },
   ];
   const siguiente = pasos.find(p => !p.listo && (p.id !== 'asignaciones' || !proceso?.actual)) ?? pasos.at(-1);
   return { pasos, siguiente, operadores, puedePublicar: !!organizacion && candidatos > 0 && mesas > 0 };

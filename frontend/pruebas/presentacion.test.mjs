@@ -14,7 +14,15 @@ test('HTTP local sin randomUUID genera un UUID v4 mediante getRandomValues', () 
 test('el portal distingue ausencia de elección y resultados incompletos sin inventar cifras', () => {
   assert.equal(comprobarPortal(null), null);
   assert.throws(() => comprobarPortal({ proceso: {}, resultados: null }), /incompleta/);
-  const portal = { proceso: { nombre: 'Proceso sintético de prueba', unidad: 'Distrito', unidades: [] }, resultados: { candidatos: [], unidades: [], contabilizadas: 0, esperadas: 0, pendientes: 0, observadas: 0, total: 0, avance: 0, blancos: 0, nulos: 0 } };
+  const portal = { proceso: { id: 'p', cargo: 'Rectorado', nombre: 'Proceso sintético de prueba', unidad: 'Distrito', unidades: [] }, resultados: { candidatos: [], unidades: [], contabilizadas: 0, esperadas: 0, pendientes: 0, observadas: 0, total: 0, validos: 0, avance: 0, blancos: 0, nulos: 0 } };
   assert.equal(comprobarPortal(portal), portal);
   assert.throws(() => comprobarPortal({ ...portal, resultados: { ...portal.resultados, avance: NaN } }), /incompleta/);
+});
+
+test('porcentajes y totales inconsistentes se rechazan antes de mostrarlos', () => {
+ const portal = { proceso: { id: 'p', nombre: 'Prueba', cargo: 'Rectorado', unidad: 'Facultad', unidades: [] }, resultados: { candidatos: [{ id: 'c', nombre: 'Candidatura', foto: null, votos: 10, porcentaje: 100 }], unidades: [], contabilizadas: 1, esperadas: 2, pendientes: 1, observadas: 0, total: 10, validos: 10, avance: 50, blancos: 0, nulos: 0, actualizadoEn: null } };
+ assert.equal(comprobarPortal(portal), portal);
+ for (const cambio of [{ avance: 100 }, { total: 99 }, { actualizadoEn: 'fecha inválida' }, { candidatos: [{ ...portal.resultados.candidatos[0], porcentaje: 150 }] }, { candidatos: [{ ...portal.resultados.candidatos[0], porcentaje: 1 }] }]) {
+  assert.throws(() => comprobarPortal({ ...portal, resultados: { ...portal.resultados, ...cambio } }), /incompleta/);
+ }
 });
