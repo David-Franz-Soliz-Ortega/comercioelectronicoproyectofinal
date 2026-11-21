@@ -273,6 +273,8 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
             <IconoUrna tamano={18} />
             <span>Mesas</span>
           </button>
+          <button disabled={bloqueado} className={`item-menu-lateral ${pestana === 'asignaciones' ? 'activo' : ''}`} onClick={() => irPaso({ id: 'asignaciones', destino: 'asignaciones' })}><IconoUsuario tamano={18}/><span>Asignar operadores</span></button>
+          <button disabled={bloqueado} className={`item-menu-lateral ${pestana === 'publicacion' ? 'activo' : ''}`} onClick={() => irPaso({ id: 'publicacion', destino: 'publicacion' })}><IconoCheck tamano={18}/><span>Estado y publicación</span></button>
           <button
             disabled={bloqueado}
             className={`item-menu-lateral ${pestana === 'usuarios' ? 'activo' : ''}`}
@@ -281,8 +283,6 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
             <IconoUsuario tamano={18} />
             <span>Usuarios</span>
           </button>
-          <button disabled={bloqueado} className={`item-menu-lateral ${pestana === 'asignaciones' ? 'activo' : ''}`} onClick={() => irPaso({ id: 'asignaciones', destino: 'asignaciones' })}><IconoUsuario tamano={18}/><span>Asignar operadores</span></button>
-          <button disabled={bloqueado} className={`item-menu-lateral ${pestana === 'publicacion' ? 'activo' : ''}`} onClick={() => irPaso({ id: 'publicacion', destino: 'publicacion' })}><IconoCheck tamano={18}/><span>Estado y publicación</span></button>
         </nav>
 
         <div className="pie-lateral-privado">
@@ -591,28 +591,57 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
           </section>}
 
           {['usuarios','asignaciones'].includes(pestana)&&org&&datosInstitucionListos&&<AsignacionesOperadores key={org} organizacion={org} cuentas={cuentas} version={version} alCargo={valor=>{setId(valor);setRevisandoCargo(true);setCreandoProceso(false);setEditandoProceso(false);setPestana('configuracion');}}/>}
-          {pestana === 'usuarios' && (<>
-            {org&&<ImportarExcel key={`operadores-${org}`} ruta="/importaciones/operadores" organizacion={org} titulo="operadores" operadores alImportar={()=>setVersion(v=>v+1)}/>}
+          {pestana === 'asignaciones' && org && datosInstitucionListos && (<>
+            <ImportarExcel key={`operadores-${org}`} ruta="/importaciones/operadores" organizacion={org} titulo="operadores" operadores alImportar={()=>setVersion(v=>v+1)}/>
             <AdministrarCuentas
-              key={`${org}-${modoCuenta}`}
+              key={`operador-form-${org}`}
               organizacionInicial={org}
-              accionInicial={!org && sesion.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null) ? 'organizacion' : modoCuenta}
+              accionInicial="usuario"
               rolInicial="OPERADOR"
+              rolesPermitidos={['OPERADOR']}
+              titulo="Crear o asignar operador"
+              descripcion="Crea cuentas de operadores para registrar actas en esta elección."
+              esGlobal={false}
+              organizaciones={organizaciones}
+              cuentas={cuentas}
+              idActual={sesion.idUsuario}
+              alGuardar={() => setVersion(v => v + 1)}
+            />
+            <section className="panel-admin cuentas-preparacion">
+              <h2>Operadores de esta institución</h2>
+              <p>Operadores autorizados para registrar actas en esta elección.</p>
+              <div className="tabla-preparacion-scroll"><table className="tabla-admin"><thead><tr><th>Usuario</th><th>Mesas asignadas</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+                {cuentas.filter(c => c.roles?.some(r => r.rol === 'OPERADOR' && r.idOrganizacion === org)).map(c => {
+                  const mesasOp = asignacionesGuardadas.filter(a => a.idUsuario === c.idUsuario);
+                  return <tr key={c.idUsuario}><td><strong>{c.usuario}</strong></td><td>{mesasOp.length} mesas asignadas</td><td><span className={`insignia-estado ${c.activo ? 'activo' : 'inactivo'}`}>{c.activo ? 'Activo' : 'Inactivo'}</span></td><td><button type="button" className="boton secundario" disabled={bloqueado} onClick={() => guardar(() => pedir(`/usuarios/${encodeURIComponent(c.idUsuario)}/roles`, { metodo: 'POST', datos: { idOrganizacion: org, rol: 'OPERADOR', revocar: true } }), 'Rol de operador revocado.')}>Revocar operador</button></td></tr>;
+                })}
+              </tbody></table></div>
+              {preparacion.operadores.length === 0 && <p>Todavía no hay cuentas de operador habilitadas para esta organización.</p>}
+            </section>
+          </>)}
+
+          {pestana === 'usuarios' && (<>
+            <AdministrarCuentas
+              key={`admin-form-${org}-${modoCuenta}`}
+              organizacionInicial={org}
+              accionInicial={!org && sesion.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null) ? 'organizacion' : 'usuario'}
+              rolInicial="ADMINISTRADOR"
+              rolesPermitidos={['ADMINISTRADOR']}
+              titulo="Administradores de la plataforma"
+              descripcion="Gestión de cuentas con permisos administrativos. Los administradores configuran elecciones, candidatos, mesas y usuarios."
               alCrearOrganizacion={creada => { setOrg(creada.idOrganizacion); setId(''); mostrarCargos(); }}
-              esGlobal={sesion.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null)}
+              esGlobal={administradorGlobal}
               organizaciones={organizaciones}
               cuentas={cuentas}
               idActual={sesion.idUsuario}
               alGuardar={() => setVersion(v => v + 1)}
             />
             {org && <section className="panel-admin cuentas-preparacion">
-              <h2>Cuentas de esta organización</h2>
-              <p>El rol Operador permite registrar actas; después debes asignarle sus mesas.</p>
-              <div className="tabla-preparacion-scroll"><table className="tabla-admin"><thead><tr><th>Usuario</th><th>Roles en esta organización</th><th>Estado</th></tr></thead><tbody>
-                {cuentas.filter(c => c.roles?.some(r => r.idOrganizacion === org)).map(c => <tr key={c.idUsuario}><td>{c.usuario}</td><td>{c.roles.filter(r => r.idOrganizacion === org).map(r => r.rol).join(', ')}</td><td>{c.activo ? 'Activo' : 'Inactivo'}</td></tr>)}
+              <h2>Administradores</h2>
+              <p>Cuentas con permisos de administración.</p>
+              <div className="tabla-preparacion-scroll"><table className="tabla-admin"><thead><tr><th>Usuario</th><th>Tipo de administración</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+                {cuentas.filter(c => c.roles?.some(r => r.rol === 'ADMINISTRADOR' && (r.idOrganizacion === org || r.idOrganizacion === null))).map(c => <tr key={c.idUsuario}><td><strong>{c.usuario}</strong></td><td>{c.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null) ? 'Administrador global' : 'Administrador de esta institución'}</td><td><span className={`insignia-estado ${c.activo ? 'activo' : 'inactivo'}`}>{c.activo ? 'Activo' : 'Inactivo'}</span></td><td>{c.idUsuario !== sesion.idUsuario && <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => guardar(() => pedir(`/usuarios/${encodeURIComponent(c.idUsuario)}/roles`, { metodo: 'POST', datos: { idOrganizacion: org, rol: 'ADMINISTRADOR', revocar: true } }), 'Rol de administrador revocado.')}>Revocar rol</button>}</td></tr>)}
               </tbody></table></div>
-              {preparacion.operadores.length === 0 && <p>Todavía no hay una cuenta de operador habilitada para esta organización.</p>}
-              {actual && <button type="button" className="boton primario" disabled={bloqueado || !preparacion.operadores.length} onClick={() => setPestana('asignaciones')}>Continuar: asignar mesas a operadores</button>}
             </section>}
           </>
           )}

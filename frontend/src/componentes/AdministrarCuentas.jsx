@@ -4,7 +4,7 @@ import { IconoUsuario } from './Iconos.jsx';
 
 const rolesAsignables = ['ADMINISTRADOR', 'OPERADOR', 'AUDITOR'];
 
-export default function AdministrarCuentas({ organizaciones, cuentas, idActual, alGuardar, esGlobal = true, organizacionInicial = '', accionInicial, rolInicial = 'OPERADOR', alCrearOrganizacion }) {
+export default function AdministrarCuentas({ organizaciones, cuentas, idActual, alGuardar, esGlobal = true, organizacionInicial = '', accionInicial, rolInicial = 'OPERADOR', rolesPermitidos, alCrearOrganizacion, titulo, descripcion }) {
   const [accion, cambiarAccion] = useState(accionInicial ?? (organizacionInicial ? 'usuario' : esGlobal ? 'organizacion' : 'usuario'));
   const [nombre, cambiarNombre] = useState('');
   const [organizacion, cambiarOrganizacion] = useState(organizacionInicial);
@@ -54,13 +54,13 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
       <div className="cabecera-panel-admin">
         <h3 id="titulo-administracion">
           <IconoUsuario tamano={18} color="var(--azul-principal)" />
-          <span>Administración de cuentas y organizaciones</span>
+          <span>{titulo || 'Administración de cuentas y organizaciones'}</span>
         </h3>
       </div>
 
       <div style={{ padding: 24 }}>
         <p style={{ margin: '0 0 20px', color: 'var(--secundario)', fontSize: 13 }}>
-          Crea una cuenta por persona. Elige Operador de actas para quienes registrarán las mesas; Auditor permite consultar sin modificar.
+          {descripcion || 'Crea una cuenta por persona. Elige Operador de actas para quienes registrarán las mesas; Auditor permite consultar sin modificar.'}
         </p>
 
         <form className="formulario-simple" onSubmit={guardar}>
@@ -225,8 +225,8 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
                 disabled={ocupado}
                 onChange={e => cambiarRol(e.target.value)}
               >
-                {rolesAsignables
-                  .filter(r => esGlobal || r !== 'ADMINISTRADOR')
+                {(rolesPermitidos ?? rolesAsignables)
+                  .filter(r => esGlobal || r !== 'ADMINISTRADOR' || rolesPermitidos?.includes('ADMINISTRADOR'))
                   .map(r => (
                     <option key={r} value={r}>
                       {{ ADMINISTRADOR: 'Administrador', OPERADOR: 'Operador de actas', AUDITOR: 'Auditor' }[r]}

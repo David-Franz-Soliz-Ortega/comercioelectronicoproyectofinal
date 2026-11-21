@@ -31,9 +31,11 @@ export function rutasMesasCompartidas(app:Express,db:Pool){
    const coincidencias=ps.filter(p=>f.idProceso?p.id===f.idProceso:normalizar(p.cargo)===normalizar(f.cargo??'')&&normalizar(p.configuracion.ambito??'')===normalizar(f.ambito??'')&&(p.configuracion.vuelta??1)===f.vuelta);
    if(coincidencias.length!==1)throw Error('Cargo y ámbito ambiguos o inexistentes: corrige los cargos duplicados antes de importar');
    const p=coincidencias[0];exigirBorrador(p);
-   const config=p.configuracion,coincidenciasSector=(config.sectores??[]).filter((s:any)=>normalizar(s.codigo)===normalizar(f.sector)||normalizar(s.nombre)===normalizar(f.sector));
+   const config=p.configuracion;
+   const sectoresLista=config.sectores?.length?config.sectores:[{codigo:'docentes',nombre:'Docentes',pesoBps:5000},{codigo:'estudiantes',nombre:'Estudiantes',pesoBps:5000}];
+   const coincidenciasSector=sectoresLista.filter((s:any)=>normalizar(s.codigo)===normalizar(f.sector)||normalizar(s.nombre)===normalizar(f.sector));
    const sector=coincidenciasSector.length===1?coincidenciasSector[0].codigo:f.sector||'general';
-   if(!sectorValido(config,sector))throw Error('Configura el mismo sector en todos los cargos de esta mesa; no se mezclan docentes y estudiantes');
+   if(!sectorValido(config,sector)&&!sectorValido({sectores:sectoresLista},sector))throw Error('Configura el mismo sector en todos los cargos de esta mesa; no se mezclan docentes y estudiantes');
    if(!unidadValida(config,f.unidad))throw Error('La unidad debe ser una carrera del cargo o Facultad · Grupo de carreras');
    const usuario=f.usuario?usuarios.get(f.usuario):null;
    if(f.usuario&&!usuario)throw Error('Operador inexistente, inactivo o fuera de esta institución');

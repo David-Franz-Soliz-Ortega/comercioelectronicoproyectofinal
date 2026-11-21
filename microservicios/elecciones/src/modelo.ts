@@ -19,7 +19,10 @@ export const esquemaProceso = z.object({
 export type Proceso = z.infer<typeof esquemaProceso>;
 export const esquemaMesa=z.object({codigo:z.string().trim().min(1).max(60),unidad:z.string().trim().min(1).max(120),sector:z.string().max(32).default('general')}).strict();
 export function opciones(p:Proceso){const {ambito,vuelta,idPrimeraVuelta,sectores,ponderacion,reglaSegundaVuelta,facultad,grupoCarreras,carreras}=p;return {ambito,vuelta,idPrimeraVuelta,sectores,ponderacion,reglaSegundaVuelta,facultad,grupoCarreras,carreras};}
-export function sectorValido(config:any,sector:string){return config.sectores?.length?config.sectores.some((s:any)=>s.codigo===sector):sector==='general';}
+export function sectorValido(config:any,sector:string){
+ if(config.sectores?.length)return config.sectores.some((s:any)=>s.codigo===sector);
+ return sector==='general'||sector==='estudiantes'||sector==='docentes';
+}
 export function unidadValida(config:any,unidad:string){
  const normalizar=(s:string)=>s.normalize('NFKC').trim().toLocaleLowerCase('es');
  const grupo=config.grupoCarreras&&config.facultad?`${config.facultad} · ${config.grupoCarreras}`:'';
