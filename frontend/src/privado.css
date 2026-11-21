@@ -1427,6 +1427,42 @@
 .lista-mesas-preparacion li { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px; border: 1px solid var(--borde); border-radius: 8px; }
 .revision-publicacion dl { display: grid; grid-template-columns: minmax(100px, 1fr) 2fr; gap: 10px; font-size: 14px; }
 .revision-publicacion dt { color: var(--secundario); }.revision-publicacion dd { margin: 0; overflow-wrap: anywhere; font-weight: 600; }
+
+/* Vista dividida de Estado y Publicación */
+.revision-publicacion-grid { padding: 24px; margin-bottom: 24px; }
+.cabecera-revision-publicacion { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--borde); }
+.cabecera-revision-publicacion h2 { font-size: 20px; color: var(--azul-oscuro); margin: 6px 0 4px; }
+.cabecera-revision-publicacion p { color: var(--secundario); font-size: 13px; margin: 0; }
+.contenedor-columnas-publicacion { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px; align-items: start; }
+@media (max-width: 960px) { .contenedor-columnas-publicacion { grid-template-columns: 1fr; } }
+.columna-datos-cargo, .columna-control-publicacion { display: flex; flex-direction: column; gap: 16px; }
+.tarjeta-resumen-seccion, .tarjeta-checklist-requisitos, .tarjeta-control-estado-accion { background: #ffffff; border: 1px solid var(--borde); border-radius: 10px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+.titulo-seccion-resumen { font-size: 15px; font-weight: 700; color: var(--azul-oscuro); margin: 0 0 12px; }
+.grid-datos-clave { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; }
+.grid-datos-clave dt { font-size: 11px; text-transform: uppercase; color: var(--secundario); margin-bottom: 2px; letter-spacing: 0.5px; }
+.grid-datos-clave dd { font-size: 13px; color: var(--texto); margin: 0; font-weight: 600; }
+.boton-enlace { background: none; border: none; color: var(--azul-principal); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; }
+.boton-enlace:hover { text-decoration: underline; }
+.lista-candidatos-resumen { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.lista-candidatos-resumen li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #eef3f9; }
+.mini-foto-candidato, .avatar-placeholder { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.avatar-placeholder { background: var(--azul-claro); color: var(--azul-principal); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.barrita-progreso-cobertura { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+.progreso-relleno { height: 100%; background: #10b981; transition: width 0.3s ease; }
+.lista-checklist-requisitos { list-style: none; padding: 0; margin: 0 0 16px; display: flex; flex-direction: column; gap: 10px; }
+.lista-checklist-requisitos li { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 8px; font-size: 13px; }
+.lista-checklist-requisitos li.req-cumplido { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+.lista-checklist-requisitos li.req-cumplido .icono-req { background: #22c55e; color: white; }
+.lista-checklist-requisitos li.req-pendiente { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.lista-checklist-requisitos li.req-pendiente .icono-req { background: #ef4444; color: white; }
+.icono-req { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.lista-checklist-requisitos strong { display: block; font-size: 13px; }
+.lista-checklist-requisitos small { display: block; font-size: 11px; opacity: 0.9; margin-top: 2px; }
+.aviso-listo-para-iniciar { display: flex; align-items: center; gap: 10px; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px; border-radius: 8px; color: #065f46; font-size: 13px; }
+.aviso-listo-para-iniciar p { margin: 2px 0 0; font-size: 12px; color: #047857; }
+.aviso-pendiente-para-iniciar { display: flex; align-items: center; gap: 10px; background: #fffbeb; border: 1px solid #fde68a; padding: 12px; border-radius: 8px; color: #92400e; font-size: 13px; }
+.aviso-pendiente-para-iniciar p { margin: 2px 0 0; font-size: 12px; color: #b45309; }
+.icono-check-verde { font-size: 18px; font-weight: 700; color: #10b981; }
 .tabla-preparacion-scroll { overflow-x: auto; }
 @media (max-width: 1200px) { .pasos-eleccion { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 600px) {
@@ -1487,3 +1523,88 @@
 .controles-cabecera-operador>.perfil-usuario-privado{flex:1 1 260px;max-width:100%}
 .controles-cabecera-operador .insignia-usuario-actual{flex:1 1 180px;min-width:0;max-width:100%}
 @media(max-width:768px){.controles-cabecera-operador{width:100%}.controles-cabecera-operador .separador-perfil{display:none}}
+
+/* =========================================================
+   ANIMACIONES Y ESTADOS DEL LOGIN
+   ========================================================= */
+@keyframes temblorLogin {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px) rotate(-0.25deg); }
+  40% { transform: translateX(7px) rotate(0.25deg); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+@keyframes entradaAvisoLogin {
+  from { opacity: 0; transform: translateY(-6px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulsoOjoLogin {
+  0% { transform: scale(.82) rotate(-8deg); }
+  55% { transform: scale(1.12) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.formulario-acceso-tuvoto.acceso-con-error {
+  animation: temblorLogin .48s cubic-bezier(.36,.07,.19,.97), aparecerLogin .45s cubic-bezier(.16,1,.3,1) backwards;
+  border-color: #efb0b9;
+  box-shadow: 0 16px 44px rgba(159, 18, 57, .12), 0 2px 8px rgba(16, 36, 64, .04);
+}
+
+.formulario-acceso-tuvoto .entrada-clave-admin {
+  position: relative;
+}
+
+.formulario-acceso-tuvoto .entrada-clave-admin input {
+  padding-right: 54px;
+}
+
+.formulario-acceso-tuvoto .entrada-clave-admin .boton.secundario {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  min-height: 38px;
+  height: 38px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #60728d;
+}
+
+.formulario-acceso-tuvoto .entrada-clave-admin .boton.secundario svg {
+  animation: pulsoOjoLogin .22s ease-out;
+}
+
+.formulario-acceso-tuvoto .entrada-clave-admin .boton.secundario:hover:enabled {
+  background: #edf3ff;
+  color: #174bd1;
+  border: 0;
+}
+
+.formulario-acceso-tuvoto .entrada-clave-admin .boton.secundario:focus-visible {
+  outline: 2px solid #174bd1;
+  outline-offset: 1px;
+}
+
+.formulario-acceso-tuvoto .aviso {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 10px;
+  border-color: #fecaca;
+  background: linear-gradient(135deg, #fff1f2, #fff7f7);
+  padding: 11px 13px;
+  box-shadow: 0 5px 16px rgba(159, 18, 57, .06);
+  animation: entradaAvisoLogin .24s ease-out;
+}
+
+.formulario-acceso-tuvoto input[aria-invalid="true"] {
+  border-color: #b42318;
+}
