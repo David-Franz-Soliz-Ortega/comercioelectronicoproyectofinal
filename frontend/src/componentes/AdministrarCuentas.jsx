@@ -4,10 +4,10 @@ import { IconoUsuario } from './Iconos.jsx';
 
 const rolesAsignables = ['ADMINISTRADOR', 'OPERADOR', 'AUDITOR'];
 
-export default function AdministrarCuentas({ organizaciones, cuentas, idActual, alGuardar, esGlobal = true, organizacionInicial = '', accionInicial, rolInicial = 'OPERADOR', rolesPermitidos, alCrearOrganizacion, titulo, descripcion }) {
-  const [accion, cambiarAccion] = useState(accionInicial ?? (organizacionInicial ? 'usuario' : esGlobal ? 'organizacion' : 'usuario'));
+export default function AdministrarCuentas({ organizaciones, cuentas, idActual, alGuardar, esGlobal = true, organizacionInicial = '', accionInicial, rolInicial = 'OPERADOR', rolesPermitidos, alCrearOrganizacion, titulo, descripcion, ocultarOrganizacion = false }) {
+  const [accion, cambiarAccion] = useState(accionInicial ?? (organizacionInicial ? 'usuario' : (esGlobal && !ocultarOrganizacion) ? 'organizacion' : 'usuario'));
   const [nombre, cambiarNombre] = useState('');
-  const [organizacion, cambiarOrganizacion] = useState(organizacionInicial);
+  const [organizacion, cambiarOrganizacion] = useState(organizacionInicial || organizaciones?.[0]?.idOrganizacion || '');
   const [usuario, cambiarUsuario] = useState('');
   const [clave, cambiarClave] = useState('');
   const [mostrarClave, cambiarMostrarClave] = useState(false);
@@ -38,7 +38,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
       } else {
         await solicitarRest('/usuarios/' + encodeURIComponent(cuenta) + '/roles', { metodo: 'POST', datos: { idOrganizacion: organizacion, rol, revocar: accion === 'revocar' } });
       }
-      cambiarMensaje(accion === 'usuario' ? 'Cuenta creada. Si es operador, continúa asignándole sus mesas.' : accion === 'revocar' ? 'Rol revocado correctamente.' : 'Cambios guardados correctamente.');
+      cambiarMensaje(accion === 'usuario' ? (rol === 'ADMINISTRADOR' ? 'Cuenta de administrador creada correctamente.' : 'Cuenta creada. Si es operador, continúa asignándole sus mesas.') : accion === 'revocar' ? 'Rol revocado correctamente.' : 'Cambios guardados correctamente.');
       cambiarNombre('');
       cambiarUsuario('');
       alGuardar();
@@ -81,19 +81,19 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
                 cambiarNombre('');
               }}
             >
-              {esGlobal && (
+              {esGlobal && !ocultarOrganizacion && (
                 <>
                   <option value="organizacion">Crear organización</option>
                   <option value="editar-organizacion">Editar organización</option>
                 </>
               )}
               <option value="usuario">Crear cuenta</option>
-              <option value="asignar">Asignar rol</option>
+              {!ocultarOrganizacion && <option value="asignar">Asignar rol</option>}
               <option value="revocar">Revocar rol</option>
             </select>
           </label>
 
-          {accion !== 'organizacion' && (
+          {accion !== 'organizacion' && !ocultarOrganizacion && (
             <label htmlFor="organizacion-admin">
               Organización autorizada
               <select
@@ -216,7 +216,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
             </>
           )}
 
-          {['usuario', 'asignar', 'revocar'].includes(accion) && (
+          {['usuario', 'asignar', 'revocar'].includes(accion) && (rolesPermitidos?.length !== 1) && (
             <label htmlFor="rol-admin">
               Rol en la organización
               <select

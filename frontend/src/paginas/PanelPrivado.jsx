@@ -590,7 +590,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
 
           </section>}
 
-          {['usuarios','asignaciones'].includes(pestana)&&org&&datosInstitucionListos&&<AsignacionesOperadores key={org} organizacion={org} cuentas={cuentas} version={version} alCargo={valor=>{setId(valor);setRevisandoCargo(true);setCreandoProceso(false);setEditandoProceso(false);setPestana('configuracion');}}/>}
+          {pestana === 'asignaciones' && org && datosInstitucionListos && <AsignacionesOperadores key={org} organizacion={org} cuentas={cuentas} version={version} alCargo={valor=>{setId(valor);setRevisandoCargo(true);setCreandoProceso(false);setEditandoProceso(false);setPestana('configuracion');}}/>}
           {pestana === 'asignaciones' && org && datosInstitucionListos && (<>
             <ImportarExcel key={`operadores-${org}`} ruta="/importaciones/operadores" organizacion={org} titulo="operadores" operadores alImportar={()=>setVersion(v=>v+1)}/>
             <AdministrarCuentas
@@ -623,26 +623,26 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
           {pestana === 'usuarios' && (<>
             <AdministrarCuentas
               key={`admin-form-${org}-${modoCuenta}`}
-              organizacionInicial={org}
-              accionInicial={!org && sesion.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null) ? 'organizacion' : 'usuario'}
+              organizacionInicial={org || organizaciones[0]?.idOrganizacion}
+              accionInicial="usuario"
               rolInicial="ADMINISTRADOR"
               rolesPermitidos={['ADMINISTRADOR']}
               titulo="Administradores de la plataforma"
-              descripcion="Gestión de cuentas con permisos administrativos. Los administradores configuran elecciones, candidatos, mesas y usuarios."
-              alCrearOrganizacion={creada => { setOrg(creada.idOrganizacion); setId(''); mostrarCargos(); }}
-              esGlobal={administradorGlobal}
+              descripcion="Gestión de cuentas con permisos administrativos completos. Tienen acceso total para configurar elecciones, candidatos, mesas y usuarios."
+              esGlobal={false}
+              ocultarOrganizacion={true}
               organizaciones={organizaciones}
               cuentas={cuentas}
               idActual={sesion.idUsuario}
               alGuardar={() => setVersion(v => v + 1)}
             />
-            {org && <section className="panel-admin cuentas-preparacion">
-              <h2>Administradores</h2>
-              <p>Cuentas con permisos de administración.</p>
-              <div className="tabla-preparacion-scroll"><table className="tabla-admin"><thead><tr><th>Usuario</th><th>Tipo de administración</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
-                {cuentas.filter(c => c.roles?.some(r => r.rol === 'ADMINISTRADOR' && (r.idOrganizacion === org || r.idOrganizacion === null))).map(c => <tr key={c.idUsuario}><td><strong>{c.usuario}</strong></td><td>{c.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null) ? 'Administrador global' : 'Administrador de esta institución'}</td><td><span className={`insignia-estado ${c.activo ? 'activo' : 'inactivo'}`}>{c.activo ? 'Activo' : 'Inactivo'}</span></td><td>{c.idUsuario !== sesion.idUsuario && <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => guardar(() => pedir(`/usuarios/${encodeURIComponent(c.idUsuario)}/roles`, { metodo: 'POST', datos: { idOrganizacion: org, rol: 'ADMINISTRADOR', revocar: true } }), 'Rol de administrador revocado.')}>Revocar rol</button>}</td></tr>)}
+            <section className="panel-admin cuentas-preparacion">
+              <h2>Administradores existentes</h2>
+              <p>Usuarios con permisos de administración general.</p>
+              <div className="tabla-preparacion-scroll"><table className="tabla-admin"><thead><tr><th>Usuario</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+                {cuentas.filter(c => c.roles?.some(r => r.rol === 'ADMINISTRADOR')).map(c => <tr key={c.idUsuario}><td><strong>{c.usuario}</strong></td><td><span className={`insignia-estado ${c.activo ? 'activo' : 'inactivo'}`}>{c.activo ? 'Activo' : 'Inactivo'}</span></td><td>{c.idUsuario !== sesion.idUsuario ? <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => guardar(() => pedir(`/usuarios/${encodeURIComponent(c.idUsuario)}/roles`, { metodo: 'POST', datos: { idOrganizacion: org || c.roles?.find(r => r.rol === 'ADMINISTRADOR')?.idOrganizacion, rol: 'ADMINISTRADOR', revocar: true } }), 'Rol de administrador revocado.')}>Revocar administrador</button> : <span style={{ color: 'var(--secundario)', fontSize: 12 }}>Cuenta actual</span>}</td></tr>)}
               </tbody></table></div>
-            </section>}
+            </section>
           </>
           )}
         </div>
