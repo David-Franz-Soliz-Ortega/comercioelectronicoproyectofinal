@@ -112,6 +112,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
   const [editandoProceso,setEditandoProceso]=useState(false);
   const [asignacionesGuardadas,setAsignacionesGuardadas]=useState([]);
   const [modoCuenta, setModoCuenta] = useState('usuario');
+  const [mostrarCrearAdmin, setMostrarCrearAdmin] = useState(false);
   const [asignacionesConfirmadas, setAsignacionesConfirmadas] = useState(0);
   const [publicacionConfirmada, setPublicacionConfirmada] = useState(false);
   const [organizaciones, setOrganizaciones] = useState([]);
@@ -331,7 +332,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
 
 
           </>}
-          {pestana!=='resumen'&&<div className="contexto-modulo-admin" data-contexto-institucion={org} data-contexto-proceso={id}>
+          {!['resumen', 'usuarios'].includes(pestana) && <div className="contexto-modulo-admin" data-contexto-institucion={org} data-contexto-proceso={id}>
             <div>{institucionSeleccionada?<><strong>{institucionSeleccionada.nombre}</strong>{creandoProceso?<span>Nuevo cargo</span>:actual&&<span>Cargo seleccionado: {actual.cargo}{actual.ambito?' · '+actual.ambito:''}</span>}</>:<span>Selecciona una institución en Resumen para continuar.</span>}</div>
             <div className="acciones-contexto-cargo">
               <button type="button" className="boton secundario" disabled={bloqueado} onClick={()=>setPestana('resumen')}>Cambiar institución</button>
@@ -621,28 +622,54 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
           </>)}
 
           {pestana === 'usuarios' && (<>
-            <AdministrarCuentas
-              key={`admin-form-${org}-${modoCuenta}`}
-              organizacionInicial={org || organizaciones[0]?.idOrganizacion}
-              accionInicial="usuario"
-              rolInicial="ADMINISTRADOR"
-              rolesPermitidos={['ADMINISTRADOR']}
-              titulo="Administradores de la plataforma"
-              descripcion="Gestión de cuentas con permisos administrativos completos. Tienen acceso total para configurar elecciones, candidatos, mesas y usuarios."
-              esGlobal={false}
-              ocultarOrganizacion={true}
-              organizaciones={organizaciones}
-              cuentas={cuentas}
-              idActual={sesion.idUsuario}
-              alGuardar={() => setVersion(v => v + 1)}
-            />
             <section className="panel-admin cuentas-preparacion">
-              <h2>Administradores existentes</h2>
-              <p>Usuarios con permisos de administración general.</p>
-              <div className="tabla-preparacion-scroll"><table className="tabla-admin"><thead><tr><th>Usuario</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
-                {cuentas.filter(c => c.roles?.some(r => r.rol === 'ADMINISTRADOR')).map(c => <tr key={c.idUsuario}><td><strong>{c.usuario}</strong></td><td><span className={`insignia-estado ${c.activo ? 'activo' : 'inactivo'}`}>{c.activo ? 'Activo' : 'Inactivo'}</span></td><td>{c.idUsuario !== sesion.idUsuario ? <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => guardar(() => pedir(`/usuarios/${encodeURIComponent(c.idUsuario)}/roles`, { metodo: 'POST', datos: { idOrganizacion: org || c.roles?.find(r => r.rol === 'ADMINISTRADOR')?.idOrganizacion, rol: 'ADMINISTRADOR', revocar: true } }), 'Rol de administrador revocado.')}>Revocar administrador</button> : <span style={{ color: 'var(--secundario)', fontSize: 12 }}>Cuenta actual</span>}</td></tr>)}
+              <div className="cabecera-panel-admin" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div>
+                  <h2 style={{ margin: 0 }}>Administradores del sistema</h2>
+                  <p style={{ margin: '4px 0 0', color: 'var(--secundario)', fontSize: 13 }}>Usuarios con permisos de administración general en la plataforma.</p>
+                </div>
+              </div>
+              <div className="tabla-preparacion-scroll"><table className="tabla-admin"><thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+                {cuentas.filter(c => c.roles?.some(r => r.rol === 'ADMINISTRADOR')).map(c => <tr key={c.idUsuario}>
+                  <td><strong>{c.usuario}</strong></td>
+                  <td><span className="insignia-rol" style={{ padding: '3px 8px', borderRadius: 4, background: '#eef3f9', color: 'var(--azul-principal)', fontWeight: 600, fontSize: 12 }}>Administrador</span></td>
+                  <td><span className={`insignia-estado ${c.activo ? 'activo' : 'inactivo'}`}>{c.activo ? 'Activo' : 'Inactivo'}</span></td>
+                  <td>{c.idUsuario !== sesion.idUsuario ? <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => guardar(() => pedir(`/usuarios/${encodeURIComponent(c.idUsuario)}/roles`, { metodo: 'POST', datos: { idOrganizacion: org || c.roles?.find(r => r.rol === 'ADMINISTRADOR')?.idOrganizacion, rol: 'ADMINISTRADOR', revocar: true } }), 'Rol de administrador revocado.')}>Revocar administrador</button> : <span style={{ color: 'var(--secundario)', fontSize: 12 }}>Cuenta actual</span>}</td>
+                </tr>)}
               </tbody></table></div>
+              {!mostrarCrearAdmin && (
+                <div style={{ marginTop: 20 }}>
+                  <button type="button" className="boton primario" onClick={() => setMostrarCrearAdmin(true)}>
+                    + Crear nuevo usuario
+                  </button>
+                </div>
+              )}
             </section>
+
+            {mostrarCrearAdmin && (
+              <div style={{ marginTop: 24 }}>
+                <AdministrarCuentas
+                  key={`admin-form-${org}-${modoCuenta}`}
+                  organizacionInicial={org || organizaciones[0]?.idOrganizacion}
+                  accionInicial="usuario"
+                  rolInicial="ADMINISTRADOR"
+                  rolesPermitidos={['ADMINISTRADOR']}
+                  titulo="Crear nuevo usuario administrador"
+                  descripcion="Crea una cuenta con permisos administrativos totales para gestionar el sistema."
+                  esGlobal={false}
+                  ocultarOrganizacion={true}
+                  organizaciones={organizaciones}
+                  cuentas={cuentas.filter(c => c.roles?.some(r => r.rol === 'ADMINISTRADOR'))}
+                  idActual={sesion.idUsuario}
+                  alGuardar={() => { setVersion(v => v + 1); setMostrarCrearAdmin(false); }}
+                />
+                <div style={{ marginTop: 12 }}>
+                  <button type="button" className="boton secundario" onClick={() => setMostrarCrearAdmin(false)}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
           </>
           )}
         </div>

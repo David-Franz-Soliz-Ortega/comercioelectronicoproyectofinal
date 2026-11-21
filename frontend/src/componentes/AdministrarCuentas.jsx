@@ -64,34 +64,36 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
         </p>
 
         <form className="formulario-simple" onSubmit={guardar}>
-          <label htmlFor="accion-admin">
-            Operación a realizar
-            <select
-              id="accion-admin"
-              disabled={ocupado}
-              value={accion}
-              onChange={e => {
-                cambiarAccion(e.target.value);
-                cambiarError('');
-                cambiarMensaje('');
-                cambiarClave('');
-                cambiarMostrarClave(false);
-                cambiarOrganizacion(organizacionInicial);
-                cambiarCuenta('');
-                cambiarNombre('');
-              }}
-            >
-              {esGlobal && !ocultarOrganizacion && (
-                <>
-                  <option value="organizacion">Crear organización</option>
-                  <option value="editar-organizacion">Editar organización</option>
-                </>
-              )}
-              <option value="usuario">Crear cuenta</option>
-              {!ocultarOrganizacion && <option value="asignar">Asignar rol</option>}
-              <option value="revocar">Revocar rol</option>
-            </select>
-          </label>
+          {(!ocultarOrganizacion || rolesPermitidos?.length !== 1) && (
+            <label htmlFor="accion-admin">
+              Operación a realizar
+              <select
+                id="accion-admin"
+                disabled={ocupado}
+                value={accion}
+                onChange={e => {
+                  cambiarAccion(e.target.value);
+                  cambiarError('');
+                  cambiarMensaje('');
+                  cambiarClave('');
+                  cambiarMostrarClave(false);
+                  cambiarOrganizacion(organizacionInicial);
+                  cambiarCuenta('');
+                  cambiarNombre('');
+                }}
+              >
+                {esGlobal && !ocultarOrganizacion && (
+                  <>
+                    <option value="organizacion">Crear organización</option>
+                    <option value="editar-organizacion">Editar organización</option>
+                  </>
+                )}
+                <option value="usuario">Crear cuenta</option>
+                {!ocultarOrganizacion && <option value="asignar">Asignar rol</option>}
+                <option value="revocar">Revocar rol</option>
+              </select>
+            </label>
+          )}
 
           {accion !== 'organizacion' && !ocultarOrganizacion && (
             <label htmlFor="organizacion-admin">
@@ -204,7 +206,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
                 >
                   <option value="">Selecciona cuenta</option>
                   {cuentas
-                    .filter(c => c.idUsuario !== idActual && c.activo)
+                    .filter(c => c.idUsuario !== idActual && c.activo && (!rolesPermitidos || c.roles?.some(r => rolesPermitidos.includes(r.rol))))
                     .map(c => (
                       <option key={c.idUsuario} value={c.idUsuario}>{c.usuario}</option>
                     ))}
@@ -240,7 +242,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
           {mensaje && <div className="confirmacion" role="status">{mensaje}</div>}
 
           <button className="boton primario" disabled={ocupado} style={{ width: 'fit-content', marginTop: 12 }}>
-            {ocupado ? 'Procesando…' : accion === 'revocar' ? 'Confirmar revocación' : 'Guardar'}
+            {ocupado ? 'Procesando…' : accion === 'revocar' ? 'Confirmar revocación' : rol === 'ADMINISTRADOR' ? 'Crear administrador' : 'Guardar'}
           </button>
         </form>
       </div>
