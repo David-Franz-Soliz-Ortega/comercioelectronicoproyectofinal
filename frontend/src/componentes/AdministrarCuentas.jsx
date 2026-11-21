@@ -34,9 +34,9 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
       } else if (accion === 'editar-organizacion') {
         await solicitarRest('/organizaciones/' + encodeURIComponent(organizacion), { metodo: 'PUT', datos: { nombre: nombre.trim(), activa } });
       } else if (accion === 'usuario') {
-        await solicitarRest('/usuarios', { metodo: 'POST', datos: { usuario, contrasena, idOrganizacion: organizacion, rol } });
+        await solicitarRest('/usuarios', { metodo: 'POST', datos: { usuario, contrasena, idOrganizacion: rol === 'ADMINISTRADOR' ? null : (organizacion || null), rol } });
       } else {
-        await solicitarRest('/usuarios/' + encodeURIComponent(cuenta) + '/roles', { metodo: 'POST', datos: { idOrganizacion: organizacion, rol, revocar: accion === 'revocar' } });
+        await solicitarRest('/usuarios/' + encodeURIComponent(cuenta) + '/roles', { metodo: 'POST', datos: { idOrganizacion: rol === 'ADMINISTRADOR' ? null : (organizacion || null), rol, revocar: accion === 'revocar' } });
       }
       cambiarMensaje(accion === 'usuario' ? (rol === 'ADMINISTRADOR' ? 'Cuenta de administrador creada correctamente.' : 'Cuenta creada. Si es operador, continúa asignándole sus mesas.') : accion === 'revocar' ? 'Rol revocado correctamente.' : 'Cambios guardados correctamente.');
       cambiarNombre('');

@@ -157,8 +157,8 @@ export function rutasSeguridad(app: Express,pool: Pool) {
     if(!['GET','HEAD'].includes(req.method)&&(!csrf(req)||hash(req.header('X-CSRF-Token')??'')!==actor.csrf_hash))return error(res,403,'Origen o CSRF inválido');
     res.locals.actor=actor;next();
   });
-  const esAdministradorGlobal=(actor:any)=>actor.asignaciones.some((r:any)=>r.rol==='ADMINISTRADOR'&&r.idOrganizacion===null);
-  const puedeAdministrar=(actor:any,org:string)=>esAdministradorGlobal(actor)||actor.asignaciones.some((r:any)=>r.rol==='ADMINISTRADOR'&&r.idOrganizacion===org);
+  const esAdministradorGlobal=(actor:any)=>actor.asignaciones.some((r:any)=>r.rol==='ADMINISTRADOR');
+  const puedeAdministrar=(actor:any,org:string)=>esAdministradorGlobal(actor)||actor.asignaciones.some((r:any)=>r.rol==='ADMINISTRADOR'&&(r.idOrganizacion===org||r.idOrganizacion===null));
   rutasImportacionOperadores(app,pool,puedeAdministrar,(req,db)=>autenticar(db,req));
   app.post('/autenticacion/organizacion',async(req,res)=>{
     const datos=z.object({idOrganizacion:uuid}).strict().safeParse(req.body);if(!datos.success)return error(res,400,'Solicitud inválida');
@@ -193,17 +193,23 @@ export function rutasSeguridad(app: Express,pool: Pool) {
     const org=req.header('X-Organizacion')??'';if(!esAdministradorGlobal(res.locals.actor)&&(!uuid.safeParse(org).success||!puedeAdministrar(res.locals.actor,org)))return error(res,403,'Permiso denegado');
     const pagina=z.coerce.number().int().min(1).default(1).parse(req.query.pagina),limite=z.coerce.number().int().min(1).max(100).default(100).parse(req.query.limite);
     const usuario=req.query.usuario===undefined?null:esquemaUsuario.parse(req.query.usuario),idUsuario=req.query.idUsuario===undefined?null:uuid.parse(req.query.idUsuario);
-    const valores=[esAdministradorGlobal(res.locals.actor),uuid.safeParse(org).success?org:null,usuario,idUsuario];
-    const donde=`($1 OR u.id IN (SELECT id_usuario FROM asignaciones_roles WHERE id_organizacion=$2::uuid)) AND ($3::text IS NULL OR u.usuario=$3) AND ($4::uuid IS NULL OR u.id=$4)`;
-    const filas=await pool.query(`SELECT u.id AS "idUsuario",u.usuario,u.activo,COALESCE((SELECT jsonb_agg(jsonb_build_object('rol',r.rol,'idOrganizacion',r.id_organizacion)) FROM asignaciones_roles r WHERE r.id_usuario=u.id AND ($1 OR r.id_organizacion=$2::uuid)),'[]'::jsonb) AS roles FROM usuarios u WHERE ${donde} ORDER BY u.usuario LIMIT $5 OFFSET $6`,[...valores,limite,(pagina-1)*limite]);
+    const esAdmin=esAdministradorGlobal(res.locals.actor);
+    const valores=[esAdmin,uuid.safeParse(org).success?org:null,usuario,idUsuario];
+    const donde=`($1 OR u.id IN (SELECT id_usuario FROM asignaciones_roles WHERE id_organizacion=$2::uuid OR rol='ADMINISTRADOR')) AND ($3::text IS NULL OR u.usuario=$3) AND ($4::uuid IS NULL OR u.id=$4)`;
+    const filas=await pool.query(`SELECT u.id AS "idUsuario",u.usuario,u.activo,COALESCE((SELECT jsonb_agg(jsonb_build_object('rol',r.rol,'idOrganizacion',r.id_organizacion)) FROM asignaciones_roles r WHERE r.id_usuario=u.id AND ($1 OR r.rol='ADMINISTRADOR' OR r.id_organizacion=$2::uuid)),'[]'::jsonb) AS roles FROM usuarios u WHERE ${donde} ORDER BY u.usuario LIMIT $5 OFFSET $6`,[...valores,limite,(pagina-1)*limite]);
     const total=(await pool.query(`SELECT count(*)::int AS n FROM usuarios u WHERE ${donde}`,valores)).rows[0].n;res.json({elementos:filas.rows,pagina,limite,total});
   });
   app.post('/usuarios',async(req,res)=>{
-    const datos=z.object({usuario:esquemaUsuario,contrasena:esquemaClave,idOrganizacion:uuid,rol:z.enum(['ADMINISTRADOR','OPERADOR','AUDITOR'])}).strict().safeParse(req.body);if(!datos.success)return error(res,400,'Solicitud inválida');
+    const datos=z.object({usuario:esquemaUsuario,contrasena:esquemaClave,idOrganizacion:uuid.nullable().optional(),rol:z.enum(['ADMINISTRADOR','OPERADOR','AUDITOR'])}).strict().safeParse(req.body);if(!datos.success)return error(res,400,'Solicitud inválida');
     const d=datos.data,actor=res.locals.actor;
-    if(!puedeAdministrar(actor,d.idOrganizacion)||(d.rol==='ADMINISTRADOR'&&!esAdministradorGlobal(actor)))return error(res,403,'Asignación no permitida');
-    const db=await pool.connect();try{await db.query('BEGIN');const org=await db.query('SELECT 1 FROM organizaciones WHERE id=$1 AND activa',[d.idOrganizacion]);if(!org.rowCount){await db.query('ROLLBACK');return error(res,403,'Organización no disponible');}
-      const id=randomUUID();await db.query('INSERT INTO usuarios(id,usuario,clave_hash) VALUES($1,$2,$3)',[id,d.usuario,await bcrypt.hash(d.contrasena,12)]);await db.query('INSERT INTO asignaciones_roles VALUES($1,$2,$3,$4)',[randomUUID(),id,d.rol,d.idOrganizacion]);await auditar(db,'usuario_creado',actor.id,d.idOrganizacion,id);await db.query('COMMIT');res.status(201).json({idUsuario:id,usuario:d.usuario});
+    if(!esAdministradorGlobal(actor)&&(!d.idOrganizacion||!puedeAdministrar(actor,d.idOrganizacion)))return error(res,403,'Asignación no permitida');
+    const db=await pool.connect();try{await db.query('BEGIN');
+      const targetOrg=d.rol==='ADMINISTRADOR'?null:(d.idOrganizacion??null);
+      if(targetOrg){const org=await db.query('SELECT 1 FROM organizaciones WHERE id=$1 AND activa',[targetOrg]);if(!org.rowCount){await db.query('ROLLBACK');return error(res,403,'Organización no disponible');}}
+      const id=randomUUID();await db.query('INSERT INTO usuarios(id,usuario,clave_hash) VALUES($1,$2,$3)',[id,d.usuario,await bcrypt.hash(d.contrasena,12)]);
+      await db.query('INSERT INTO asignaciones_roles VALUES($1,$2,$3,$4)',[randomUUID(),id,d.rol,targetOrg]);
+      await auditar(db,'usuario_creado',actor.id,targetOrg,id);
+      await db.query('COMMIT');res.status(201).json({idUsuario:id,usuario:d.usuario});
     }catch(e){await db.query('ROLLBACK');error(res,(e as any).code==='23505'?409:503,'No se pudo crear la cuenta');}finally{db.release();}
   });
   async function cuentaAdministrable(actor:any,id:string,org:string,c:Pool|PoolClient=pool){
@@ -216,13 +222,20 @@ export function rutasSeguridad(app: Express,pool: Pool) {
   app.put('/usuarios/:id',async(req,res)=>{const d=z.object({usuario:esquemaUsuario}).strict().safeParse(req.body);if(!d.success)return error(res,422,'Usuario inválido');const db=await pool.connect();try{await db.query('BEGIN');await cuentaAdministrable(res.locals.actor,req.params.id,req.header('X-Organizacion')??'',db);const r=await db.query('UPDATE usuarios SET usuario=$2 WHERE id=$1 AND activo RETURNING id AS "idUsuario",usuario,activo',[req.params.id,d.data.usuario]);if(!r.rowCount){await db.query('ROLLBACK');return error(res,404,'Cuenta no disponible');}await auditar(db,'usuario_actualizado',res.locals.actor.id,null,req.params.id);await db.query('COMMIT');res.json(r.rows[0]);}catch(e){await db.query('ROLLBACK');error(res,(e as any).code==='23505'?409:(e as any).estado??503,'No se pudo actualizar la cuenta');}finally{db.release();}});
   app.delete('/usuarios/:id',async(req,res)=>{const db=await pool.connect();try{await db.query('BEGIN');await cuentaAdministrable(res.locals.actor,req.params.id,req.header('X-Organizacion')??'',db);await db.query('UPDATE usuarios SET activo=false WHERE id=$1',[req.params.id]);await db.query('UPDATE sesiones SET revocada=true WHERE id_usuario=$1',[req.params.id]);await auditar(db,'usuario_desactivado',res.locals.actor.id,null,req.params.id);await db.query('COMMIT');res.status(204).end();}catch(e){await db.query('ROLLBACK');error(res,(e as any).estado??503,'No se pudo desactivar la cuenta');}finally{db.release();}});
   app.post('/usuarios/:id/roles',async(req,res)=>{
-    const datos=z.object({rol:z.enum(roles),idOrganizacion:uuid,revocar:z.boolean().default(false)}).strict().safeParse(req.body);if(!datos.success||!uuid.safeParse(req.params.id).success)return error(res,400,'Solicitud inválida');
+    const datos=z.object({rol:z.enum(roles),idOrganizacion:uuid.nullable().optional(),revocar:z.boolean().default(false)}).strict().safeParse(req.body);if(!datos.success||!uuid.safeParse(req.params.id).success)return error(res,400,'Solicitud inválida');
     const d=datos.data,actor=res.locals.actor;
     if(!d.revocar&&!['ADMINISTRADOR','OPERADOR','AUDITOR'].includes(d.rol))return error(res,422,'Rol fuera del alcance TUVOTO');
-    if(actor.id===req.params.id||!puedeAdministrar(actor,d.idOrganizacion)||(d.rol==='ADMINISTRADOR'&&!esAdministradorGlobal(actor)))return error(res,403,'Asignación no permitida');
-    const db=await pool.connect();try{await db.query('BEGIN');const org=await db.query('SELECT 1 FROM organizaciones WHERE id=$1 AND activa',[d.idOrganizacion]);const cuenta=await db.query('SELECT 1 FROM usuarios WHERE id=$1 AND activo FOR UPDATE',[req.params.id]);if(!org.rowCount||!cuenta.rowCount){await db.query('ROLLBACK');return error(res,404,'Cuenta u organización no disponible');}
-      if(d.revocar)await db.query('DELETE FROM asignaciones_roles WHERE id_usuario=$1 AND rol=$2 AND id_organizacion=$3',[req.params.id,d.rol,d.idOrganizacion]);else await db.query('INSERT INTO asignaciones_roles VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[randomUUID(),req.params.id,d.rol,d.idOrganizacion]);
-      await auditar(db,d.revocar?'rol_revocado':'rol_asignado',actor.id,d.idOrganizacion,req.params.id);await db.query('COMMIT');res.status(204).end();
+    if(actor.id===req.params.id||(!esAdministradorGlobal(actor)&&(!d.idOrganizacion||!puedeAdministrar(actor,d.idOrganizacion))))return error(res,403,'Asignación no permitida');
+    const db=await pool.connect();try{await db.query('BEGIN');
+      const cuenta=await db.query('SELECT 1 FROM usuarios WHERE id=$1 AND activo FOR UPDATE',[req.params.id]);if(!cuenta.rowCount){await db.query('ROLLBACK');return error(res,404,'Cuenta no disponible');}
+      if(d.idOrganizacion){const org=await db.query('SELECT 1 FROM organizaciones WHERE id=$1 AND activa',[d.idOrganizacion]);if(!org.rowCount){await db.query('ROLLBACK');return error(res,404,'Organización no disponible');}}
+      if(d.revocar){
+        if(d.idOrganizacion) await db.query('DELETE FROM asignaciones_roles WHERE id_usuario=$1 AND rol=$2 AND id_organizacion=$3',[req.params.id,d.rol,d.idOrganizacion]);
+        else await db.query('DELETE FROM asignaciones_roles WHERE id_usuario=$1 AND rol=$2',[req.params.id,d.rol]);
+      } else {
+        await db.query('INSERT INTO asignaciones_roles VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[randomUUID(),req.params.id,d.rol,d.idOrganizacion??null]);
+      }
+      await auditar(db,d.revocar?'rol_revocado':'rol_asignado',actor.id,d.idOrganizacion??null,req.params.id);await db.query('COMMIT');res.status(204).end();
     }catch{await db.query('ROLLBACK');error(res,503,'No disponible');}finally{db.release();}
   });
   app.post('/usuarios/:id/recuperacion',async(req,res)=>{

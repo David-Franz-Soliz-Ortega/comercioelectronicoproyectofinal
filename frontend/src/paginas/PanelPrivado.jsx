@@ -177,7 +177,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
   useEffect(() => { setDatos(datosEleccionVacia()); setEventoBase(''); }, [org]);
 
   const pedir = (ruta, op = {}) => solicitarRest(ruta, { ...op, organizacion: org });
-  async function cargarCuentas(){const elementos=[];for(let pagina=1;pagina<=100;pagina++){const r=await pedir('/usuarios?pagina='+pagina+'&limite=100');elementos.push(...r.elementos);if(elementos.length>=(r.total??elementos.length))return {elementos};}throw Error('Demasiadas cuentas para este panel.');}
+  async function cargarCuentas(){const elementos=[];for(let pagina=1;pagina<=100;pagina++){const r=await solicitarRest('/usuarios?pagina='+pagina+'&limite=100',{organizacion:org||undefined});elementos.push(...r.elementos);if(elementos.length>=(r.total??elementos.length))return {elementos};}throw Error('Demasiadas cuentas para este panel.');}
   useEffect(()=>{let vigente=true;setAsignacionesGuardadas([]);if(id&&org)pedir('/configuracion/procesos/'+id+'/asignaciones').then(r=>{if(vigente)setAsignacionesGuardadas(r.elementos);}).catch(e=>{if(vigente)setError(e.message);});return()=>{vigente=false};},[id,org,version]);
 
   useEffect(() => {
@@ -194,19 +194,22 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
 
   useEffect(() => {
     let v = true;
-    setDatosInstitucionListos(false);
-    setProcesos([]);
-    setCuentas([]);
-    if (!org) { establecerOrganizacion(''); setCargandoDatos(false); return; }
-    setCargandoDatos(true); establecerOrganizacion(org);
-    Promise.all([pedir('/configuracion/procesos'), cargarCuentas()])
+    setCargandoDatos(true);
+    if (org) establecerOrganizacion(org);
+    else establecerOrganizacion('');
+    Promise.all([
+      org ? pedir('/configuracion/procesos') : Promise.resolve({ elementos: [] }),
+      cargarCuentas()
+    ])
       .then(([p, c]) => {
         if (v) {
           setProcesos(p.elementos);
           setCuentas(c.elementos);
-          setDatosInstitucionListos(true);
-          setId(anterior => p.elementos.some(item => item.id === anterior)
-            ? anterior : (p.elementos.find(item => item.actual) || p.elementos[0])?.id ?? '');
+          setDatosInstitucionListos(Boolean(org));
+          if (p.elementos.length > 0) {
+            setId(anterior => p.elementos.some(item => item.id === anterior)
+              ? anterior : (p.elementos.find(item => item.actual) || p.elementos[0])?.id ?? '');
+          }
         }
       })
       .catch(e => { if (v) setError(e.message); })
@@ -634,7 +637,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                   <td><strong>{c.usuario}</strong></td>
                   <td><span className="insignia-rol" style={{ padding: '3px 8px', borderRadius: 4, background: '#eef3f9', color: 'var(--azul-principal)', fontWeight: 600, fontSize: 12 }}>Administrador</span></td>
                   <td><span className={`insignia-estado ${c.activo ? 'activo' : 'inactivo'}`}>{c.activo ? 'Activo' : 'Inactivo'}</span></td>
-                  <td>{c.idUsuario !== sesion.idUsuario ? <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => guardar(() => pedir(`/usuarios/${encodeURIComponent(c.idUsuario)}/roles`, { metodo: 'POST', datos: { idOrganizacion: org || c.roles?.find(r => r.rol === 'ADMINISTRADOR')?.idOrganizacion, rol: 'ADMINISTRADOR', revocar: true } }), 'Rol de administrador revocado.')}>Revocar administrador</button> : <span style={{ color: 'var(--secundario)', fontSize: 12 }}>Cuenta actual</span>}</td>
+                  <td>{c.idUsuario !== sesion.idUsuario ? <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => guardar(() => solicitarRest(`/usuarios/${encodeURIComponent(c.idUsuario)}/roles`, { metodo: 'POST', datos: { idOrganizacion: c.roles?.find(r => r.rol === 'ADMINISTRADOR')?.idOrganizacion ?? null, rol: 'ADMINISTRADOR', revocar: true } }), 'Rol de administrador revocado.')}>Revocar administrador</button> : <span style={{ color: 'var(--secundario)', fontSize: 12 }}>Cuenta actual</span>}</td>
                 </tr>)}
               </tbody></table></div>
               {!mostrarCrearAdmin && (
