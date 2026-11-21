@@ -11,7 +11,7 @@ const resultados = process.env.RESULTADOS_URL ?? 'http://resultados:8000';
 const actas = process.env.ACTAS_URL ?? 'http://actas:8000';
 async function pedir(url, opciones = {}) {
  const r = await fetch(url, { ...opciones, signal: AbortSignal.timeout(6000) });
- if (!r.ok) throw new GraphQLError('Servicio no disponible o acceso denegado', { extensions: { code: r.status === 401 ? 'NO_AUTENTICADO' : r.status === 403 ? 'NO_AUTORIZADO' : 'SERVICIO_NO_DISPONIBLE' } });
+ if (!r.ok) throw new GraphQLError('Servicio no disponible o acceso denegado', { extensions: { code: r.status === 401 ? 'NO_AUTENTICADO' : r.status === 403 ? 'NO_AUTORIZADO' : r.status===409?'CONFLICTO':r.status===400||r.status===422?'ENTRADA_INVALIDA':'SERVICIO_NO_DISPONIBLE' } });
  return r.json();
 }
 http.createServer(async (req, res) => {
@@ -32,8 +32,17 @@ http.createServer(async (req, res) => {
   const headers = Object.fromEntries(['cookie', 'origin', 'x-csrf-token', 'x-organizacion'].map(k => [k, req.headers[k] ?? '']));
   headers['x-correlation-id']=idCorrelacion;
   const raiz = {
-   eventos: () => cachePortal('eventos', async () => (await cargar.load(elecciones + '/api/v1/publico/eventos')).elementos),
-   portal: ({unidad, idProceso}) => { if(idProceso && !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(idProceso)) throw new GraphQLError('Proceso inválido'); if(unidad && unidad.length > 120) throw new GraphQLError('Unidad inválida'); return cachePortal(JSON.stringify([idProceso ?? '',unidad ?? '']), async () => { const proceso = await cargar.load(elecciones + (idProceso ? '/api/v1/publico/procesos/'+encodeURIComponent(idProceso) : '/api/v1/publico/actual')); if(!proceso)return null; proceso.unidades=[...new Set(proceso.mesas.map(m=>m.unidad))];const [conteo,recepcion]=await Promise.all([cargar.load(resultados+'/api/v1/publico/resultados/'+encodeURIComponent(proceso.id)+(unidad?'?unidad='+encodeURIComponent(unidad):'')),cargar.load(actas+'/api/v1/publico/actas/'+encodeURIComponent(proceso.id)+'/avance').catch(()=>null)]);return {proceso,resultados:conteo,recepcion}; }); },
+   eventos: () => cachePortal('eventos',async()=>(await cargar.load(elecciones+'/api/v1/publico/eventos')).elementos),
+   eleccionesPublicadas: () => cargar.load(elecciones+'/api/v1/publico/elecciones').then(r=>r.elementos),
+   portal: ({unidad,idProceso}) => {
+    if((unidad&&unidad.length>120)||(idProceso&&!/^[a-f0-9-]{36}$/i.test(idProceso)))throw new GraphQLError('Filtro inválido');
+    return cachePortal(JSON.stringify([idProceso??'',unidad??'']),async()=>{
+     const proceso=await cargar.load(elecciones+(idProceso?'/api/v1/publico/procesos/'+encodeURIComponent(idProceso):'/api/v1/publico/actual'));if(!proceso)return null;
+     proceso.unidades=[...new Set(proceso.mesas.map(m=>m.unidad))];
+     const [conteo,recepcion]=await Promise.all([cargar.load(resultados+'/api/v1/publico/resultados/'+encodeURIComponent(proceso.id)+(unidad?'?unidad='+encodeURIComponent(unidad):'')),cargar.load(actas+'/api/v1/publico/actas/'+encodeURIComponent(proceso.id)+'/avance').catch(()=>null)]);
+     return {proceso,resultados:conteo,recepcion};
+    });
+   },
    registrarActa: ({ entrada: datos }) => pedir(actas + '/api/v1/actas', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(datos) }),
   };
   const resultado = await execute({ schema: esquema, document: documento, rootValue: raiz, variableValues: entrada.variables, operationName: entrada.operationName });

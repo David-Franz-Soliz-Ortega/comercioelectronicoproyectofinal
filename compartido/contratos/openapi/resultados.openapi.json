@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "TUVOTO · Resultados preliminares",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "paths": {
     "/api/v1/salud": {
@@ -58,7 +58,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Resultado"
+                }
               }
             }
           },
@@ -310,6 +312,85 @@
   },
   "components": {
     "schemas": {
+      "AvanceUnidad": {
+        "properties": {
+          "unidad": {
+            "type": "string",
+            "title": "Unidad"
+          },
+          "esperadas": {
+            "type": "integer",
+            "title": "Esperadas"
+          },
+          "contabilizadas": {
+            "type": "integer",
+            "title": "Contabilizadas"
+          },
+          "pendientes": {
+            "type": "integer",
+            "title": "Pendientes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unidad",
+          "esperadas",
+          "contabilizadas",
+          "pendientes"
+        ],
+        "title": "AvanceUnidad"
+      },
+      "CandidatoResultado": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "votos": {
+            "type": "integer",
+            "title": "Votos"
+          },
+          "porcentaje": {
+            "type": "number",
+            "title": "Porcentaje"
+          },
+          "foto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Foto"
+          },
+          "porcentajePonderado": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Porcentajeponderado"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "votos",
+          "porcentaje"
+        ],
+        "title": "CandidatoResultado"
+      },
       "EditarInforme": {
         "properties": {
           "titulo": {
@@ -339,6 +420,37 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "IndicadorRegla": {
+        "properties": {
+          "estado": {
+            "type": "string",
+            "title": "Estado"
+          },
+          "descripcion": {
+            "type": "string",
+            "title": "Descripcion"
+          },
+          "candidatos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Candidatos"
+          },
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional"
+          }
+        },
+        "type": "object",
+        "required": [
+          "estado",
+          "descripcion",
+          "candidatos",
+          "provisional"
+        ],
+        "title": "IndicadorRegla"
+      },
       "NuevoInforme": {
         "properties": {
           "titulo": {
@@ -360,6 +472,180 @@
           "idProceso"
         ],
         "title": "NuevoInforme"
+      },
+      "Resultado": {
+        "properties": {
+          "esperadas": {
+            "type": "integer",
+            "title": "Esperadas"
+          },
+          "contabilizadas": {
+            "type": "integer",
+            "title": "Contabilizadas"
+          },
+          "pendientes": {
+            "type": "integer",
+            "title": "Pendientes"
+          },
+          "observadas": {
+            "type": "integer",
+            "title": "Observadas"
+          },
+          "avance": {
+            "type": "number",
+            "title": "Avance"
+          },
+          "blancos": {
+            "type": "integer",
+            "title": "Blancos"
+          },
+          "nulos": {
+            "type": "integer",
+            "title": "Nulos"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "validos": {
+            "type": "integer",
+            "title": "Validos"
+          },
+          "candidatos": {
+            "items": {
+              "$ref": "#/components/schemas/CandidatoResultado"
+            },
+            "type": "array",
+            "title": "Candidatos"
+          },
+          "unidades": {
+            "items": {
+              "$ref": "#/components/schemas/AvanceUnidad"
+            },
+            "type": "array",
+            "title": "Unidades"
+          },
+          "sectores": {
+            "items": {
+              "$ref": "#/components/schemas/ResultadoSector"
+            },
+            "type": "array",
+            "title": "Sectores"
+          },
+          "ponderacionAplicada": {
+            "type": "boolean",
+            "title": "Ponderacionaplicada"
+          },
+          "requierenRevision": {
+            "type": "integer",
+            "title": "Requierenrevision"
+          },
+          "regla": {
+            "$ref": "#/components/schemas/IndicadorRegla"
+          },
+          "actualizadoEn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actualizadoen"
+          }
+        },
+        "type": "object",
+        "required": [
+          "esperadas",
+          "contabilizadas",
+          "pendientes",
+          "observadas",
+          "avance",
+          "blancos",
+          "nulos",
+          "total",
+          "validos",
+          "candidatos",
+          "unidades",
+          "sectores",
+          "ponderacionAplicada",
+          "requierenRevision",
+          "regla"
+        ],
+        "title": "Resultado"
+      },
+      "ResultadoSector": {
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "title": "Codigo"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "pesoBps": {
+            "type": "integer",
+            "title": "Pesobps"
+          },
+          "esperadas": {
+            "type": "integer",
+            "title": "Esperadas"
+          },
+          "contabilizadas": {
+            "type": "integer",
+            "title": "Contabilizadas"
+          },
+          "pendientes": {
+            "type": "integer",
+            "title": "Pendientes"
+          },
+          "observadas": {
+            "type": "integer",
+            "title": "Observadas"
+          },
+          "validos": {
+            "type": "integer",
+            "title": "Validos"
+          },
+          "blancos": {
+            "type": "integer",
+            "title": "Blancos"
+          },
+          "nulos": {
+            "type": "integer",
+            "title": "Nulos"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "candidatos": {
+            "items": {
+              "$ref": "#/components/schemas/CandidatoResultado"
+            },
+            "type": "array",
+            "title": "Candidatos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "codigo",
+          "nombre",
+          "pesoBps",
+          "esperadas",
+          "contabilizadas",
+          "pendientes",
+          "observadas",
+          "validos",
+          "blancos",
+          "nulos",
+          "total",
+          "candidatos"
+        ],
+        "title": "ResultadoSector"
       },
       "ValidationError": {
         "properties": {

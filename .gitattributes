@@ -1,0 +1,2 @@
+# Los PDF generados se revisan como binarios, sin transformaciones de fin de línea.
+*.pdf binary

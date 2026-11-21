@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "TUVOTO · Identidad",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "TUVOTO: implementación de desarrollo, sin certificación electoral. Las escrituras requieren Origin autorizado, cookie CSRF y X-CSRF-Token. X-Organizacion selecciona alcance; no concede permisos. Las contraseñas admiten máximo 72 bytes UTF-8."
   },
   "servers": [
@@ -232,6 +232,42 @@
         "security": [
           {
             "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 100
+            }
+          },
+          {
+            "name": "usuario",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idUsuario",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ]
       },
@@ -617,6 +653,214 @@
           },
           "422": {
             "description": "Datos inválidos"
+          }
+        }
+      }
+    },
+    "/importaciones/operadores/plantilla": {
+      "get": {
+        "summary": "Descargar plantilla XLSX",
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plantilla XLSX, una hoja, máximo 2 MB al importar",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      }
+    },
+    "/importaciones/operadores/previsualizar": {
+      "post": {
+        "summary": "Validar archivo sin escribir; contraseñas siempre ocultas",
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "archivo",
+                  "idOrganizacion"
+                ],
+                "properties": {
+                  "archivo": {
+                    "type": "string",
+                    "format": "byte",
+                    "maxLength": 2800000,
+                    "writeOnly": true
+                  },
+                  "huella": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "confirmar": {
+                    "type": "boolean"
+                  },
+                  "idOrganizacion": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/importaciones/operadores/confirmar": {
+      "post": {
+        "summary": "Confirmar mismo archivo y huella; todo o nada, sin sobrescribir",
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "archivo",
+                  "idOrganizacion"
+                ],
+                "properties": {
+                  "archivo": {
+                    "type": "string",
+                    "format": "byte",
+                    "maxLength": 2800000,
+                    "writeOnly": true
+                  },
+                  "huella": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "confirmar": {
+                    "type": "boolean"
+                  },
+                  "idOrganizacion": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
           }
         }
       }

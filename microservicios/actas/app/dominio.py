@@ -33,6 +33,7 @@ def huella_solicitud(datos, foto_hash):
     canonico = {k: datos[k] for k in ('idMesa', 'votos', 'blancos', 'nulos', 'total', 'versionAnterior', 'confirmado')}
     canonico['votos'] = sorted(canonico['votos'], key=lambda v: str(v['idCandidato']))
     canonico['fotoHash'] = foto_hash
+    if datos.get('idActaOrigen'):canonico['idActaOrigen']=datos['idActaOrigen']
     return hashlib.sha256(json.dumps(canonico, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
@@ -41,4 +42,4 @@ def construir_evento(id_evento, mesa, version, conteo, observada, organizacion):
     return {'idEvento': id_evento, 'tipo': 'acta.actualizada.v1', 'version': 1,
             'datos': {'idProceso': str(mesa['idProceso']), 'idMesa': str(mesa['id']),
                       'idOrganizacion': organizacion, 'versionActa': version,
-                      'unidad': mesa['unidad'], 'conteo': conteo, 'observada': observada}}
+                      'unidad': mesa['unidad'], 'sector':mesa.get('sector','general'), 'conteo': conteo, 'observada': observada}}

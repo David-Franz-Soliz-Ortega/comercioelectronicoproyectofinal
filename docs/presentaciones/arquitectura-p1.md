@@ -49,7 +49,7 @@ Cuatro servicios de negocio, dos lenguajes y trece contenedores Compose. Las bas
 
 ## 3. Persistencia y consistencia
 
-Identidad: usuarios UUID, hash bcrypt coste 12, roles con organización, sesiones revocables, recuperaciones y auditoría. Elecciones: procesos, candidatos/fotos, unidades representadas por mesas y asignaciones. Actas: versiones inmutables con original y SHA-256, conteo, estado y bandeja transaccional. Resultados: última contribución de cada mesa, eventos auditados e informes; Redis almacena únicamente caché temporal.
+Identidad: usuarios UUID, hash bcrypt coste 12, roles con organización, sesiones revocables, recuperaciones y auditoría. Elecciones: elecciones independientes por cargo/vuelta, ámbito, sectores/pesos opcionales, candidatos/fotos, mesas y asignaciones. Actas: versiones inmutables con original y SHA-256, conteo, estado y bandeja transaccional. Resultados: última contribución de cada mesa, eventos auditados e informes; Redis almacena únicamente caché temporal.
 
 Registro y outbox se insertan en una transacción. Bloqueos por mesa, solicitud y fotografía evitan versiones concurrentes y reutilización exacta de imagen en otra mesa. Una corrección reemplaza la contribución anterior; no suma dos veces. Una observación no publica nuevas cifras. Anular genera otra versión y retira la contribución, conservando originales.
 
@@ -57,7 +57,7 @@ SHA-256 detecta igualdad binaria, no prueba autenticidad ni detecta todas las ma
 
 ## 4. Contratos y comunicación
 
-REST versionado /api/v1, contratos OpenAPI en compartido/contratos/openapi; Swagger de los cuatro servicios a través de NGINX. Identidad administra cuentas, Elecciones procesos, Actas versiones y Resultados informes: no permitir editar totales proyectados para aparentar CRUD.
+REST versionado /api/v1, contratos OpenAPI 0.2.0 en compartido/contratos/openapi; Swagger de los cuatro servicios a través de NGINX. Identidad administra cuentas, Elecciones procesos, Actas versiones y Resultados informes: no permitir editar totales proyectados para aparentar CRUD.
 
 GraphQL combina elección, conteo y avance de recepción. DataLoader deduplica cargas por operación; caché pública breve agrupa solicitudes concurrentes por filtro de unidad. La mutation registrarActa conserva cookies y CSRF, y la autorización final pertenece a Actas.
 

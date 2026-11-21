@@ -129,7 +129,7 @@ services:
     restart: unless-stopped
     environment: *entorno-actas
     networks: [interna]
-    depends_on: {base-postgres: {condition: service_healthy}, identidad: {condition: service_healthy}, elecciones: {condition: service_healthy}, mensajeria-rabbitmq: {condition: service_healthy}}
+    depends_on: {base-postgres: {condition: service_healthy}, identidad: {condition: service_healthy}, elecciones: {condition: service_healthy}, mensajeria-rabbitmq: {condition: service_healthy}, resultados-conteo: {condition: service_healthy}, resultados-auditoria: {condition: service_healthy}}
     healthcheck:
       <<: *salud-python
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/salud',timeout=3)"]

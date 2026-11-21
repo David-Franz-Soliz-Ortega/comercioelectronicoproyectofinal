@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "TUVOTO · Actas",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "paths": {
     "/api/v1/salud": {
@@ -62,7 +62,7 @@
             "sesion": []
           }
         ],
-        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+        "description": "Requiere OPERADOR asignado. Escrituras solo en recepción: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
       }
     },
     "/api/v1/actas/{id_acta}/foto": {
@@ -106,7 +106,7 @@
             "sesion": []
           }
         ],
-        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+        "description": "Requiere OPERADOR asignado. Escrituras solo en recepción: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
       }
     },
     "/api/v1/actas": {
@@ -141,6 +141,9 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Recepción cerrada, versión o solicitud en conflicto; sin cambios"
           }
         },
         "security": [
@@ -148,7 +151,7 @@
             "sesion": []
           }
         ],
-        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+        "description": "Requiere OPERADOR asignado. Escrituras solo en recepción: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
       },
       "get": {
         "summary": "Listar Actas",
@@ -219,7 +222,7 @@
             "sesion": []
           }
         ],
-        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+        "description": "Requiere OPERADOR asignado. Escrituras solo en recepción: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
       }
     },
     "/api/v1/publico/actas/{id_proceso}/avance": {
@@ -304,6 +307,9 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Recepción cerrada, versión o solicitud en conflicto; sin cambios"
           }
         },
         "security": [
@@ -311,7 +317,7 @@
             "sesion": []
           }
         ],
-        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+        "description": "Requiere OPERADOR asignado. Escrituras solo en recepción: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
       },
       "delete": {
         "summary": "Anular Acta",
@@ -351,6 +357,9 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Recepción cerrada, versión o solicitud en conflicto; sin cambios"
           }
         },
         "security": [
@@ -358,7 +367,7 @@
             "sesion": []
           }
         ],
-        "description": "Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
+        "description": "Requiere OPERADOR asignado. Escrituras solo en recepción: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
       }
     }
   },
@@ -423,9 +432,28 @@
             "title": "Versionanterior"
           },
           "foto": {
-            "type": "string",
-            "maxLength": 14000000,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 14000000
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Foto"
+          },
+          "idActaOrigen": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idactaorigen"
           },
           "votos": {
             "items": {
@@ -465,7 +493,6 @@
           "idMesa",
           "idSolicitud",
           "versionAnterior",
-          "foto",
           "votos",
           "blancos",
           "nulos",

@@ -20,6 +20,23 @@ test('401/403 no se convierten en resultados publicados',async t=>{
  await assert.rejects(solicitarRest('/actas'),e=>e.estado===401);
  f.mock.mockImplementation(async()=>new Response(null,{status:403}));await assert.rejects(solicitarRest('/actas',{metodo:'POST',datos:{}}),e=>e.estado===403);
 });
+test('importaciones muestran la indicación de validación sin ocultarla detrás del mensaje genérico',async t=>{
+ const r=t.mock.method(globalThis,'fetch',async()=>Response.json({type:'about:blank',status:422,detail:'Columnas incorrectas. Esta plantilla solo admite: nombre, orden.'},{status:422}));
+ await assert.rejects(solicitarRest('/configuracion/procesos/prueba/importaciones/candidatos/previsualizar',{metodo:'POST',datos:{},mostrarDetalleValidacion:true}),e=>e.estado===422&&e.message.includes('nombre, orden'));
+ r.mock.mockImplementation(async()=>Response.json({detalle:'Columnas incorrectas. Esta plantilla solo admite: nombre, orden.'},{status:422}));
+ await assert.rejects(solicitarRest('/configuracion/procesos/prueba/importaciones/candidatos/previsualizar',{mostrarDetalleValidacion:true}),/nombre, orden/);
+ await assert.rejects(solicitarRest('/configuracion/procesos/prueba/importaciones/candidatos/previsualizar',{metodo:'POST',datos:{}}),/Revisa los campos requeridos/);
+});
+test('el detalle opcional no revela errores internos y conserva 401/403 y respuestas no JSON',async t=>{
+ const r=t.mock.method(globalThis,'fetch',async()=>Response.json({detalle:'Detalle interno de prueba'},{status:500}));
+ await assert.rejects(solicitarRest('/configuracion/importaciones-generales/candidatos/previsualizar',{mostrarDetalleValidacion:true}),e=>e.estado===500&&!e.message.includes('Detalle interno'));
+ r.mock.mockImplementation(async()=>new Response('<html>Respuesta inesperada</html>',{status:422}));
+ await assert.rejects(solicitarRest('/configuracion/importaciones-generales/candidatos/previsualizar',{mostrarDetalleValidacion:true}),/Revisa los campos requeridos/);
+ for(const estado of [401,403]){
+  r.mock.mockImplementation(async()=>Response.json({detalle:'Detalle que no se debe presentar'},{status:estado}));
+  await assert.rejects(solicitarRest('/configuracion/importaciones-generales/candidatos/previsualizar',{mostrarDetalleValidacion:true}),e=>e.estado===estado&&!e.message.includes('Detalle que no'));
+ }
+});
 test('conserva login con CSRF, consulta de sesión y logout',async t=>{
  const rutas=[];t.mock.method(globalThis,'fetch',async(url)=>{rutas.push(url);return url.endsWith('/logout')?new Response(null,{status:204}):Response.json({idUsuario:'solo-prueba',roles:[]});});
  await iniciarSesion('solo-prueba','valor-ficticio-no-credencial');await finalizarSesion();

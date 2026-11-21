@@ -27,7 +27,7 @@ export async function consultarGraphql(query, variables = {}, senal) {
   if (errores.some(error => error?.extensions?.code === 'NO_AUTORIZADO')) comprobarAcceso(403);
   if (!contenido.data) {
     const codigo = contenido.errors?.[0]?.extensions?.code;
-    const mensaje = codigo === 'ENTRADA_INVALIDA' ? 'Revisa los datos ingresados e inténtalo de nuevo.' :
+    const mensaje = codigo === 'CONFLICTO' ? 'La mesa cambió o la foto ya está registrada. Actualiza antes de repetir.' : codigo === 'ENTRADA_INVALIDA' ? 'Revisa los datos ingresados e inténtalo de nuevo.' :
       codigo === 'LIMITE_DE_CARGA' ? 'La consulta es demasiado amplia. Aplica un filtro para reducirla.' :
         'No se pudo consultar la información. Intenta actualizar en unos momentos.';
     throw new Error(mensaje);

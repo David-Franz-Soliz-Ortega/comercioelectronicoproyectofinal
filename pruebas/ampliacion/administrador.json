@@ -1,0 +1,27 @@
+{
+  "fecha": "2026-11-20T16:23:01.910747",
+  "estado": "OK",
+  "cambio": "Iniciar, terminar y preparar nuevo conteo desde Elección",
+  "url": "http://127.0.0.1:8890/#panel",
+  "pruebasReact": 23,
+  "navegador": "Firefox existente con cuenta sintética aislada",
+  "anchos": [
+    390,
+    768,
+    1440
+  ],
+  "recursosPublicados": "Coinciden con la compilación actual",
+  "contenedoresSaludables": 13,
+  "seleccion": "Institución → Evento electoral → Cargo",
+  "creacionVerificada": "Institución sintética creada desde Firefox y consultada por API únicamente en entorno aislado",
+  "verificacionNavegacion": "Vista previa de consulta y enlace al cargo exacto, incluso no destacado; cargo retirado sin resultados ajenos",
+  "verificacionExcel": "Plantilla real, revisión y confirmación desde Firefox; dos mesas de facultades/sectores distintos persistidas en entorno sintético",
+  "verificacionReinicio": "API real aislada: rol, concurrencia, copia, edición en borrador, cero inicial, nueva acta contada y originales conservados",
+  "serviciosActualizados": [
+    "elecciones",
+    "frontend"
+  ],
+  "sinRestablecerDatosDelUsuario": true,
+  "credencialesConservadas": true,
+  "infraestructuraConservada": true
+}

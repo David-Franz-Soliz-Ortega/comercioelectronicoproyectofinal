@@ -13,7 +13,7 @@
   "paths": {
     "/publico/actual": {
       "get": {
-        "summary": "Proceso actual para recepción de actas; compatibilidad con consumidores anteriores",
+        "summary": "Elección pública actual o null",
         "responses": {
           "200": {
             "description": "Operación completada"
@@ -99,11 +99,13 @@
                 "properties": {
                   "nombre": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 120
                   },
                   "cargo": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 100
                   },
                   "tipo": {
                     "enum": [
@@ -114,7 +116,111 @@
                   },
                   "unidad": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "ambito": {
+                    "type": "string",
+                    "maxLength": 160,
+                    "default": ""
+                  },
+                  "vuelta": {
+                    "type": "integer",
+                    "enum": [
+                      1,
+                      2
+                    ],
+                    "default": 1
+                  },
+                  "idPrimeraVuelta": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "sectores": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "codigo",
+                        "nombre",
+                        "pesoBps"
+                      ],
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+                        },
+                        "nombre": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "pesoBps": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000,
+                          "description": "Centésimas de porcentaje; con ponderación la suma debe ser 10000"
+                        }
+                      }
+                    },
+                    "default": []
+                  },
+                  "ponderacion": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "reglaSegundaVuelta": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "additionalProperties": false,
+                    "required": [
+                      "modo",
+                      "umbral",
+                      "estricto"
+                    ],
+                    "properties": {
+                      "modo": {
+                        "enum": [
+                          "porcentaje",
+                          "por_sector"
+                        ]
+                      },
+                      "umbral": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "exclusiveMaximum": 100
+                      },
+                      "estricto": {
+                        "type": "boolean"
+                      }
+                    }
+                  },
+                  "facultad": {
+                    "type": "string",
+                    "maxLength": 120,
+                    "default": ""
+                  },
+                  "grupoCarreras": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "default": ""
+                  },
+                  "carreras": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "default": []
                   }
                 }
               }
@@ -125,45 +231,7 @@
     },
     "/configuracion/procesos/{id}/actual": {
       "post": {
-        "summary": "Publicar cargo y destacar su evento; seleccionar proceso actual para recepción de actas",
-        "responses": {
-          "200": {
-            "description": "Operación completada"
-          },
-          "401": {
-            "description": "Sesión requerida"
-          },
-          "403": {
-            "description": "Permiso o alcance denegado"
-          },
-          "409": {
-            "description": "Conflicto"
-          },
-          "422": {
-            "description": "Entrada inválida"
-          }
-        },
-        "security": [
-          {
-            "sesion": []
-          }
-        ]
-      },
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      ]
-    },
-    "/configuracion/procesos/{id}/candidatos": {
-      "post": {
-        "summary": "Agregar candidato antes de asignar mesas",
+        "summary": "Seleccionar única elección pública",
         "responses": {
           "200": {
             "description": "Operación completada"
@@ -193,17 +261,77 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "nombre"
+                  "confirmar"
                 ],
+                "properties": {
+                  "confirmar": {
+                    "const": true
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "/configuracion/procesos/{id}/candidatos": {
+      "post": {
+        "summary": "Agregar candidato mientras el cargo esté en borrador",
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o alcance denegado"
+          },
+          "409": {
+            "description": "Conflicto"
+          },
+          "422": {
+            "description": "Entrada inválida"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
                 "additionalProperties": false,
                 "properties": {
                   "nombre": {
                     "type": "string",
-                    "minLength": 1
+                    "maxLength": 120
                   },
                   "foto": {
                     "type": "string",
-                    "description": "JPEG/PNG en data URL; máximo 2 MB"
+                    "maxLength": 2800000,
+                    "description": "Data URL JPEG/PNG, máximo 2 MB"
+                  },
+                  "idCandidatoOrigen": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Obligatorio en segunda vuelta; participante de la primera"
                   }
                 }
               }
@@ -262,17 +390,25 @@
                 "properties": {
                   "codigo": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 60
                   },
                   "unidad": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "sector": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "default": "general"
                   }
                 }
               }
             }
           }
-        }
+        },
+        "description": "Requiere borrador. Cuando el cargo tiene carreras configuradas, unidad debe coincidir con una de ellas. No se aceptan mesas de otro grupo."
       },
       "parameters": [
         {
@@ -290,9 +426,6 @@
       "post": {
         "summary": "Asignar cuenta a mesa sin conceder roles",
         "responses": {
-          "200": {
-            "description": "Operación completada"
-          },
           "401": {
             "description": "Sesión requerida"
           },
@@ -304,6 +437,9 @@
           },
           "422": {
             "description": "Entrada inválida"
+          },
+          "204": {
+            "description": "Asignación guardada"
           }
         },
         "security": [
@@ -330,7 +466,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Permite asignar una mesa del cargo a un operador autorizado de su organización durante el borrador, incluso sin candidatos registrados. Los candidatos y las asignaciones se verifican antes de iniciar el conteo. No concede roles."
       },
       "parameters": [
         {
@@ -346,7 +483,7 @@
     },
     "/mis-mesas": {
       "get": {
-        "summary": "Mesas asignadas al operador de la elección actual",
+        "summary": "Mesas autorizadas de los cargos publicados de la organización",
         "responses": {
           "200": {
             "description": "Operación completada"
@@ -368,7 +505,8 @@
           {
             "sesion": []
           }
-        ]
+        ],
+        "description": "Cada mesa incluye cargo para distinguir las actas de diferentes cargos. Solo devuelve mesas autorizadas de cargos publicados o destacados; el padrón de asignaciones puede prepararse antes durante el borrador."
       }
     },
     "/mesas/{id}/contexto": {
@@ -395,7 +533,8 @@
           {
             "sesion": []
           }
-        ]
+        ],
+        "description": "Devuelve el cargo y sus candidatos actuales junto con el sector de la mesa, después de comprobar la asignación y la organización."
       },
       "parameters": [
         {
@@ -492,6 +631,57 @@
           },
           "422": {
             "description": "JPEG/PNG inválido"
+          }
+        }
+      },
+      "get": {
+        "summary": "Consultar fotografía privada del candidato, incluso en borrador",
+        "description": "Requiere sesión con proceso:configurar y X-Organizacion autorizada. Consulta exclusivamente candidatos de esa organización y cargos no eliminados. No publica borradores ni modifica datos. Las respuestas no se almacenan en caché compartida.",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fotografía guardada; Cache-Control: private, no-store y X-Content-Type-Options: nosniff",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "Fotografía ausente o candidato fuera de la organización"
+          },
+          "422": {
+            "description": "UUID inválido"
           }
         }
       }
@@ -596,11 +786,13 @@
                 "properties": {
                   "nombre": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 120
                   },
                   "cargo": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 100
                   },
                   "tipo": {
                     "enum": [
@@ -611,7 +803,111 @@
                   },
                   "unidad": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "ambito": {
+                    "type": "string",
+                    "maxLength": 160,
+                    "default": ""
+                  },
+                  "vuelta": {
+                    "type": "integer",
+                    "enum": [
+                      1,
+                      2
+                    ],
+                    "default": 1
+                  },
+                  "idPrimeraVuelta": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "sectores": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "codigo",
+                        "nombre",
+                        "pesoBps"
+                      ],
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+                        },
+                        "nombre": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "pesoBps": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000,
+                          "description": "Centésimas de porcentaje; con ponderación la suma debe ser 10000"
+                        }
+                      }
+                    },
+                    "default": []
+                  },
+                  "ponderacion": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "reglaSegundaVuelta": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "additionalProperties": false,
+                    "required": [
+                      "modo",
+                      "umbral",
+                      "estricto"
+                    ],
+                    "properties": {
+                      "modo": {
+                        "enum": [
+                          "porcentaje",
+                          "por_sector"
+                        ]
+                      },
+                      "umbral": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "exclusiveMaximum": 100
+                      },
+                      "estricto": {
+                        "type": "boolean"
+                      }
+                    }
+                  },
+                  "facultad": {
+                    "type": "string",
+                    "maxLength": 120,
+                    "default": ""
+                  },
+                  "grupoCarreras": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "default": ""
+                  },
+                  "carreras": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "default": []
                   }
                 }
               }
@@ -620,7 +916,7 @@
         }
       },
       "delete": {
-        "summary": "Desactivar o archivar procesos",
+        "summary": "Retirar exclusivamente un borrador; eliminación lógica, sin borrar registros",
         "parameters": [
           {
             "name": "id",
@@ -662,84 +958,231 @@
         }
       }
     },
-    "/publico/eventos": {
+    "/configuracion/procesos/{id}/asignaciones": {
       "get": {
-        "summary": "Eventos con cargos publicados; destacado primero, Rectorado antes de otros cargos",
-        "description": "Agrupa por organización y nombre exacto del evento. Excluye borradores y archivados. No incluye cuentas, asignaciones ni imágenes de actas.",
+        "summary": "Consultar asignaciones persistidas de la elección",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Operación completada",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "elementos"
-                  ],
-                  "properties": {
-                    "elementos": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/EventoPublico"
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      }
+    },
+    "/publico/elecciones": {
+      "get": {
+        "summary": "Elecciones publicadas de la organización destacada",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
           }
         }
       }
     },
     "/publico/procesos/{id}": {
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      ],
       "get": {
-        "summary": "Configuración pública de un cargo publicado",
+        "summary": "Configuración pública por elección publicada",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Operación completada",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProcesoPublico"
-                }
-              }
-            }
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
           },
           "404": {
-            "description": "Cargo privado, retirado, archivado o inexistente"
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
           },
           "422": {
-            "description": "Identificador inválido"
+            "description": "Archivo, campos o reglas inválidos"
           }
         }
       }
     },
-    "/configuracion/procesos/{id}/publicacion": {
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "format": "uuid"
+    "/configuracion/procesos/{id}/importaciones/{tipo}/plantilla": {
+      "get": {
+        "summary": "Descargar plantilla XLSX",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "tipo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "candidatos",
+                "mesas",
+                "asignaciones"
+              ]
+            }
           }
-        }
-      ],
-      "put": {
-        "summary": "Publicar u ocultar un cargo de la organización autorizada",
-        "description": "No cambia la selección destacada al publicar. Al ocultar también desactiva actual si corresponde. Solo ADMINISTRADOR; requiere sesión, organización y CSRF. No registra actas.",
+        ],
+        "responses": {
+          "200": {
+            "description": "Plantilla XLSX, una hoja, máximo 2 MB al importar",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      }
+    },
+    "/configuracion/procesos/{id}/importaciones/{tipo}/previsualizar": {
+      "post": {
+        "summary": "Validar archivo sin escribir; contraseñas siempre ocultas",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "tipo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "candidatos",
+                "mesas",
+                "asignaciones"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
         "security": [
           {
             "sesion": []
@@ -753,11 +1196,424 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "publicado"
+                  "archivo"
                 ],
                 "properties": {
-                  "publicado": {
+                  "archivo": {
+                    "type": "string",
+                    "format": "byte",
+                    "maxLength": 2800000,
+                    "writeOnly": true
+                  },
+                  "huella": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "confirmar": {
                     "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/configuracion/procesos/{id}/importaciones/{tipo}/confirmar": {
+      "post": {
+        "summary": "Confirmar mismo archivo y huella; todo o nada, sin sobrescribir",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "tipo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "candidatos",
+                "mesas",
+                "asignaciones"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "archivo"
+                ],
+                "properties": {
+                  "archivo": {
+                    "type": "string",
+                    "format": "byte",
+                    "maxLength": 2800000,
+                    "writeOnly": true
+                  },
+                  "huella": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "confirmar": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/configuracion/procesos/{id}/estado": {
+      "post": {
+        "summary": "Cerrar recepción o archivar; sin reapertura, con auditoría y bloqueo de registros en curso",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "estado",
+                  "confirmar"
+                ],
+                "properties": {
+                  "estado": {
+                    "enum": [
+                      "cerrada",
+                      "archivada"
+                    ]
+                  },
+                  "confirmar": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/configuracion/procesos/{id}/historial": {
+      "get": {
+        "summary": "Historial persistente de estados",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ]
+      }
+    },
+    "/publico/eventos": {
+      "get": {
+        "summary": "Catálogo público de cargos agrupados por evento y organización; excluye borradores y archivados",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        }
+      }
+    },
+    "/configuracion/procesos/{id}/reiniciar": {
+      "post": {
+        "summary": "Archivar intento cerrado y copiar configuración a un nuevo borrador sin actas; solo administrador",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "confirmar"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "confirmar": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/configuracion/asignaciones": {
+      "get": {
+        "summary": "Mesas y cargos de cada operador de la institución autorizada",
+        "description": "Incluye borradores, cargos en recepción y cerrados. Excluye eliminados y archivados. No consulta la base de identidad.",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o institución no autorizados"
+          },
+          "409": {
+            "description": "Conflicto; no se importó el lote"
+          },
+          "422": {
+            "description": "Entrada o archivo inválido"
+          }
+        }
+      }
+    },
+    "/configuracion/importaciones/cargos/plantilla": {
+      "get": {
+        "summary": "Descargar plantilla XLSX de cargos universitarios",
+        "description": "Columnas: cargo, facultad, grupoCarreras, carreras. Rector y Vicerrector abarcan toda la universidad; Decano requiere facultad; Director requiere facultad, grupo y carreras separadas por punto y coma.",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación completada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o institución no autorizados"
+          },
+          "409": {
+            "description": "Conflicto; no se importó el lote"
+          },
+          "422": {
+            "description": "Entrada o archivo inválido"
+          }
+        }
+      }
+    },
+    "/configuracion/importaciones/cargos/previsualizar": {
+      "post": {
+        "summary": "Revisar lote de cargos universitarios",
+        "description": "Máximo 100 filas y 2 MB. Solo Rector, Vicerrector, Decano y Director. Coincidencia por institución autorizada, cargo, ámbito y primera vuelta. Los nuevos se crean en borrador. Los existentes se mantienen sin cambios por defecto; resoluciones permite elegir mantener o reemplazar por número de fila Excel. Reemplazar actualiza únicamente facultad, grupo y carreras, conservando ID, nombre, estado, vuelta, sectores, ponderación, reglas, candidatos, fotos, mesas y asignaciones. Solo se permite en borrador, sin vueltas dependientes ni carreras utilizadas que se retiren. Se rechazan repeticiones dentro del archivo, coincidencias ambiguas y carreras compartidas entre Directores. Cualquier error cancela todo el lote. La huella vincula archivo, actor, organización, decisiones y datos existentes; modificar decisiones o recursos exige revisar de nuevo. Confirmación transaccional con bloqueos ordenados y revalidación.",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "nombre",
+                  "archivo"
+                ],
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "description": "Nombre automático de la institución"
+                  },
+                  "archivo": {
+                    "type": "string",
+                    "contentEncoding": "base64",
+                    "maxLength": 2800000
+                  },
+                  "huella": {
+                    "type": "string"
+                  },
+                  "confirmar": {
+                    "type": "boolean"
+                  },
+                  "resoluciones": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string",
+                      "enum": [
+                        "mantener",
+                        "reemplazar"
+                      ]
+                    },
+                    "description": "Mapa del número de fila de Excel a la decisión. Por defecto: mantener. Usar las filas devueltas en coincidencias; no enviar UUID ni roles."
                   }
                 }
               }
@@ -766,26 +1622,780 @@
         },
         "responses": {
           "200": {
-            "description": "Operación completada",
+            "description": "Vista sin cambios en BD: huella, total, errores, filas con acción, resumen de creados/actualizados/mantenidos y coincidencias (fila, cargo, ámbito, estado, acción, puedeReemplazar y motivo del bloqueo)."
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o institución no autorizados"
+          },
+          "409": {
+            "description": "Conflicto; no se importó el lote"
+          },
+          "422": {
+            "description": "Entrada o archivo inválido"
+          },
+          "201": {
+            "description": "Lote procesado: importados (creados + actualizados), creados, actualizados y mantenidos. Mantener no escribe sobre el cargo."
+          }
+        }
+      }
+    },
+    "/configuracion/importaciones/cargos/confirmar": {
+      "post": {
+        "summary": "Confirmar lote de cargos universitarios",
+        "description": "Máximo 100 filas y 2 MB. Solo Rector, Vicerrector, Decano y Director. Coincidencia por institución autorizada, cargo, ámbito y primera vuelta. Los nuevos se crean en borrador. Los existentes se mantienen sin cambios por defecto; resoluciones permite elegir mantener o reemplazar por número de fila Excel. Reemplazar actualiza únicamente facultad, grupo y carreras, conservando ID, nombre, estado, vuelta, sectores, ponderación, reglas, candidatos, fotos, mesas y asignaciones. Solo se permite en borrador, sin vueltas dependientes ni carreras utilizadas que se retiren. Se rechazan repeticiones dentro del archivo, coincidencias ambiguas y carreras compartidas entre Directores. Cualquier error cancela todo el lote. La huella vincula archivo, actor, organización, decisiones y datos existentes; modificar decisiones o recursos exige revisar de nuevo. Confirmación transaccional con bloqueos ordenados y revalidación.",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "nombre",
+                  "archivo",
+                  "huella",
+                  "confirmar"
+                ],
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "description": "Nombre automático de la institución"
+                  },
+                  "archivo": {
+                    "type": "string",
+                    "contentEncoding": "base64",
+                    "maxLength": 2800000
+                  },
+                  "huella": {
+                    "type": "string"
+                  },
+                  "confirmar": {
+                    "type": "boolean"
+                  },
+                  "resoluciones": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string",
+                      "enum": [
+                        "mantener",
+                        "reemplazar"
+                      ]
+                    },
+                    "description": "Mapa del número de fila de Excel a la decisión. Por defecto: mantener. Usar las filas devueltas en coincidencias; no enviar UUID ni roles."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Lote procesado: importados (creados + actualizados), creados, actualizados y mantenidos. Mantener no escribe sobre el cargo."
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso o institución no autorizados"
+          },
+          "409": {
+            "description": "Conflicto; no se importó el lote"
+          },
+          "422": {
+            "description": "Entrada o archivo inválido"
+          }
+        }
+      }
+    },
+    "/configuracion/importaciones-generales/{tipo}/plantilla": {
+      "get": {
+        "summary": "Descargar plantilla conjunta por módulo",
+        "parameters": [
+          {
+            "name": "tipo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "candidatos",
+                "mesas",
+                "asignaciones"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plantilla XLSX, una hoja, máximo 2 MB al importar",
             "content": {
-              "application/json": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProcesoPublico"
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
           },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
           "401": {
-            "description": "Sin sesión"
+            "description": "Sesión requerida"
           },
           "403": {
-            "description": "Permiso denegado"
+            "description": "Rol u organización no autorizados"
           },
           "404": {
-            "description": "Fuera de organización o archivado"
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
           },
           "422": {
-            "description": "Entrada inválida"
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "description": "Sesión administrativa, organización y CSRF en POST. Una hoja con cargo, ambito, vuelta (vacía=1), más las columnas del módulo. Máximo 2 MB, 2.000 filas y 200 destinos. Candidatos: nombre, orden; mesas: codigo, unidad, sector; asignaciones: usuario, codigoMesa (máximo 100 operadores distintos). Solo cargos en borrador. Coincidencia única por cargo, ámbito y vuelta; si falta o es ambigua, asociaciones permite elegir explícitamente un UUID de la misma organización, cargo y vuelta. Confirmar revalida con bloqueos ordenados y transacción todo o nada. No sobrescribe registros."
+      }
+    },
+    "/configuracion/importaciones-generales/{tipo}/previsualizar": {
+      "post": {
+        "summary": "Revisar candidatos, mesas o asignaciones de todos los cargos",
+        "parameters": [
+          {
+            "name": "tipo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "candidatos",
+                "mesas",
+                "asignaciones"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Huella ligada al archivo, actor, organización, módulo y destinos. total, errores por fila, filas y referencias (referencia, cargo, ambito, vuelta, idProceso nullable). Cambiar un destino exige nueva vista previa."
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "archivo"
+                ],
+                "properties": {
+                  "archivo": {
+                    "type": "string",
+                    "format": "byte"
+                  },
+                  "asociaciones": {
+                    "type": "object",
+                    "maxProperties": 200,
+                    "additionalProperties": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "description": "Mapa referencia → UUID. Usar las claves referencia devueltas por previsualizar; nunca inventarlas."
+                  },
+                  "huella": {
+                    "type": "string"
+                  },
+                  "confirmar": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Sesión administrativa, organización y CSRF en POST. Una hoja con cargo, ambito, vuelta (vacía=1), más las columnas del módulo. Máximo 2 MB, 2.000 filas y 200 destinos. Candidatos: nombre, orden; mesas: codigo, unidad, sector; asignaciones: usuario, codigoMesa (máximo 100 operadores distintos). Solo cargos en borrador. Coincidencia única por cargo, ámbito y vuelta; si falta o es ambigua, asociaciones permite elegir explícitamente un UUID de la misma organización, cargo y vuelta. Confirmar revalida con bloqueos ordenados y transacción todo o nada. No sobrescribe registros."
+      }
+    },
+    "/configuracion/importaciones-generales/{tipo}/confirmar": {
+      "post": {
+        "summary": "Importar lote conjunto completo, con destinos revisados",
+        "parameters": [
+          {
+            "name": "tipo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "candidatos",
+                "mesas",
+                "asignaciones"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación o vista previa completada"
+          },
+          "201": {
+            "description": "Lote importado íntegramente"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Conflicto; no se sobrescriben datos ni se importa parcialmente"
+          },
+          "422": {
+            "description": "Archivo, campos o reglas inválidos"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "archivo",
+                  "huella",
+                  "confirmar"
+                ],
+                "properties": {
+                  "archivo": {
+                    "type": "string",
+                    "format": "byte"
+                  },
+                  "asociaciones": {
+                    "type": "object",
+                    "maxProperties": 200,
+                    "additionalProperties": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "description": "Mapa referencia → UUID. Usar las claves referencia devueltas por previsualizar; nunca inventarlas."
+                  },
+                  "huella": {
+                    "type": "string"
+                  },
+                  "confirmar": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Sesión administrativa, organización y CSRF en POST. Una hoja con cargo, ambito, vuelta (vacía=1), más las columnas del módulo. Máximo 2 MB, 2.000 filas y 200 destinos. Candidatos: nombre, orden; mesas: codigo, unidad, sector; asignaciones: usuario, codigoMesa (máximo 100 operadores distintos). Solo cargos en borrador. Coincidencia única por cargo, ámbito y vuelta; si falta o es ambigua, asociaciones permite elegir explícitamente un UUID de la misma organización, cargo y vuelta. Confirmar revalida con bloqueos ordenados y transacción todo o nada. No sobrescribe registros."
+      }
+    },
+    "/configuracion/candidatos/{id}": {
+      "delete": {
+        "summary": "Retirar candidatos del catálogo, solo en borrador; conserva filas e historial",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "confirmar"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "confirmar": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Retirado del catálogo activo; no borrado físico"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Cargo iniciado, dependencia de otra vuelta o registro en curso"
+          },
+          "422": {
+            "description": "Confirmación o UUID inválido"
+          }
+        }
+      }
+    },
+    "/configuracion/mesas/{id}": {
+      "delete": {
+        "summary": "Retirar mesas del catálogo, solo en borrador; conserva filas e historial",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "confirmar"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "confirmar": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Retirado del catálogo activo; no borrado físico"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "404": {
+            "description": "No disponible"
+          },
+          "409": {
+            "description": "Cargo iniciado, dependencia de otra vuelta o registro en curso"
+          },
+          "422": {
+            "description": "Confirmación o UUID inválido"
+          }
+        }
+      }
+    },
+    "/configuracion/mesas-compartidas": {
+      "get": {
+        "summary": "Listar mesas físicas de la organización con los cargos vinculados",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consulta o revisión completada"
+          },
+          "201": {
+            "description": "Mesas vinculadas atómicamente, sin duplicar actas"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "409": {
+            "description": "Estado o revisión cambió; no se aplicó el lote"
+          },
+          "422": {
+            "description": "Datos inválidos o destinos ambiguos"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear o vincular una mesa física a varios cargos en borrador",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consulta o revisión completada"
+          },
+          "201": {
+            "description": "Mesas vinculadas atómicamente, sin duplicar actas"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "409": {
+            "description": "Estado o revisión cambió; no se aplicó el lote"
+          },
+          "422": {
+            "description": "Datos inválidos o destinos ambiguos"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "codigo",
+                  "unidad",
+                  "idProcesos"
+                ],
+                "properties": {
+                  "codigo": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "unidad": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "sector": {
+                    "type": "string",
+                    "maxLength": 32
+                  },
+                  "recinto": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "apellidoDesde": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "apellidoHasta": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "usuario": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "idProcesos": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Una mesa física conserva un sector y una unidad. Cada cargo tiene un idMesa independiente para su acta, asignación y resultados; no se mezclan votos. Se pueden vincular mesas existentes con los mismos datos sin cambiar sus IDs. No se asocian mesas históricas automáticamente. Operador opcional, validado por identidad en esta organización."
+      }
+    },
+    "/configuracion/mesas-compartidas/importacion/plantilla": {
+      "get": {
+        "summary": "Descargar XLSX de mesas compartidas: una fila por mesa y cargo",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hoja única, máximo 2 MB y 2000 filas. Columnas: codigo, unidad, sector, recinto, apellidoDesde, apellidoHasta, cargo, ambito, vuelta, usuario. Repetir los datos físicos para cada cargo.",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Mesas vinculadas atómicamente, sin duplicar actas"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "409": {
+            "description": "Estado o revisión cambió; no se aplicó el lote"
+          },
+          "422": {
+            "description": "Datos inválidos o destinos ambiguos"
+          }
+        }
+      }
+    },
+    "/configuracion/mesas-compartidas/importacion/previsualizar": {
+      "post": {
+        "summary": "Validar sin escrituras las mesas compartidas",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consulta o revisión completada"
+          },
+          "201": {
+            "description": "Mesas vinculadas atómicamente, sin duplicar actas"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "409": {
+            "description": "Estado o revisión cambió; no se aplicó el lote"
+          },
+          "422": {
+            "description": "Datos inválidos o destinos ambiguos"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "archivo"
+                ],
+                "properties": {
+                  "archivo": {
+                    "type": "string",
+                    "format": "byte",
+                    "maxLength": 2800000
+                  },
+                  "huella": {
+                    "type": "string"
+                  },
+                  "confirmar": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/configuracion/mesas-compartidas/importacion/confirmar": {
+      "post": {
+        "summary": "Confirmar con huella, bloqueos y revalidación; todo o nada las mesas compartidas",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consulta o revisión completada"
+          },
+          "201": {
+            "description": "Mesas vinculadas atómicamente, sin duplicar actas"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Rol u organización no autorizados"
+          },
+          "409": {
+            "description": "Estado o revisión cambió; no se aplicó el lote"
+          },
+          "422": {
+            "description": "Datos inválidos o destinos ambiguos"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "archivo"
+                ],
+                "properties": {
+                  "archivo": {
+                    "type": "string",
+                    "format": "byte",
+                    "maxLength": 2800000
+                  },
+                  "huella": {
+                    "type": "string"
+                  },
+                  "confirmar": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -800,133 +2410,229 @@
       }
     },
     "schemas": {
-      "CargoPublico": {
+      "ProcesoEntrada": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
-          "id",
-          "nombre",
-          "cargo"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "nombre": {
-            "type": "string"
-          },
-          "cargo": {
-            "type": "string"
-          }
-        }
-      },
-      "EventoPublico": {
-        "type": "object",
-        "required": [
-          "id",
-          "nombre",
-          "tipo",
-          "destacado",
-          "procesos"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Identificador estable derivado de organización y nombre de evento"
-          },
-          "nombre": {
-            "type": "string"
-          },
-          "tipo": {
-            "type": "string"
-          },
-          "destacado": {
-            "type": "boolean"
-          },
-          "procesos": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CargoPublico"
-            }
-          }
-        }
-      },
-      "ProcesoPublico": {
-        "type": "object",
-        "required": [
-          "id",
           "nombre",
           "cargo",
           "tipo",
-          "unidad",
-          "actual",
-          "publicado",
-          "candidatos",
-          "mesas"
+          "unidad"
         ],
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
           "nombre": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
           },
           "cargo": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
           },
           "tipo": {
-            "type": "string"
+            "enum": [
+              "universidad",
+              "municipio",
+              "otra"
+            ]
           },
           "unidad": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
           },
-          "actual": {
-            "type": "boolean"
+          "ambito": {
+            "type": "string",
+            "maxLength": 160,
+            "default": ""
           },
-          "publicado": {
-            "type": "boolean"
+          "vuelta": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ],
+            "default": 1
           },
-          "candidatos": {
+          "idPrimeraVuelta": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "sectores": {
             "type": "array",
+            "maxItems": 10,
             "items": {
               "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "codigo",
+                "nombre",
+                "pesoBps"
+              ],
               "properties": {
-                "id": {
+                "codigo": {
                   "type": "string",
-                  "format": "uuid"
+                  "pattern": "^[a-z][a-z0-9-]{0,31}$"
                 },
                 "nombre": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 80
                 },
-                "foto": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
+                "pesoBps": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10000,
+                  "description": "Centésimas de porcentaje; con ponderación la suma debe ser 10000"
                 }
+              }
+            },
+            "default": []
+          },
+          "ponderacion": {
+            "type": "boolean",
+            "default": false
+          },
+          "reglaSegundaVuelta": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "modo",
+              "umbral",
+              "estricto"
+            ],
+            "properties": {
+              "modo": {
+                "enum": [
+                  "porcentaje",
+                  "por_sector"
+                ]
+              },
+              "umbral": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "exclusiveMaximum": 100
+              },
+              "estricto": {
+                "type": "boolean"
               }
             }
           },
-          "mesas": {
+          "facultad": {
+            "type": "string",
+            "maxLength": 120,
+            "default": ""
+          },
+          "grupoCarreras": {
+            "type": "string",
+            "maxLength": 100,
+            "default": ""
+          },
+          "carreras": {
             "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "codigo": {
-                  "type": "string"
-                },
-                "unidad": {
-                  "type": "string"
-                }
-              }
-            }
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "default": []
           }
         }
+      },
+      "MesaEntrada": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "codigo",
+          "unidad"
+        ],
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "unidad": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "sector": {
+            "type": "string",
+            "maxLength": 32,
+            "default": "general"
+          }
+        }
+      },
+      "Sector": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "codigo",
+          "nombre",
+          "pesoBps"
+        ],
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,31}$"
+          },
+          "nombre": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "pesoBps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "description": "Centésimas de porcentaje; con ponderación la suma debe ser 10000"
+          }
+        }
+      },
+      "ReglaSegundaVuelta": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "additionalProperties": false,
+        "required": [
+          "modo",
+          "umbral",
+          "estricto"
+        ],
+        "properties": {
+          "modo": {
+            "enum": [
+              "porcentaje",
+              "por_sector"
+            ]
+          },
+          "umbral": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 100
+          },
+          "estricto": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EstadoEleccion": {
+        "type": "string",
+        "enum": [
+          "borrador",
+          "recepcion",
+          "cerrada",
+          "archivada"
+        ]
       }
     }
   }

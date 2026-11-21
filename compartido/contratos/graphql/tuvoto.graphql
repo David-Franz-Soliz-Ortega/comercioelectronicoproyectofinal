@@ -1,14 +1,19 @@
-type Candidato { id: ID!, nombre: String!, foto: String, votos: Int, porcentaje: Float }
-type Mesa { id: ID!, codigo: String!, unidad: String! }
-type Proceso { id: ID!, nombre: String!, cargo: String!, tipo: String!, unidad: String!, unidades: [String!]!, candidatos: [Candidato!]!, mesas: [Mesa!]! }
+type Candidato { id: ID!, nombre: String!, foto: String, votos: Int, porcentaje: Float, porcentajePonderado: Float }
+type Mesa { id: ID!, codigo: String!, unidad: String!, sector: String }
+type Sector { codigo: String!, nombre: String!, pesoBps: Int! }
+type ReglaConfigurada { modo: String!, umbral: Float!, estricto: Boolean! }
+type EleccionPublicada { id: ID!, nombre: String!, cargo: String!, tipo: String!, ambito: String!, vuelta: Int! }
+type Proceso { estado: String!, id: ID!, nombre: String!, cargo: String!, tipo: String!, unidad: String!, unidades: [String!]!, candidatos: [Candidato!]!, mesas: [Mesa!]!, ambito: String!, vuelta: Int!, idPrimeraVuelta: ID, sectores: [Sector!]!, ponderacion: Boolean!, reglaSegundaVuelta: ReglaConfigurada }
 type Unidad { unidad: String!, esperadas: Int!, contabilizadas: Int!, pendientes: Int! }
-type Resultado { esperadas: Int!, contabilizadas: Int!, pendientes: Int!, observadas: Int!, avance: Float!, blancos: Int!, nulos: Int!, total: Int!, validos: Int!, candidatos: [Candidato!]!, unidades: [Unidad!]!, actualizadoEn: String }
+type ResultadoSector { codigo: String!, nombre: String!, pesoBps: Int!, esperadas: Int!, contabilizadas: Int!, pendientes: Int!, observadas: Int!, validos: Int!, blancos: Int!, nulos: Int!, total: Int!, candidatos: [Candidato!]! }
+type IndicadorRegla { estado: String!, descripcion: String!, candidatos: [ID!]!, provisional: Boolean! }
+type Resultado { esperadas: Int!, contabilizadas: Int!, pendientes: Int!, observadas: Int!, avance: Float!, blancos: Int!, nulos: Int!, total: Int!, validos: Int!, candidatos: [Candidato!]!, unidades: [Unidad!]!, actualizadoEn: String, sectores: [ResultadoSector!]!, ponderacionAplicada: Boolean!, requierenRevision: Int!, regla: IndicadorRegla! }
 type RecepcionActas { idProceso: ID!, mesasConActa: Int!, versiones: Int! }
 type Portal { proceso: Proceso!, resultados: Resultado!, recepcion: RecepcionActas }
 input VotoActa { idCandidato: ID!, cantidad: Int! }
-input NuevaActa { idMesa: ID!, idSolicitud: ID!, versionAnterior: Int!, foto: String!, votos: [VotoActa!]!, blancos: Int!, nulos: Int!, total: Int!, confirmado: Boolean! }
+input NuevaActa { idMesa: ID!, idSolicitud: ID!, versionAnterior: Int!, foto: String, idActaOrigen: ID, votos: [VotoActa!]!, blancos: Int!, nulos: Int!, total: Int!, confirmado: Boolean! }
 type Acta { id: ID!, version: Int!, estado: String! }
-type CargoPublico { id: ID!, nombre: String!, cargo: String! }
+type CargoPublico { id: ID!, nombre: String!, cargo: String!, ambito: String, vuelta: Int, estado: String }
 type EventoPublico { id: ID!, nombre: String!, tipo: String!, destacado: Boolean!, procesos: [CargoPublico!]! }
-type Query { eventos: [EventoPublico!]!, portal(idProceso: ID, unidad: String): Portal }
+type Query { eventos: [EventoPublico!]!, portal(unidad: String, idProceso: ID): Portal, eleccionesPublicadas: [EleccionPublicada!]! }
 type Mutation { registrarActa(entrada: NuevaActa!): Acta! }

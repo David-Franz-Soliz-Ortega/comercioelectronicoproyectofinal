@@ -3,7 +3,7 @@ import { IconoCheck, IconoUrna } from './Iconos.jsx';
 
 export default function EstadoPublicacion({ preparacion, proceso, ocupado, alIr, alAgregarCargo }) {
   const pasos = preparacion.pasos.filter(p => ['organizacion', 'eleccion', 'candidatos', 'mesas', 'publicacion'].includes(p.id));
-  const publicado = !!(proceso?.publicado || proceso?.actual);
+  const publicado = !!(proceso?.estado!=='archivada'&&(proceso?.publicado || proceso?.actual));
   const siguiente = pasos.find(p => !p.listo) ?? pasos.at(-1);
   const acciones = { organizacion: 'Elegir organización', eleccion: 'Crear evento y primer cargo', candidatos: 'Añadir candidatos', mesas: 'Registrar mesas', publicacion: 'Revisar y publicar cargo' };
   return <section className="estado-publicacion-admin" aria-labelledby="titulo-estado-publicacion">
@@ -24,6 +24,6 @@ export default function EstadoPublicacion({ preparacion, proceso, ocupado, alIr,
       <a href="#resultados" className="boton-ver-portada">Ver portada pública ↗</a>
       <button type="button" disabled={ocupado} onClick={alAgregarCargo}>Añadir otro cargo a este evento</button>
     </> : <button type="button" className="boton-ver-portada" disabled={ocupado} onClick={() => alIr(siguiente)}>{acciones[siguiente.id]} →</button>}</div>
-    <p className="nota-estado-publicacion">Para recibir actas, selecciona el cargo actual y asigna sus mesas a operadores. Publicar candidaturas no añade votos al conteo.</p>
+    <p className="nota-estado-publicacion">Para recibir actas, asigna operadores y abre la recepción desde Estado y publicación. Publicar candidaturas no añade votos al conteo.</p>
   </section>;
 }

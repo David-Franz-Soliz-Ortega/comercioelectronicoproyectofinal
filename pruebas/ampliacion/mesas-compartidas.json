@@ -1,0 +1,14 @@
+{
+  "estado": "OK",
+  "fecha": "2026-11-21T14:15:38.145581+00:00",
+  "entorno": "tuvoto-prueba-sectores-c4de5aa6",
+  "comprobaciones": [
+    "Retirada con confirmación, 401/403/404 y conservación física de candidato, foto, mesa y asignaciones",
+    "Excel real: dos mesas físicas, seis actas/asignaciones; sectores y grupos separados; error cancela lote y reintentos no duplican",
+    "Concurrencia: una sola mesa física y un vínculo por cargo",
+    "React: eliminar candidato/mesa/cargo con confirmación; crear/importar mesa compartida; operador consulta sus cargos agrupados",
+    "Misma mesa: tres actas reales por REST/gRPC/RabbitMQ/MongoDB; totales separados 12/8/6, reintento idempotente y eliminación bloqueada tras iniciar"
+  ],
+  "datosPrincipalesSinCambios": true,
+  "soloActasSinteticas": true
+}

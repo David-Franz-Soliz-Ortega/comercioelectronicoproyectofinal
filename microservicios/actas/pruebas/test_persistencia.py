@@ -32,6 +32,11 @@ class Persistencia(unittest.TestCase):
         cls.org, cls.usuario, cls.mesa, cls.proceso, cls.a, cls.b = map(str, [uuid4() for _ in range(6)])
         s.autorizar = lambda *_: {'idUsuario': cls.usuario, 'idOrganizacion': cls.org}
         s.consultar_mesa = lambda *_: {'id': cls.mesa, 'idProceso': cls.proceso, 'unidad': 'Unidad sintética', 'candidatos': [{'id': cls.a}, {'id': cls.b}]}
+        from contextlib import contextmanager
+        @contextmanager
+        def registro_mesa(*argumentos):
+            yield s.consultar_mesa(*argumentos)
+        s.registro_mesa=registro_mesa
         os.environ['ELECCIONES_URL'] = 'http://doble-sin-red'
         with conectar() as db: db.execute(s.ESQUEMA)
 

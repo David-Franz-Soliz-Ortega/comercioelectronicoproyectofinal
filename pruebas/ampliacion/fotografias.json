@@ -1,0 +1,12 @@
+{
+  "estado": "OK",
+  "proyecto": "tuvoto-prueba-sectores-c4de5aa6",
+  "comprobaciones": [
+    "Foto de borrador: bytes persistidos, cabeceras privadas, lectura sin cambios, anónimo 401, operador 403, otra organización y foto ausente 404; acceso público bloqueado",
+    "Navegador real: foto en listado, editor y resumen; iniciales sin foto; cambio y recarga persistidos; fotos en Resultados públicos tras publicación; cinco tamaños sin desbordamiento"
+  ],
+  "sinModificarDatosPrincipales": true,
+  "sinCrearActas": true,
+  "configuracionPublicaSinteticaRestaurada": true,
+  "fecha": "2026-11-21T13:39:12.045088+00:00"
+}

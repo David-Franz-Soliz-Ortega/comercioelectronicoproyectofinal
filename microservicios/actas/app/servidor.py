@@ -13,8 +13,8 @@ import psycopg
 from psycopg.rows import dict_row
 from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.responses import Response
-from pydantic import BaseModel, ConfigDict, Field, StrictInt
-from .cliente_mesas import consultar_mesa
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
+from .cliente_mesas import consultar_mesa, registro_mesa
 from .dominio import decodificar_foto, validar_conteo, huella_solicitud, construir_evento
 
 
@@ -46,6 +46,8 @@ ESQUEMA = '''CREATE TABLE IF NOT EXISTS versiones_actas(
  estado TEXT NOT NULL CHECK(estado IN ('publicada','observada','anulada')),conteo JSONB NOT NULL,creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
  UNIQUE(id_mesa,version),UNIQUE(id_organizacion,id_operador,id_solicitud));
  DO $$ BEGIN IF EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='versiones_actas'::regclass AND conname='versiones_actas_estado_check' AND position('anulada' IN pg_get_constraintdef(oid))=0) THEN ALTER TABLE versiones_actas DROP CONSTRAINT versiones_actas_estado_check; ALTER TABLE versiones_actas ADD CONSTRAINT versiones_actas_estado_check CHECK(estado IN ('publicada','observada','anulada')); END IF; END $$;
+ ALTER TABLE versiones_actas ADD COLUMN IF NOT EXISTS sector TEXT NOT NULL DEFAULT 'general';
+ ALTER TABLE versiones_actas ADD COLUMN IF NOT EXISTS id_acta_origen UUID REFERENCES versiones_actas(id);
  CREATE TABLE IF NOT EXISTS bandeja_actas(id UUID PRIMARY KEY,evento JSONB NOT NULL,publicado_en TIMESTAMPTZ);'''
 
 
@@ -79,7 +81,7 @@ async def vida(app):
     detener.set(); hilo.join(timeout=7)
 
 
-app = FastAPI(title='TUVOTO · Actas', lifespan=vida, docs_url=None)
+app = FastAPI(title='TUVOTO · Actas', lifespan=vida, docs_url=None, version='0.2.0')
 
 
 @app.middleware('http')
@@ -105,12 +107,18 @@ class NuevaActa(BaseModel):
     idMesa: UUID
     idSolicitud: UUID
     versionAnterior: StrictInt = Field(ge=0)
-    foto: str = Field(max_length=14000000)
+    foto: str | None = Field(default=None,max_length=14000000)
+    idActaOrigen: UUID | None = None
     votos: list[Voto] = Field(min_length=1, max_length=100)
     blancos: StrictInt = Field(ge=0, le=1000000)
     nulos: StrictInt = Field(ge=0, le=1000000)
     total: StrictInt = Field(ge=0, le=1000000)
     confirmado: bool
+
+    @model_validator(mode='after')
+    def documento_unico(self):
+        if bool(self.foto)==bool(self.idActaOrigen):raise ValueError('Sube una fotografía o selecciona un acta de origen, no ambas')
+        return self
 
 
 @app.get('/api/v1/salud')
@@ -124,7 +132,7 @@ def consultar(id_mesa: UUID, req: Request):
     actor = autorizar(req)
     consultar_mesa(req,id_mesa)
     with conectar() as db:
-        filas = db.execute('SELECT id,version,estado,conteo,creado_en FROM versiones_actas WHERE id_mesa=%s AND id_organizacion=%s ORDER BY version DESC', (id_mesa, actor['idOrganizacion'])).fetchall()
+        filas = db.execute('SELECT id,version,estado,conteo,creado_en,sector,id_acta_origen AS "idActaOrigen" FROM versiones_actas WHERE id_mesa=%s AND id_organizacion=%s ORDER BY version DESC', (id_mesa, actor['idOrganizacion'])).fetchall()
     return {'elementos': filas, 'versionAnterior': filas[0]['version'] if filas else 0}
 
 
@@ -141,11 +149,23 @@ def foto(id_acta: UUID, req: Request):
 @app.post('/api/v1/actas', status_code=201)
 def registrar(datos: NuevaActa, req: Request):
     actor = autorizar(req, True)
-    mesa = consultar_mesa(req,datos.idMesa,True)
+    with registro_mesa(req,datos.idMesa) as mesa:
+        return registrar_en_recepcion(datos,req,actor,mesa)
+
+def registrar_en_recepcion(datos,req,actor,mesa):
     if not datos.confirmado: raise HTTPException(422, 'Debe confirmar la comparación con la fotografía')
     d = datos.model_dump(mode='json')
     try:
-        contenido, mime, foto_hash = decodificar_foto(datos.foto)
+        if datos.idActaOrigen:
+            with conectar() as db:
+                origen=db.execute("SELECT id_mesa,id_proceso,foto,mime,foto_hash,sector,estado FROM versiones_actas WHERE id=%s AND id_organizacion=%s",(datos.idActaOrigen,actor['idOrganizacion'])).fetchone()
+            if not origen:raise HTTPException(404,'Acta de origen no disponible')
+            consultar_mesa(req,origen['id_mesa'])
+            if str(origen['id_proceso'])==str(mesa['idProceso']) or origen['estado']=='anulada' or origen['sector']!=mesa.get('sector','general'):
+                raise HTTPException(422,'Solo se reutiliza explícitamente una foto de otro cargo y del mismo sector')
+            contenido,mime,foto_hash=bytes(origen['foto']),origen['mime'],origen['foto_hash']
+        else:
+            contenido, mime, foto_hash = decodificar_foto(datos.foto)
         estado = validar_conteo(d['votos'], mesa['candidatos'], datos.blancos, datos.nulos, datos.total)
     except ValueError as e: raise HTTPException(422, str(e)) from None
     huella = huella_solicitud(d, foto_hash)
@@ -164,7 +184,7 @@ def registrar(datos: NuevaActa, req: Request):
             if duplicada: raise HTTPException(409, 'La misma fotografía ya está registrada para otra mesa')
             version = ultima + 1; id_acta = uuid4(); id_evento = uuid4()
             conteo = {'votos': d['votos'], 'blancos': datos.blancos, 'nulos': datos.nulos, 'total': datos.total}
-            db.execute('INSERT INTO versiones_actas(id,id_proceso,id_mesa,id_organizacion,id_operador,version,id_solicitud,huella,foto,mime,foto_hash,estado,conteo) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb)', (id_acta, mesa['idProceso'], datos.idMesa, actor['idOrganizacion'], actor['idUsuario'], version, datos.idSolicitud, huella, contenido, mime, foto_hash, estado, json.dumps(conteo)))
+            db.execute('INSERT INTO versiones_actas(id,id_proceso,id_mesa,id_organizacion,id_operador,version,id_solicitud,huella,foto,mime,foto_hash,estado,conteo,sector,id_acta_origen) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s,%s)', (id_acta, mesa['idProceso'], datos.idMesa, actor['idOrganizacion'], actor['idUsuario'], version, datos.idSolicitud, huella, contenido, mime, foto_hash, estado, json.dumps(conteo),mesa.get('sector','general'),datos.idActaOrigen))
             aporte = conteo if estado == 'publicada' else None
             if estado == 'observada':
                 anterior = db.execute("SELECT conteo FROM versiones_actas WHERE id_mesa=%s AND estado='publicada' AND version>coalesce((SELECT max(version) FROM versiones_actas WHERE id_mesa=%s AND estado='anulada'),0) ORDER BY version DESC LIMIT 1", (datos.idMesa,datos.idMesa)).fetchone()
@@ -198,7 +218,8 @@ def documentacion():
         if ruta.startswith('/api/v1/actas'):
             for operacion in metodos.values():
                 operacion['security'] = [{'sesion': []}]
-                operacion['description'] = 'Requiere OPERADOR asignado. Escrituras: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente.'
+                if any(metodos.get(m) is operacion for m in ('post','put','delete')):operacion.setdefault('responses',{})['409']={'description':'Recepción cerrada, versión o solicitud en conflicto; sin cambios'}
+                operacion['description'] = 'Requiere OPERADOR asignado. Escrituras solo en recepción: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente.'
     return contrato
 
 app.openapi = documentacion
@@ -228,7 +249,7 @@ def listar_actas(req:Request,pagina:int=Query(1,ge=1),limite:int=Query(20,ge=1,l
     if estado:where+=' AND estado=%s';valores.append(estado)
     with conectar() as db:
         total=db.execute('SELECT count(*)::int AS n FROM versiones_actas WHERE '+where,valores).fetchone()['n']
-        filas=db.execute('SELECT id,id_mesa,version,estado,creado_en FROM versiones_actas WHERE '+where+' ORDER BY creado_en,id LIMIT %s OFFSET %s',[*valores,limite,(pagina-1)*limite]).fetchall()
+        filas=db.execute('SELECT id,id_mesa,id_mesa AS "idMesa",id_proceso AS "idProceso",sector,version,estado,creado_en FROM versiones_actas WHERE '+where+' ORDER BY creado_en,id LIMIT %s OFFSET %s',[*valores,limite,(pagina-1)*limite]).fetchall()
     return {'elementos':filas,'pagina':pagina,'limite':limite,'total':total}
 
 
@@ -247,7 +268,11 @@ class Anulacion(BaseModel):
 
 @app.delete('/api/v1/actas/mesas/{id_mesa}',status_code=204)
 def anular_acta(id_mesa:UUID,datos:Anulacion,req:Request):
-    actor=autorizar(req,True);mesa=consultar_mesa(req,id_mesa,True)
+    actor=autorizar(req,True)
+    with registro_mesa(req,id_mesa) as mesa:
+        return anular_en_recepcion(id_mesa,datos,req,actor,mesa)
+
+def anular_en_recepcion(id_mesa,datos,req,actor,mesa):
     huella=hashlib.sha256(('anulacion:'+str(id_mesa)+json.dumps(datos.model_dump(mode='json'),sort_keys=True)).encode()).hexdigest()
     with conectar() as db:
         with db.transaction():
@@ -263,7 +288,7 @@ def anular_acta(id_mesa:UUID,datos:Anulacion,req:Request):
             if ultima['estado']=='anulada':return Response(status_code=204)
             version=ultima['version']+1;identificador=uuid4();id_evento=uuid4()
             conteo={**ultima['conteo'],'motivoAnulacion':datos.motivo}
-            db.execute("INSERT INTO versiones_actas(id,id_proceso,id_mesa,id_organizacion,id_operador,version,id_solicitud,huella,foto,mime,foto_hash,estado,conteo) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'anulada',%s::jsonb)",(identificador,mesa['idProceso'],id_mesa,actor['idOrganizacion'],actor['idUsuario'],version,datos.idSolicitud,huella,ultima['foto'],ultima['mime'],ultima['foto_hash'],json.dumps(conteo)))
+            db.execute("INSERT INTO versiones_actas(id,id_proceso,id_mesa,id_organizacion,id_operador,version,id_solicitud,huella,foto,mime,foto_hash,estado,conteo,sector,id_acta_origen) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'anulada',%s::jsonb,%s,%s)",(identificador,mesa['idProceso'],id_mesa,actor['idOrganizacion'],actor['idUsuario'],version,datos.idSolicitud,huella,ultima['foto'],ultima['mime'],ultima['foto_hash'],json.dumps(conteo),ultima['sector'],ultima['id_acta_origen']))
             evento=construir_evento(str(id_evento),mesa,version,None,False,actor['idOrganizacion'])
             db.execute('INSERT INTO bandeja_actas(id,evento) VALUES(%s,%s::jsonb)',(id_evento,json.dumps(evento)))
     return Response(status_code=204)

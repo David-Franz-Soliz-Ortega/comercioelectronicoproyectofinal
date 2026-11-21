@@ -1,9 +1,22 @@
+import ConfirmarEliminacion from '../componentes/ConfirmarEliminacion.jsx';
+import MesasCompartidas from '../componentes/MesasCompartidas.jsx';
+import { agruparMesasFisicas } from '../api/mesasCompartidas.js';
+import AsignacionesOperadores from '../componentes/AsignacionesOperadores.jsx';
+import { mesasPorUnidad } from '../api/mesasPorUnidad.js';
 import '../privado.css';
+import '../administracion.css';
+import SeleccionAdministracion from '../componentes/SeleccionAdministracion.jsx';
+import TipoCargoUniversitario from '../componentes/TipoCargoUniversitario.jsx';
+import CandidatosAdministracion from '../componentes/CandidatosAdministracion.jsx';
+import FotoCandidatoAdministracion from '../componentes/FotoCandidatoAdministracion.jsx';
+import { completarNombreEleccion } from '../api/seleccionAdministracion.js';
+import InstitucionesAdministracion from '../componentes/InstitucionesAdministracion.jsx';
 import React, { useEffect, useState } from 'react';
 import Sesion, { ControlesSesion } from '../componentes/Sesion.jsx';
 import AdministrarCuentas from '../componentes/AdministrarCuentas.jsx';
-import GuiaEleccion from '../componentes/GuiaEleccion.jsx';
-import EstadoPublicacion from '../componentes/EstadoPublicacion.jsx';
+import PasosEleccion from '../componentes/PasosEleccion.jsx';
+import { pasosDeEleccion } from '../api/pasosEleccion.js';
+import ResumenAdministracion from '../componentes/ResumenAdministracion.jsx';
 import { prepararEleccion } from '../api/preparacionEleccion.js';
 import { consultarGraphql } from '../api/clienteGraphql.js';
 import { solicitarRest } from '../api/clienteRest.js';
@@ -18,7 +31,6 @@ import {
   IconoBarras,
   IconoEdificio,
   IconoReloj,
-  IconoInfo,
   IconoCheck,
   IconoCamara,
   IconoSubir,
@@ -30,13 +42,18 @@ import {
   IconoSalir,
 } from '../componentes/Iconos.jsx';
 
+import EstadoEleccion, { nombresEstado } from '../componentes/EstadoEleccion.jsx';
+import OpcionesEleccion from '../componentes/OpcionesEleccion.jsx';
+import ImportarExcel from '../componentes/ImportarExcel.jsx';
+const datosEleccionVacia=()=>({nombre:'',cargo:'',tipo:'universidad',unidad:'Facultad',ambito:'',facultad:'',grupoCarreras:'',carreras:[],vuelta:1,idPrimeraVuelta:null,sectores:[],ponderacion:false,reglaSegundaVuelta:null});
+
 const archivoComoTexto = archivo => new Promise((aceptar, rechazar) => {
   const lector = new FileReader();
   lector.onload = () => aceptar(lector.result);
   lector.onerror = () => rechazar(new Error('No se pudo leer la imagen'));
   lector.readAsDataURL(archivo);
 });
-const procesoVacio = { nombre: '', cargo: '', tipo: 'universidad', unidad: 'Facultad' };
+const datosDeEvento=base=>({...datosEleccionVacia(),...(base?{nombre:base.nombre,tipo:base.tipo,unidad:base.unidad,ambito:base.ambito??'',facultad:base.facultad??'',grupoCarreras:base.grupoCarreras??'',carreras:base.carreras??[],sectores:base.sectores??[],ponderacion:base.ponderacion??false,reglaSegundaVuelta:base.reglaSegundaVuelta??null}:{})});
 
 function Aviso({ error, mensaje }) {
   return (
@@ -60,7 +77,7 @@ function PanelPrivado(estado) {
   const operador = sesion.roles.some(r => r.rol === 'OPERADOR' && r.idOrganizacion === sesion.idOrganizacion);
 
   return (
-    <div className="aplicacion-privada">
+    <div className={`aplicacion-privada administracion-tuvoto ${admin?'panel-administrador':operador?'panel-operador':'panel-auditor'}`}>
       <Aviso error={estado.error} />
       {admin ? (
         <PanelAdministrador sesion={sesion} {...estado} />
@@ -86,14 +103,19 @@ function PanelPrivado(estado) {
    ========================================================================= */
 function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
   const [pestana, setPestana] = useState('resumen');
-  const [mostrarGuia, setMostrarGuia] = useState(false);
+  const [mostrarPasos,setMostrarPasos]=useState(()=>{try{return window.localStorage.getItem('tuvoto:guia-pasos')==='activada';}catch{return false;}});
+  useEffect(()=>{try{window.localStorage.setItem('tuvoto:guia-pasos',mostrarPasos?'activada':'desactivada');}catch{/* La navegación sigue disponible si el navegador bloquea preferencias. */}},[mostrarPasos]);
   const [cargandoDatos, setCargandoDatos] = useState(false);
+  const [datosInstitucionListos,setDatosInstitucionListos]=useState(false);
   const [creandoProceso, setCreandoProceso] = useState(false);
+  const [revisandoCargo, setRevisandoCargo] = useState(false);
+  const [editandoProceso,setEditandoProceso]=useState(false);
+  const [asignacionesGuardadas,setAsignacionesGuardadas]=useState([]);
   const [modoCuenta, setModoCuenta] = useState('usuario');
   const [asignacionesConfirmadas, setAsignacionesConfirmadas] = useState(0);
-  const [catalogoConfirmado, setCatalogoConfirmado] = useState(false);
   const [publicacionConfirmada, setPublicacionConfirmada] = useState(false);
   const [organizaciones, setOrganizaciones] = useState([]);
+  const [consultandoInstituciones,setConsultandoInstituciones]=useState(true);
   const [cuentas, setCuentas] = useState([]);
   const [org, setOrg] = useState(sesion.idOrganizacion ?? '');
   const [procesos, setProcesos] = useState([]);
@@ -103,61 +125,85 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
   const [ocupado, setOcupado] = useState(false);
   const [version, setVersion] = useState(0);
 
-  const [datos, setDatos] = useState(procesoVacio);
+  const [datos, setDatos] = useState(datosEleccionVacia);
   const [eventoBase, setEventoBase] = useState('');
   const [candidato, setCandidato] = useState({ nombre: '', foto: '' });
-  const [mesa, setMesa] = useState({ codigo: '', unidad: '' });
+  const [mesa, setMesa] = useState({ codigo: '', unidad: '',sector:'general' });
   const [asignacion, setAsignacion] = useState({ idMesa: '', idUsuario: '' });
 
+  const institucionSeleccionada=organizaciones.find(o=>o.idOrganizacion===org&&o.activa);
   const actual = procesos.find(p => p.id === id);
+  const configuracionCerrada = actual?.estado !== 'borrador';
+  const mostrarAccionesCargo = institucionSeleccionada && datosInstitucionListos && !creandoProceso && !editandoProceso && (pestana !== 'configuracion' || revisandoCargo);
   const bloqueado = ocupado || ocupadoSesion || cargandoDatos;
   const administradorGlobal = sesion.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null);
   const preparacion = prepararEleccion({ organizacion: org, proceso: actual, cuentas, asignacionesConfirmadas });
-  const eventosConfigurados = [...new Map(procesos.map(p => [p.nombre, p])).values()];
-  function nuevaEleccion(base) {
+  const pasos = pasosDeEleccion({ proceso: creandoProceso ? null : actual, operadores: preparacion.operadores, asignaciones: asignacionesGuardadas });
+  function mostrarCargos() {
+    setCreandoProceso(false);setEditandoProceso(false);setRevisandoCargo(false);setPestana('configuracion');setError('');
+  }
+  function cambiarPaso(destino) {
+    if (destino === 'configuracion') setRevisandoCargo(true);
+    if (destino === 'usuarios') setModoCuenta('usuario');
+    setError(''); setPestana(destino);
+  }
+  function cambiarInstitucion(valor){
+    setPestana('resumen');setError('');setMensaje('');
+    setRevisandoCargo(false);
+    if(valor===org)return;
+    setDatosInstitucionListos(false);setCargandoDatos(Boolean(valor));setOrg(valor);setProcesos([]);setCuentas([]);setId('');setCreandoProceso(false);setEditandoProceso(false);
+  }
+  function prepararNuevoCargo(base) {
+    setRevisandoCargo(true);
     setEventoBase(base?.nombre ?? '');
-    setDatos(base ? { nombre: base.nombre, cargo: '', tipo: base.tipo, unidad: base.unidad } : procesoVacio);
-    setCreandoProceso(true); setPestana('configuracion'); setError(''); setMensaje('');
+    setDatos(datosDeEvento(base));
+    setEditandoProceso(false);setCreandoProceso(true); setPestana('configuracion'); setError(''); setMensaje('');
   }
   function irPaso(paso) {
-    if (paso.id === 'organizacion') { setModoCuenta(administradorGlobal ? 'organizacion' : 'usuario'); setPestana('usuarios'); if (!administradorGlobal) setError('Selecciona tu organización en el selector superior.'); return; }
-    if (!org) { setError('Primero selecciona o crea una organización.'); setModoCuenta(administradorGlobal ? 'organizacion' : 'usuario'); setPestana('usuarios'); return; }
-    if (!actual && !['eleccion', 'operadores'].includes(paso.id)) { setCreandoProceso(true); setPestana('configuracion'); return; }
+    if (paso.id === 'organizacion') { setPestana('resumen');setError('');return; }
+    if (!org) { setError('Selecciona una institución en Resumen para continuar.');setPestana('resumen');return; }
+    if (!actual && !['eleccion', 'operadores'].includes(paso.id)) { mostrarCargos();setError('Agrega un cargo para continuar su preparación.');return; }
     if (paso.id === 'operadores') setModoCuenta('usuario');
-    if (paso.id === 'eleccion') setCreandoProceso(!actual);
+    if (paso.id === 'eleccion') { mostrarCargos();return; }
     setError(''); setPestana(paso.destino);
   }
   useEffect(() => {
+    setEditandoProceso(false);
     setAsignacion({ idMesa: '', idUsuario: '' }); setAsignacionesConfirmadas(0);
-    setCatalogoConfirmado(false); setPublicacionConfirmada(false);
-    setCandidato({ nombre: '', foto: '' }); setMesa({ codigo: '', unidad: '' });
+    setPublicacionConfirmada(false);
+    setCandidato({ nombre: '', foto: '' }); setMesa({ codigo: '', unidad: '',sector:actual?.sectores?.[0]?.codigo??'general' });
   }, [org, id]);
-  useEffect(() => { setDatos(procesoVacio); setEventoBase(''); }, [org]);
+  useEffect(() => { setDatos(datosEleccionVacia()); setEventoBase(''); }, [org]);
 
   const pedir = (ruta, op = {}) => solicitarRest(ruta, { ...op, organizacion: org });
+  async function cargarCuentas(){const elementos=[];for(let pagina=1;pagina<=100;pagina++){const r=await pedir('/usuarios?pagina='+pagina+'&limite=100');elementos.push(...r.elementos);if(elementos.length>=(r.total??elementos.length))return {elementos};}throw Error('Demasiadas cuentas para este panel.');}
+  useEffect(()=>{let vigente=true;setAsignacionesGuardadas([]);if(id&&org)pedir('/configuracion/procesos/'+id+'/asignaciones').then(r=>{if(vigente)setAsignacionesGuardadas(r.elementos);}).catch(e=>{if(vigente)setError(e.message);});return()=>{vigente=false};},[id,org,version]);
 
   useEffect(() => {
     let v = true;
+    setConsultandoInstituciones(true);
     solicitarRest('/organizaciones')
       .then(d => { if (v) { setOrganizaciones(d.elementos);
         const activas = d.elementos.filter(o => o.activa);
-        setOrg(anterior => anterior || (activas.length === 1 ? activas[0].idOrganizacion : ''));
+        setOrg(anterior=>activas.some(o=>o.idOrganizacion===anterior)?anterior:'');
       } })
-      .catch(e => { if (v) setError(e.message); });
+      .catch(e => { if (v) setError(e.message); }).finally(()=>{if(v)setConsultandoInstituciones(false);});
     return () => { v = false; };
   }, [version]);
 
   useEffect(() => {
     let v = true;
+    setDatosInstitucionListos(false);
     setProcesos([]);
     setCuentas([]);
     if (!org) { establecerOrganizacion(''); setCargandoDatos(false); return; }
     setCargandoDatos(true); establecerOrganizacion(org);
-    Promise.all([pedir('/configuracion/procesos'), pedir('/usuarios')])
+    Promise.all([pedir('/configuracion/procesos'), cargarCuentas()])
       .then(([p, c]) => {
         if (v) {
           setProcesos(p.elementos);
           setCuentas(c.elementos);
+          setDatosInstitucionListos(true);
           setId(anterior => p.elementos.some(item => item.id === anterior)
             ? anterior : (p.elementos.find(item => item.actual) || p.elementos[0])?.id ?? '');
         }
@@ -183,9 +229,6 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
     }
   }
 
-  const operadoresCount = cuentas.filter(c => c.activo && c.roles?.some(r => r.rol === 'OPERADOR' && r.idOrganizacion === org)).length;
-  const mesasCount = actual?.mesas?.length ?? 0;
-  const facultadesCount = actual?.mesas ? new Set(actual.mesas.map(m => m.unidad)).size : 0;
 
   return (
     <>
@@ -197,12 +240,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
         </div>
 
         <nav className="navegacion-lateral">
-          <button type="button" className={`item-menu-lateral control-guia-lateral ${mostrarGuia ? 'guia-activada' : ''}`}
-            aria-label={mostrarGuia ? 'Desactivar guía paso a paso' : 'Activar guía paso a paso'}
-            aria-pressed={mostrarGuia} aria-expanded={mostrarGuia} aria-controls="guia-preparacion-opcional"
-            onClick={() => setMostrarGuia(anterior => !anterior)}>
-            <IconoInfo tamano={18}/><span>Guía</span><small>{mostrarGuia ? 'Activada' : 'Activar'}</small>
-          </button>
+          <button type="button" className="control-pasos-preparacion" aria-label={mostrarPasos?'Desactivar guía de pasos':'Activar guía de pasos'} aria-pressed={mostrarPasos} onClick={()=>setMostrarPasos(v=>!v)}><span>Guía de pasos</span><small>{mostrarPasos?'Activada':'Desactivada'}</small></button>
           <button
             disabled={bloqueado}
             className={`item-menu-lateral ${pestana === 'resumen' ? 'activo' : ''}`}
@@ -244,7 +282,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
             <span>Usuarios</span>
           </button>
           <button disabled={bloqueado} className={`item-menu-lateral ${pestana === 'asignaciones' ? 'activo' : ''}`} onClick={() => irPaso({ id: 'asignaciones', destino: 'asignaciones' })}><IconoUsuario tamano={18}/><span>Asignar operadores</span></button>
-          <button disabled={bloqueado} className={`item-menu-lateral ${pestana === 'publicacion' ? 'activo' : ''}`} onClick={() => irPaso({ id: 'publicacion', destino: 'publicacion' })}><IconoCheck tamano={18}/><span>Publicación</span></button>
+          <button disabled={bloqueado} className={`item-menu-lateral ${pestana === 'publicacion' ? 'activo' : ''}`} onClick={() => irPaso({ id: 'publicacion', destino: 'publicacion' })}><IconoCheck tamano={18}/><span>Estado y publicación</span></button>
         </nav>
 
         <div className="pie-lateral-privado">
@@ -259,7 +297,8 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
         {/* Barra Superior */}
         <header className="cabecera-superior-privada">
           <div className="titulo-seccion-privada">
-            <h1>Administración de la elección</h1>
+            <p className="etiqueta-panel">TUVOTO · Administración</p>
+            <h1>{{resumen:'Tu centro de administración',configuracion:'Elección y cargos',candidatos:'Candidatos',mesas:'Mesas de recepción',usuarios:'Usuarios y organizaciones',asignaciones:'Asignar operadores',publicacion:'Estado y publicación'}[pestana]??'Administración'}</h1>
             <div className="subtitulo-seccion-privada">
               Elección seleccionada: <strong>{actual?.nombre ?? 'Selecciona una organización y proceso'}</strong>
             </div>
@@ -279,272 +318,59 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
           <Aviso error={error} mensaje={mensaje} />
 
           {cargandoDatos && <p role="status">Cargando la configuración de tu organización…</p>}
-          <div id="guia-preparacion-opcional" hidden={!mostrarGuia}>
-            {mostrarGuia && <GuiaEleccion preparacion={preparacion} ocupado={bloqueado} alIr={irPaso}/>}
-          </div>
-          {/* Selector de Organización */}
-          <div className="panel-admin" style={{ padding: '16px 20px', marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-              <div>
-                <strong style={{ fontSize: 14, color: 'var(--azul-oscuro)' }}>Organización de trabajo:</strong>
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--secundario)' }}>
-                  El administrador configura y asigna usuarios. No modifica votos ni publica actas.
-                </p>
-              </div>
-              <select
-                aria-label="Organización de trabajo" disabled={bloqueado}
-                value={org}
-                onChange={e => { setOrg(e.target.value); setId(''); setError(''); }}
-                className="selector-unidades-publico"
-                style={{ minWidth: 220 }}
-              >
-                <option value="">Selecciona organización</option>
-                {organizaciones.filter(o => o.activa).map(o => (
-                  <option key={o.idOrganizacion} value={o.idOrganizacion}>{o.nombre}</option>
-                ))}
-              </select>
+
+          {pestana==='resumen'&&<>
+          <InstitucionesAdministracion organizaciones={organizaciones} organizacion={org} ocupado={bloqueado} cargando={consultandoInstituciones} puedeCrear={administradorGlobal}
+            alSeleccionar={cambiarInstitucion}
+            alCreada={creada=>{setDatosInstitucionListos(false);setCargandoDatos(true);setOrganizaciones(prev=>[...prev,creada]);setOrg(creada.idOrganizacion);setProcesos([]);setCuentas([]);setId('');setCreandoProceso(false);setEditandoProceso(false);setPestana('resumen');setMensaje('Institución creada. Ya puedes preparar su primera elección.');}}/>
+          {institucionSeleccionada&&<ResumenAdministracion institucion={institucionSeleccionada} procesos={procesos} cuentas={cuentas} proceso={actual} cargando={cargandoDatos} disponible={datosInstitucionListos} ocupado={bloqueado} alReintentar={()=>setVersion(v=>v+1)} alIr={destino=>{
+            if(destino==='configuracion'){mostrarCargos();}
+            else if(destino==='usuarios'){setModoCuenta('usuario');setPestana('usuarios');}
+            else irPaso({id:destino,destino});
+          }}/>}
+
+
+          </>}
+          {pestana!=='resumen'&&<div className="contexto-modulo-admin" data-contexto-institucion={org} data-contexto-proceso={id}>
+            <div>{institucionSeleccionada?<><strong>{institucionSeleccionada.nombre}</strong>{creandoProceso?<span>Nuevo cargo</span>:actual&&<span>Cargo seleccionado: {actual.cargo}{actual.ambito?' · '+actual.ambito:''}</span>}</>:<span>Selecciona una institución en Resumen para continuar.</span>}</div>
+            <div className="acciones-contexto-cargo">
+              <button type="button" className="boton secundario" disabled={bloqueado} onClick={()=>setPestana('resumen')}>Cambiar institución</button>
+              {mostrarAccionesCargo&&<><button type="button" className="boton secundario elegir-cargo-existente" disabled={bloqueado} onClick={mostrarCargos}>Elegir cargo existente</button><button type="button" className="boton primario crear-cargo-directo" disabled={bloqueado} onClick={()=>prepararNuevoCargo()}>+ Crear nuevo cargo</button></>}
             </div>
-          </div>
+          </div>}
+          {mostrarPasos && institucionSeleccionada && pestana !== 'resumen' && (creandoProceso || actual?.estado === 'borrador') && (pestana!=='configuracion'||revisandoCargo||creandoProceso||editandoProceso) && <PasosEleccion pasos={pasos} actual={pestana} ocupado={bloqueado} guardado={!!actual && !creandoProceso} alIr={cambiarPaso} alSalir={()=>{setCreandoProceso(false);setEditandoProceso(false);setPestana('resumen');}}/>}
+          {pestana==='configuracion' && institucionSeleccionada && !creandoProceso && !editandoProceso && !revisandoCargo && <SeleccionAdministracion organizacion={org} procesos={procesos} idProceso={id} ocupado={bloqueado} cargando={cargandoDatos} disponible={datosInstitucionListos}
+            alProceso={valor=>{setId(valor);setRevisandoCargo(true);setError('');setMensaje('');}}
+            alEliminar={p=>guardar(async()=>{await pedir(`/configuracion/procesos/${p.id}`,{metodo:'DELETE',mostrarDetalleValidacion:true});if(id===p.id)setId('');setRevisandoCargo(false);},'Cargo retirado del catálogo.')} alAgregar={()=>prepararNuevoCargo()} alReintentar={()=>setVersion(v=>v+1)}/>}
+          {pestana==='configuracion'&&institucionSeleccionada&&datosInstitucionListos&&!creandoProceso&&!editandoProceso&&!revisandoCargo&&<ImportarExcel key={'cargos-'+org} ruta="/configuracion/importaciones/cargos" organizacion={org} titulo="cargos" gestionarExistentes datosAdicionales={{nombre:institucionSeleccionada.nombre.slice(0,120)}} alImportar={()=>{setMensaje('Archivo de cargos procesado. Revisa el resumen de creados, actualizados y mantenidos.');setVersion(v=>v+1);}} ayuda={<><p>Una fila por cargo universitario. Solo <strong>Rector, Vicerrector, Decano o Director</strong>. Se crean en borrador, sin candidatos ni actas.</p><p>Columnas: <strong>cargo, facultad, grupoCarreras, carreras</strong>. Rector y Vicerrector abarcan toda la universidad. Decano requiere facultad; cada Director requiere facultad, un grupo distinto y sus carreras separadas por <strong>;</strong>.</p><p>Ejemplo: <strong>Director | Tecnología | Grupo A | Sistemas; Civil; Eléctrica</strong>. Otra fila puede ser Director de Tecnología, Grupo B, con otras carreras. Los cargos existentes se mantienen salvo que elijas reemplazar su configuración en borrador.</p></>}/>}
 
-          {org && <section className="panel-admin contexto-eleccion">
-            <label>Elección que estás gestionando
-              <select value={id} disabled={bloqueado} onChange={e => { setId(e.target.value); setCreandoProceso(false); }}>
-                <option value="">Selecciona una elección</option>
-                {procesos.map(p => <option key={p.id} value={p.id}>{p.nombre} · {p.cargo}{p.actual ? ' · Destacado' : p.publicado ? ' · Público' : ''}</option>)}
-              </select>
-            </label>
-            <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => nuevaEleccion()}>+ Nuevo evento</button>
-            {actual && <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => nuevaEleccion(actual)}>+ Añadir cargo a este evento</button>}
-          </section>}
-          {pestana === 'resumen' && (
-            <>
-              {!cargandoDatos && <EstadoPublicacion preparacion={preparacion} proceso={actual} ocupado={bloqueado} alIr={irPaso} alAgregarCargo={() => nuevaEleccion(actual)} />}
-              {/* 3 Métricas del Administrador (como en el mock) */}
-              <div className="resumen-admin-metricas">
-                <div className="tarjeta-admin-metrica">
-                  <div className="icono-admin-metrica">
-                    <IconoUrna tamano={22} />
-                  </div>
-                  <strong>{mesasCount} mesas configuradas</strong>
-                </div>
-
-                <div className="tarjeta-admin-metrica">
-                  <div className="icono-admin-metrica">
-                    <IconoEdificio tamano={22} />
-                  </div>
-                  <strong>{facultadesCount} {actual?.unidad ? actual.unidad.toLowerCase() + 's' : 'facultades'}</strong>
-                </div>
-
-                <div className="tarjeta-admin-metrica">
-                  <div className="icono-admin-metrica">
-                    <IconoUsuarios tamano={22} />
-                  </div>
-                  <strong>{operadoresCount} operadores</strong>
-                </div>
-              </div>
-
-              {/* Grid: Usuarios y asignaciones / Configuración del proceso */}
-              <div className="grid-administrador-resumen">
-                {/* Panel Izquierdo: Usuarios y asignaciones */}
-                <div className="panel-admin">
-                  <div className="cabecera-panel-admin">
-                    <h3>
-                      <IconoUsuarios tamano={18} color="var(--azul-principal)" />
-                      <span>Usuarios y asignaciones</span>
-                    </h3>
-                    <button
-                      className="boton primario"
-                      style={{ padding: '6px 12px', fontSize: 12 }}
-                      onClick={() => { setModoCuenta('usuario'); setPestana('usuarios'); }}
-                    >
-                      + Crear operador
-                    </button>
-                  </div>
-
-                  <table className="tabla-admin">
-                    <thead>
-                      <tr>
-                        <th>Cuenta</th>
-                        <th>Rol</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cuentas.filter(c => c.roles?.some(r => r.rol === 'OPERADOR' && r.idOrganizacion === org)).length === 0 ? (
-                        <tr>
-                          <td colSpan="4" style={{ textAlign: 'center', color: 'var(--secundario)', padding: 20 }}>
-                            No hay operadores registrados en esta organización.
-                          </td>
-                        </tr>
-                      ) : (
-                        cuentas
-                          .filter(c => c.roles?.some(r => r.rol === 'OPERADOR' && r.idOrganizacion === org))
-                          .slice(0, 5)
-                          .map(c => (
-                            <tr key={c.idUsuario}>
-                              <td><strong>{c.usuario}</strong></td>
-                              <td><span className="estado-activo-pill" style={{ background: '#EFF6FF', color: '#1D4ED8' }}>OPERADOR DE ACTAS</span></td>
-                              <td><span className="estado-activo-pill">{c.activo ? 'Activo' : 'Inactivo'}</span></td>
-                              <td>
-                                <button
-                                  className="boton-accion-tabla"
-                                  onClick={() => { setAsignacion({ idMesa: '', idUsuario: c.idUsuario }); irPaso({ id: 'asignaciones', destino: 'asignaciones' }); }}
-                                >
-                                  Asignar mesa
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Panel Derecho: Configuración del proceso */}
-                <div className="panel-admin">
-                  <div className="cabecera-panel-admin">
-                    <h3>
-                      <IconoEngranaje tamano={18} color="var(--azul-principal)" />
-                      <span>Configuración del proceso</span>
-                    </h3>
-                  </div>
-
-                  <div style={{ padding: 20 }}>
-                    {actual ? (
-                      <div className="formulario-simple">
-                        <div>
-                          <span style={{ fontSize: 12, color: 'var(--secundario)' }}>Tipo de elección:</span>
-                          <p style={{ margin: '2px 0 10px', fontWeight: 600, color: 'var(--azul-oscuro)' }}>
-                            {actual.tipo.charAt(0).toUpperCase() + actual.tipo.slice(1)}
-                          </p>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: 12, color: 'var(--secundario)' }}>Unidad de agrupación:</span>
-                          <p style={{ margin: '2px 0 10px', fontWeight: 600, color: 'var(--azul-oscuro)' }}>
-                            {actual.unidad}
-                          </p>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: 12, color: 'var(--secundario)' }}>Estado en el portal público:</span>
-                          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <span className="estado-activo-pill" style={{ background: actual.actual ? '#DCFCE7' : '#F1F5F9', color: actual.actual ? '#166534' : '#64748B' }}>
-                              {actual.actual ? 'Evento destacado' : actual.publicado ? 'Visible en el portal' : 'No visible públicamente'}
-                            </span>
-                            {!actual.actual && (
-                              <button
-                                className="boton primario"
-                                style={{ padding: '6px 12px', fontSize: 12 }}
-                                disabled={bloqueado}
-                                onClick={() => setPestana('publicacion')}
-                              >
-                                Revisar publicación
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <p style={{ color: 'var(--secundario)', fontSize: 13 }}>Selecciona o crea un proceso en la pestaña Configuración.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Panel Inferior: Fotografías de candidatos (Gestión de imagen de candidaturas) */}
-              {actual && (
-                <div className="panel-admin">
-                  <div className="cabecera-panel-admin">
-                    <h3>
-                      <IconoFoto tamano={18} color="var(--azul-principal)" />
-                      <span>Fotografías de candidatos</span>
-                    </h3>
-                    <span className="insignia-suave" style={{ color: '#0369A1', background: '#F0F9FF', borderColor: '#BAE6FD' }}>
-                      Gestión de imagen de candidaturas
-                    </span>
-                  </div>
-
-                  <div className="grid-candidatos-fotos">
-                    {actual.candidatos.length === 0 ? (
-                      <p style={{ color: 'var(--secundario)', padding: 10 }}>No hay candidaturas registradas aún.</p>
-                    ) : (
-                      actual.candidatos.map(c => (
-                        <article key={c.id} className="tarjeta-candidato-foto">
-                          {c.foto ? (
-                            <img src={c.foto} alt={`Fotografía de ${c.nombre}`} />
-                          ) : (
-                            <div className="avatar-letra">{c.nombre.slice(0, 1)}</div>
-                          )}
-                          <strong>{c.nombre}</strong>
-                          <label className="boton-cambiar-foto">
-                            <IconoCamara tamano={14} />
-                            <span>Cambiar fotografía</span>
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/png"
-                              disabled={bloqueado}
-                              onChange={e => {
-                                const f = e.target.files[0];
-                                if (f) {
-                                  guardar(async () => {
-                                    if (f.size > 2000000) throw Error('Máximo 2 MB para la fotografía');
-                                    await pedir(`/configuracion/candidatos/${c.id}/foto`, {
-                                      metodo: 'PUT',
-                                      datos: { foto: await archivoComoTexto(f) },
-                                    });
-                                  });
-                                }
-                              }}
-                            />
-                          </label>
-                        </article>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {pestana === 'configuracion' && org && (
+          {pestana === 'configuracion' && org && (creandoProceso || editandoProceso || (revisandoCargo && actual)) && (
             <div className="panel-admin" style={{ padding: 24 }}>
-              <h2 style={{ fontSize: 18, color: 'var(--azul-oscuro)', marginBottom: 16 }}>{creandoProceso || procesos.length === 0 ? eventoBase ? 'Añadir un cargo al evento' : 'Crear evento y primer cargo' : 'Elección seleccionada'}</h2>
-              {!creandoProceso && procesos.length > 0 && <p>Estás gestionando <strong>{actual?.nombre ?? 'la elección del selector superior'}</strong>. Continúa con sus candidatos o añade otro cargo desde el selector superior.</p>}
-              {(creandoProceso || procesos.length === 0) && (
+              <h2 style={{ fontSize: 18, color: 'var(--azul-oscuro)', marginBottom: 16 }}>{editandoProceso?'Editar opciones del cargo':creandoProceso ? 'Crear nuevo cargo' : 'Configuración del cargo'}</h2>
+              {actual&&!creandoProceso&&!editandoProceso&&<div className="detalle-configuracion-eleccion"><h3>{actual.cargo}</h3><dl><dt>Elección</dt><dd>{actual.nombre}</dd><dt>Facultad</dt><dd>{actual.facultad||'Toda la institución'}</dd><dt>Carreras</dt><dd>{actual.carreras?.join(', ')||'Sin lista de carreras configurada'}</dd><dt>Ámbito</dt><dd>{actual.ambito||'Sin ámbito adicional'}</dd><dt>Vuelta</dt><dd>{actual.vuelta===2?'Segunda vuelta':'Primera vuelta'}</dd><dt>Conteo</dt><dd>{actual.ponderacion?'Ponderación por sectores activada':actual.sectores?.length?'Sectores separados; todos los votos valen igual':'Normal: todos los votos valen igual'}</dd></dl>{actual.sectores?.length>0&&<ul>{actual.sectores.map(s=><li key={s.codigo}>{s.nombre}{actual.ponderacion?` · ${s.pesoBps/100} %`:''}</li>)}</ul>}<p>{configuracionCerrada?'La configuración está bloqueada porque este cargo ya salió de borrador.':'Puedes editar las opciones mientras el cargo esté en borrador.'}</p><button type="button" className="boton secundario" disabled={bloqueado} onClick={()=>setPestana('publicacion')}>Ver estado y publicación</button></div>}
+              {!creandoProceso && !editandoProceso && <button type="button" className="boton secundario volver-cargos" disabled={bloqueado} onClick={mostrarCargos}>← Volver a cargos</button>}
+
+              {actual&&!creandoProceso&&!editandoProceso&&<button type="button" className="boton secundario" disabled={bloqueado||configuracionCerrada} onClick={()=>{const d=datosEleccionVacia();for(const k of Object.keys(d))if(actual[k]!==undefined)d[k]=actual[k];setEventoBase('');setDatos(d);setEditandoProceso(true);}}>Editar elección en borrador</button>}
+              {(creandoProceso || editandoProceso) && (
               <form
                 className="formulario-simple"
                 onSubmit={e => {
                   e.preventDefault();
                   guardar(async () => {
-                    const p = await pedir('/configuracion/procesos', { metodo: 'POST', datos });
+                    const p = await pedir('/configuracion/procesos'+(editandoProceso?'/'+id:''), { metodo: editandoProceso?'PUT':'POST', datos: completarNombreEleccion(datos, institucionSeleccionada) });
                     setId(p.id);
-                    setDatos(procesoVacio); setEventoBase(''); setCreandoProceso(false); setPestana('candidatos');
+                    setDatos(datosEleccionVacia());setEventoBase(''); setCreandoProceso(false);setEditandoProceso(false); setPestana('candidatos');
                   });
                 }}
               >
-                {eventosConfigurados.length > 0 && <label>
-                  Evento al que pertenece el cargo
-                  <select aria-label="Evento al que pertenece el cargo" value={eventoBase} disabled={bloqueado} onChange={e => {
-                    const base = eventosConfigurados.find(p => p.nombre === e.target.value);
-                    setEventoBase(e.target.value);
-                    setDatos(base ? { nombre: base.nombre, cargo: '', tipo: base.tipo, unidad: base.unidad } : procesoVacio);
-                  }}>
-                    <option value="">Crear un evento nuevo</option>
-                    {eventosConfigurados.map(p => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
-                  </select>
-                </label>}
-                <label>
-                  Nombre del evento electoral
-                  <input required readOnly={!!eventoBase} maxLength="120" placeholder="Ej: Elecciones universitarias 2026" value={datos.nombre} onChange={e => setDatos({ ...datos, nombre: e.target.value })} />
-                </label>
-                <p>{eventoBase ? 'El nuevo cargo aparecerá dentro de este evento cuando lo publiques.' : 'Crea el evento con su primer cargo. Después podrás añadir Rectorado, Vicerrectorado, Decanato u otros cargos al mismo evento.'}</p>
-                <label>
-                  ¿Qué cargo se elige?
-                  <input required maxLength="100" placeholder="Ej: Rectorado" value={datos.cargo} onChange={e => setDatos({ ...datos, cargo: e.target.value })} />
-                </label>
+                <p>{creandoProceso?'Crearás un cargo nuevo; el cargo que tenías seleccionado se conserva.':'Edita únicamente las opciones de este cargo.'} Después podrás registrar sus candidatos, mesas y operadores.</p>
+                {creandoProceso&&<button type="button" className="boton secundario elegir-existente-desde-formulario" disabled={bloqueado} onClick={mostrarCargos}>Cancelar y elegir un cargo existente</button>}
+                {datos.tipo==='universidad'?<TipoCargoUniversitario key={org+':'+(editandoProceso?id:'nuevo')+':'+(datos.idPrimeraVuelta??'')} cargo={datos.cargo} procesos={procesos} bloqueado={bloqueado}
+                  alEscribir={cargo=>setDatos({...datos,cargo})}
+                  alSeleccionar={cargo=>setDatos({...datos,cargo,unidad:['Decano','Director'].includes(cargo)?'Carrera':'Facultad',facultad:'',grupoCarreras:'',carreras:[],ambito:['Rector','Vicerrector'].includes(cargo)?'Toda la universidad':''})}/>:<label>Tipo de cargo<input required maxLength="100" placeholder="Ej.: Alcalde, Concejal…" value={datos.cargo} onChange={e=>setDatos({...datos,cargo:e.target.value})}/></label>}
                 <label>
                   Tipo de organización
-                  <select aria-label="Tipo de organización" value={datos.tipo} disabled={!!eventoBase || bloqueado} onChange={e => setDatos({ ...datos, tipo: e.target.value })}>
+                  <select aria-label="Tipo de organización" value={datos.tipo} disabled={!!eventoBase || bloqueado} onChange={e => setDatos({ ...datos, tipo: e.target.value,cargo:'',facultad:'',grupoCarreras:'',carreras:[] })}>
                     <option value="universidad">Universidad</option>
                     <option value="municipio">Municipio</option>
                     <option value="otra">Otra organización</option>
@@ -554,44 +380,53 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                   ¿Cómo se agrupan las mesas? (Facultad, Comunidad, Distrito…)
                   <input required maxLength="80" placeholder="Ej: Facultad, Parroquia, etc." value={datos.unidad} onChange={e => setDatos({ ...datos, unidad: e.target.value })} />
                 </label>
-                <button className="boton primario" disabled={bloqueado} style={{ width: 'fit-content', marginTop: 10 }}>
-                  {ocupado ? 'Guardando…' : 'Crear elección y continuar'}
+                <OpcionesEleccion datos={datos} cambiar={setDatos} procesos={procesos} bloqueado={bloqueado} identidadFija={editandoProceso}/>
+                <button className="boton primario" disabled={bloqueado||(editandoProceso&&configuracionCerrada)||(datos.ponderacion&&datos.sectores.reduce((a,s)=>a+s.pesoBps,0)!==10000)} style={{ width: 'fit-content', marginTop: 10 }}>
+                  {ocupado ? 'Guardando…' : editandoProceso?'Guardar cambios':'Guardar cargo y continuar'}
                 </button>
-                {procesos.length > 0 && <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => setCreandoProceso(false)}>Cancelar: conservar la elección seleccionada</button>}
+                <button type="button" className="boton secundario cancelar-cargo" disabled={bloqueado} onClick={mostrarCargos}>Cancelar y volver a cargos</button>
               </form>
               )}
 
             </div>
           )}
 
-          {pestana === 'candidatos' && actual && (
-            <div className="panel-admin" style={{ padding: 24 }}>
-              <h2 style={{ fontSize: 18, color: 'var(--azul-oscuro)', marginBottom: 8 }}>
-                Candidaturas para {actual.nombre}
-              </h2>
+          {pestana==='mesas'&&institucionSeleccionada&&datosInstitucionListos&&<MesasCompartidas key={org} organizacion={org} procesos={procesos} cuentas={cuentas} idProceso={id} version={version} ocupado={bloqueado} guardar={guardar} alCargo={valor=>{setId(valor);setPestana('mesas');}} alImportar={()=>{setMensaje('Mesas físicas y cargos importados correctamente.');setVersion(v=>v+1);}}/>}
+
+          {['mesas','asignaciones'].includes(pestana)&&institucionSeleccionada&&datosInstitucionListos&&<ImportarExcel key={'general-'+pestana+'-'+org} general cargos={procesos} ruta={'/configuracion/importaciones-generales/'+pestana} organizacion={org} titulo={pestana} alImportar={()=>{setError('');setMensaje('Archivo completo importado. Cada registro quedó en su cargo de destino.');setVersion(v=>v+1);}}/>}
+
+          {pestana === 'candidatos' && institucionSeleccionada && <>
+          <CandidatosAdministracion key={org} organizacion={org} procesos={procesos} idProceso={id} ocupado={bloqueado} cargando={cargandoDatos} disponible={datosInstitucionListos} revision={version}
+            alEliminar={c=>guardar(()=>pedir(`/configuracion/candidatos/${c.id}`,{metodo:'DELETE',datos:{confirmar:true},mostrarDetalleValidacion:true}),'Candidato retirado del catálogo.')} alProceso={valor=>{setId(valor);setError('');setMensaje('');}} alAgregarCargo={()=>prepararNuevoCargo()} alReintentar={()=>setVersion(v=>v+1)}>
+            {actual && <div className="editor-candidatos" data-editor-candidatos={id}>
+              <h3>Candidatos de {actual.cargo} · {actual.ambito || actual.facultad || 'Toda la institución'}</h3>
               <p style={{ color: 'var(--secundario)', fontSize: 12, marginBottom: 20 }}>
-                Configure candidatos antes de asignar las mesas. El catálogo queda congelado al asignar operadores.
+                {configuracionCerrada ? 'Este cargo ya salió de borrador. Sus candidatos y fotografías están bloqueados.' : 'Puedes agregar candidatos y cambiar fotografías mientras el cargo esté en borrador. Al iniciar el conteo se bloquearán los cambios.'}
               </p>
 
-              <form
+              {!configuracionCerrada && <form
+                key={id}
                 className="formulario-simple"
                 onSubmit={e => {
                   e.preventDefault();
                   guardar(async () => {
                     await pedir(`/configuracion/procesos/${id}/candidatos`, { metodo: 'POST', datos: candidato });
                     setCandidato({ nombre: '', foto: '' });
+                    if (e.nativeEvent.submitter?.value === 'continuar') setPestana('mesas');
                   });
                 }}
               >
+                {actual.vuelta===2?<label>Candidato de la primera vuelta<select required value={candidato.idCandidatoOrigen??''} onChange={e=>setCandidato({idCandidatoOrigen:e.target.value})}><option value="">Selecciona participante</option>{(procesos.find(p=>p.id===actual.idPrimeraVuelta)?.candidatos??[]).filter(c=>!actual.candidatos.some(v=>v.idCandidatoOrigen===c.id)).map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></label>:<>
                 <label>
                   Nombre del candidato
-                  <input required maxLength="120" value={candidato.nombre} onChange={e => setCandidato({ ...candidato, nombre: e.target.value })} />
+                  <input required maxLength="120" disabled={bloqueado} value={candidato.nombre} onChange={e => setCandidato({ ...candidato, nombre: e.target.value })} />
                 </label>
                 <label>
                   Fotografía (JPEG/PNG, máx 2 MB)
                   <input
                     type="file"
                     accept="image/jpeg,image/png"
+                    disabled={bloqueado}
                     onChange={async e => {
                       try {
                         const f = e.target.files[0];
@@ -605,40 +440,51 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                     }}
                   />
                 </label>
-                <button className="boton primario" disabled={bloqueado} style={{ width: 'fit-content' }}>
-                  {ocupado ? 'Registrando…' : 'Agregar candidato'}
+                </>}
+                <button className="boton primario" disabled={configuracionCerrada || bloqueado} style={{ width: 'fit-content' }}>
+                  {ocupado ? 'Registrando…' : 'Guardar y agregar otro candidato'}
                 </button>
-              </form>
+                <button className="boton secundario" name="accion" value="continuar" disabled={configuracionCerrada || bloqueado}>Guardar candidato y continuar</button>
+              </form>}
 
-              {actual.candidatos.length > 0 && <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => setPestana('mesas')}>Ya registré los candidatos: continuar con las mesas</button>}
+              {actual.candidatos.length > 0 && <button type="button" className="boton secundario" disabled={configuracionCerrada || bloqueado} onClick={() => setPestana('mesas')}>Ya registré los candidatos: continuar con las mesas</button>}
+              <h3 className="titulo-fotografias-candidatos">Candidatos registrados · {actual.candidatos.length}</h3>
+              {actual.candidatos.some(c=>c.tieneFoto||c.foto)&&!(actual.actual||actual.publicado)&&<p className="nota-fotos-candidatos">Estas fotografías aún no son públicas. Se mostrarán en Resultados al publicar este cargo.</p>}
               <div className="grid-candidatos-fotos" style={{ marginTop: 24 }}>
                 {actual.candidatos.map(c => (
-                  <article key={c.id} className="tarjeta-candidato-foto">
-                    {c.foto ? <img src={c.foto} alt={c.nombre} /> : <div className="avatar-letra">{c.nombre.slice(0, 1)}</div>}
+                  <article key={c.id} className="tarjeta-candidato-foto" data-candidato-foto={c.id}>
+                    <FotoCandidatoAdministracion candidato={c} organizacion={org} revision={version}/>
                     <strong>{c.nombre}</strong>
-                    <label className="boton-cambiar-foto">
+                    <small>{c.tieneFoto || c.foto ? 'Fotografía cargada' : 'Sin fotografía'}</small>
+                    {!configuracionCerrada && <label className="boton-cambiar-foto">
                       <IconoCamara tamano={14} />
-                      <span>Cambiar fotografía</span>
+                      <span>{c.tieneFoto || c.foto ? 'Cambiar fotografía' : 'Agregar fotografía'}</span>
                       <input
                         type="file"
                         accept="image/jpeg,image/png"
-                        disabled={bloqueado}
+                        aria-label={`Fotografía de ${c.nombre}`}
+                        disabled={configuracionCerrada || bloqueado}
                         onChange={e => {
                           const f = e.target.files[0];
+                          e.target.value = '';
                           if (f) {
                             guardar(async () => {
                               if (f.size > 2000000) throw Error('Máximo 2 MB');
                               await pedir(`/configuracion/candidatos/${c.id}/foto`, { metodo: 'PUT', datos: { foto: await archivoComoTexto(f) } });
-                            });
+                            }, 'Fotografía guardada correctamente.');
                           }
                         }}
                       />
-                    </label>
+                    </label>}
+                    {!configuracionCerrada&&<ConfirmarEliminacion nombre={c.nombre} ocupado={bloqueado} alConfirmar={()=>guardar(()=>pedir(`/configuracion/candidatos/${c.id}`,{metodo:'DELETE',datos:{confirmar:true},mostrarDetalleValidacion:true}),'Candidato retirado del catálogo.')}/>}
                   </article>
                 ))}
               </div>
-            </div>
-          )}
+              {!actual.candidatos.length&&<p className="vacio-candidatos-cargo">Todavía no hay candidatos en este cargo. Agrégalos con el formulario o utiliza el Excel de todos los cargos.</p>}
+            </div>}
+          </CandidatosAdministracion>
+          {datosInstitucionListos&&<ImportarExcel key={'general-candidatos-'+org} general cargos={procesos} ruta="/configuracion/importaciones-generales/candidatos" organizacion={org} titulo="candidatos" alImportar={()=>{setError('');setMensaje('Archivo completo importado. Cada candidato quedó en su cargo de destino.');setVersion(v=>v+1);}}/>}
+          </>}
 
           {['mesas', 'asignaciones'].includes(pestana) && actual && (
             <div className="panel-admin" style={{ padding: 24 }}>
@@ -648,42 +494,50 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
 
               <div className="formularios-preparacion-mesas">
                 {pestana === 'mesas' && <>
+                <div className="ayuda-mesas-unidad"><h3>Mesas por {actual.unidad.toLowerCase()} o unidad</h3><p>Cada fila del Excel representa una mesa. En <strong>unidad</strong> indica la facultad, carrera o comunidad a la que pertenece. Usa un <strong>codigo</strong> único dentro de este cargo.</p></div>
+                <ImportarExcel abierto deshabilitado={configuracionCerrada} key={`mesas-${id}`} ruta={`/configuracion/procesos/${id}/importaciones/mesas`} organizacion={org} titulo="mesas" alImportar={()=>{setError('');setMensaje('Mesas importadas correctamente. Se muestran agrupadas por facultad o unidad.');setVersion(v=>v+1);}} ayuda={<><p>Columnas de la plantilla: <strong>codigo</strong>, <strong>unidad</strong> y <strong>sector</strong>.</p><p>{actual.sectores?.length?`Sectores disponibles: ${actual.sectores.map(s=>s.nombre+' ('+s.codigo+')').join(', ')}.`:'Si no separas sectores, deja sector vacío para usar General.'} Puedes incluir mesas de varias facultades en el mismo archivo, indicando su unidad en cada fila.</p></>}/>
+
                 <form
                   className="formulario-simple"
                   onSubmit={e => {
                     e.preventDefault();
                     guardar(async () => {
                       await pedir(`/configuracion/procesos/${id}/mesas`, { metodo: 'POST', datos: mesa });
-                      setMesa({ codigo: '', unidad: '' });
+                      setMesa({ codigo: '', unidad: '',sector:actual?.sectores?.[0]?.codigo??'general' });
+                      if (e.nativeEvent.submitter?.value === 'continuar') cambiarPaso('usuarios');
                     });
                   }}
                 >
                   <h3 style={{ margin: 0, fontSize: 15, color: 'var(--azul-oscuro)' }}>Agregar mesa</h3>
+                  {actual.sectores?.length>0&&<label>Sector<select required value={mesa.sector??'general'} onChange={e=>setMesa({...mesa,sector:e.target.value})}><option value="general" disabled>Selecciona sector</option>{actual.sectores.map(s=><option key={s.codigo} value={s.codigo}>{s.nombre}</option>)}</select></label>}
                   <label>
                     Código de mesa
                     <input required placeholder="Ej: Mesa 081" value={mesa.codigo} onChange={e => setMesa({ ...mesa, codigo: e.target.value })} />
                   </label>
                   <label>
                     {actual.unidad}
-                    <input required placeholder={`Ej: ${actual.unidad}`} value={mesa.unidad} onChange={e => setMesa({ ...mesa, unidad: e.target.value })} />
+                    {actual.carreras?.length?<select required aria-label="Carrera de la mesa" value={mesa.unidad} onChange={e=>setMesa({...mesa,unidad:e.target.value})}><option value="">Selecciona una carrera o grupo</option>{actual.grupoCarreras&&actual.facultad&&<option value={actual.facultad+' · '+actual.grupoCarreras}>{actual.facultad} · {actual.grupoCarreras} (todas sus carreras)</option>}{actual.carreras.map(c=><option key={c} value={c}>{c}</option>)}</select>:<input required placeholder={`Ej: ${actual.unidad}`} value={mesa.unidad} onChange={e => setMesa({ ...mesa, unidad: e.target.value })} />}
+
                   </label>
-                  <button className="boton primario" disabled={bloqueado} style={{ width: 'fit-content' }}>
-                    Agregar mesa
+                  <button className="boton primario" disabled={configuracionCerrada || bloqueado} style={{ width: 'fit-content' }}>
+                    Guardar y agregar otra mesa
                   </button>
+                  <button className="boton secundario" name="accion" value="continuar" disabled={configuracionCerrada || bloqueado}>Guardar mesa y continuar</button>
                 </form>
 
+                {actual.sectores?.length>0&&<p>En Excel puedes indicar el nombre o el código del sector: {actual.sectores.map(s=>`${s.nombre} (${s.codigo})`).join(', ')}.</p>}
                 <p>Registra todas las mesas esperadas. Después asigna un responsable a cada una.</p>
-                <ul className="lista-mesas-preparacion">{actual.mesas.map(m => <li key={m.id}><span><strong>{m.codigo}</strong> · {m.unidad}</span><button type="button" className="boton secundario" disabled={bloqueado} onClick={() => { setAsignacion({ idMesa: m.id, idUsuario: '' }); setPestana('asignaciones'); }}>Asignar operador</button></li>)}</ul>
-                <button type="button" className="boton primario" disabled={bloqueado || !actual.mesas.length} onClick={() => setPestana('asignaciones')}>Continuar con las asignaciones</button>
+                <div className="lista-mesas-por-unidad">{mesasPorUnidad(actual.mesas).map(grupo=><section className="grupo-mesas-unidad" key={grupo.unidad}><h3>{grupo.unidad} · {grupo.mesas.length} mesas</h3><ul>{grupo.mesas.map(m=><li key={m.id} data-mesa-cargo={m.id}><span><strong>{m.codigo}</strong> · {m.sector??'general'}</span><button type="button" className="boton secundario" disabled={configuracionCerrada||bloqueado} onClick={()=>{setAsignacion({idMesa:m.id,idUsuario:''});setPestana('asignaciones');}}>Asignar operador</button>{!configuracionCerrada&&<ConfirmarEliminacion nombre={'Mesa '+m.codigo+' · '+actual.cargo} ocupado={bloqueado} etiqueta="Quitar de este cargo" descripcion="Se retirará la mesa de este cargo. Sus otros cargos y su historial se conservan." alConfirmar={()=>guardar(()=>pedir(`/configuracion/mesas/${m.id}`,{metodo:'DELETE',datos:{confirmar:true},mostrarDetalleValidacion:true}),'Mesa retirada de este cargo.')}/>}</li>)}</ul></section>)}</div>
+                <button type="button" className="boton primario" disabled={configuracionCerrada || bloqueado || !actual.mesas.length} onClick={() => cambiarPaso('usuarios')}>Continuar con los operadores</button>
                 </>}
                 {pestana === 'asignaciones' && <>
                 {!preparacion.operadores.length && <div className="aviso">Todavía no hay operadores disponibles en esta organización. <button type="button" className="boton secundario" onClick={() => { setModoCuenta('usuario'); setPestana('usuarios'); }}>Crear operador</button></div>}
-                <p>Primero completa los candidatos. Al asignar la primera mesa se congela el catálogo. Guarda cada asignación por separado.</p>
+                <p>Asigna una mesa de este cargo a un operador. Puedes seguir agregando candidatos, mesas y asignaciones mientras el cargo esté en borrador. Al iniciar el conteo se bloquea su configuración.</p><p>Un operador puede atender varias mesas y cargos: guarda cada asignación por separado.</p>
                 <form
                   className="formulario-simple"
                   onSubmit={e => {
                     e.preventDefault();
-                    guardar(async () => { await pedir(`/configuracion/mesas/${asignacion.idMesa}/asignar`, { metodo: 'POST', datos: { idUsuario: asignacion.idUsuario } }); setAsignacionesConfirmadas(n => n + 1); setAsignacion({ idMesa: '', idUsuario: '' }); }, 'Asignación guardada. Puedes asignar otra mesa o revisar la publicación.');
+                    guardar(async () => { await pedir(`/configuracion/mesas/${asignacion.idMesa}/asignar`, { metodo: 'POST', datos: { idUsuario: asignacion.idUsuario } }); setAsignacionesConfirmadas(n => n + 1); setAsignacion({ idMesa: '', idUsuario: '' }); if (e.nativeEvent.submitter?.value === 'continuar') setPestana('publicacion'); }, 'Asignación guardada. Puedes asignar otra mesa o revisar la publicación.');
                   }}
                 >
                   <h3 style={{ margin: 0, fontSize: 15, color: 'var(--azul-oscuro)' }}>Asignar operador a mesa</h3>
@@ -707,11 +561,13 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                         ))}
                     </select>
                   </label>
-                  <label className="confirmacion-preparacion"><input type="checkbox" checked={catalogoConfirmado} onChange={e => setCatalogoConfirmado(e.target.checked)} required/><span>Ya registré todos los candidatos de esta elección.</span></label>
-                  <button className="boton primario" disabled={bloqueado || !catalogoConfirmado || !actual.candidatos.length || !asignacion.idMesa || !asignacion.idUsuario} style={{ width: 'fit-content' }}>
+                  <button className="boton primario" disabled={configuracionCerrada || bloqueado || !asignacion.idMesa || !asignacion.idUsuario} style={{ width: 'fit-content' }}>
                     Guardar asignación
                   </button>
+                  <button className="boton secundario" name="accion" value="continuar" disabled={configuracionCerrada || bloqueado || !asignacion.idMesa || !asignacion.idUsuario}>Guardar asignación y continuar</button>
                 </form>
+                <ImportarExcel deshabilitado={configuracionCerrada} key={`asignaciones-${id}`} ruta={`/configuracion/procesos/${id}/importaciones/asignaciones`} organizacion={org} titulo="asignaciones" alImportar={()=>setVersion(v=>v+1)}/>
+                <h3>Asignaciones guardadas</h3><ul>{asignacionesGuardadas.map(a=><li key={a.idMesa+'-'+a.idUsuario}>{a.codigo} · {a.sector} → {cuentas.find(c=>c.idUsuario===a.idUsuario)?.usuario??'Operador asignado'}</li>)}</ul>
                 {asignacionesConfirmadas > 0 && <p role="status">{asignacionesConfirmadas} operaciones de asignación guardadas en esta sesión.</p>}
                 <button type="button" className="boton secundario" disabled={bloqueado} onClick={() => setPestana('publicacion')}>Revisar publicación</button>
                 </>}
@@ -720,28 +576,29 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
             </div>
           )}
 
-          {pestana === 'publicacion' && actual && <section className="panel-admin revision-publicacion">
-            <h2>Publicar el cargo y destacar su evento</h2>
-            <p>Los cargos publicados con el mismo nombre de evento y organización aparecen juntos. Dentro del evento, Rectorado se muestra primero.</p>
-            <dl><dt>Organización</dt><dd>{organizaciones.find(o => o.idOrganizacion === org)?.nombre ?? 'Organización seleccionada'}</dd><dt>Evento</dt><dd>{actual.nombre}</dd><dt>Cargo</dt><dd>{actual.cargo}</dd><dt>Candidatos</dt><dd>{actual.candidatos.length}</dd><dt>Mesas esperadas</dt><dd>{actual.mesas.length}</dd></dl>
-            <p>La publicación permite consultar resultados. Destacar también selecciona el proceso actual para la recepción de actas. Los operadores conservan sus permisos y mesas asignadas.</p>
-            {(actual.publicado || actual.actual) && <p className="confirmacion">Este cargo está publicado{actual.actual ? ' y su evento está destacado' : ''}. <a href="#resultados">Abrir resultados públicos</a></p>}
-            {!preparacion.puedePublicar && <p className="aviso">Agrega al menos un candidato y una mesa antes de publicar.</p>}
-            <label className="confirmacion-preparacion"><input type="checkbox" checked={publicacionConfirmada} onChange={e => setPublicacionConfirmada(e.target.checked)}/><span>Revisé el evento, el cargo y sus candidatos. Los otros cargos publicados seguirán disponibles hasta que se oculten.</span></label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-              {!actual.publicado && !actual.actual && <button type="button" className="boton primario" disabled={bloqueado || !preparacion.puedePublicar || !publicacionConfirmada} onClick={() => guardar(() => pedir(`/configuracion/procesos/${id}/publicacion`, { metodo: 'PUT', datos: { publicado: true } }), 'Cargo publicado en el catálogo de eventos.')}>Publicar este cargo</button>}
-              {!actual.actual && <button type="button" className="boton primario" disabled={bloqueado || !preparacion.puedePublicar || !publicacionConfirmada} onClick={() => guardar(() => pedir(`/configuracion/procesos/${id}/actual`, { metodo: 'POST' }), 'Evento destacado. Este proceso está habilitado para recibir actas.')}>Publicar y destacar evento</button>}
-              {(actual.publicado || actual.actual) && <button type="button" className="boton secundario" disabled={bloqueado || !publicacionConfirmada} onClick={() => guardar(() => pedir(`/configuracion/procesos/${id}/publicacion`, { metodo: 'PUT', datos: { publicado: false } }), 'Cargo oculto del portal público.')}>Ocultar este cargo{actual.actual ? ' y desactivar su recepción de actas' : ''}</button>}
-            </div>
+          {(pestana==='publicacion'||(pestana==='configuracion'&&revisandoCargo&&actual?.estado!=='borrador')) && actual && !creandoProceso && !editandoProceso && <section className="panel-admin revision-publicacion">
+            <h2>Estado y publicación del cargo</h2><p>Los cargos con el mismo nombre de evento y organización aparecen juntos en la portada, conservando sus propios resultados.</p>
+            <p>Controla cuándo se reciben actas y cuándo se conservan solo para consulta.</p>
+            <dl><dt>Organización</dt><dd>{organizaciones.find(o => o.idOrganizacion === org)?.nombre ?? 'Organización seleccionada'}</dd><dt>Elección</dt><dd>{actual.nombre}</dd><dt>Cargo</dt><dd>{actual.cargo}</dd><dt>Candidatos</dt><dd>{actual.candidatos.length}</dd><dt>Mesas esperadas</dt><dd>{actual.mesas.length}</dd><dt>Operadores disponibles</dt><dd>{preparacion.operadores.length}</dd></dl>
+            <p>Comprueba que todas las mesas tengan un operador. La publicación no asigna responsables ni registra actas automáticamente.</p>
+            <EstadoEleccion key={actual.id+'-'+actual.estado} proceso={actual} ocupado={bloqueado} puedeAbrir={preparacion.puedePublicar&&actual.mesas.every(m=>asignacionesGuardadas.some(a=>a.idMesa===m.id))} alCambiar={accion=>guardar(async()=>{
+              if(accion==='reiniciar'){const nuevo=await pedir(`/configuracion/procesos/${id}/reiniciar`,{metodo:'POST',datos:{confirmar:true}});setId(nuevo.id);setRevisandoCargo(true);setPestana('configuracion');setMensaje('Nuevo borrador sin actas. Revisa la configuración y pulsa Iniciar conteo.');}
+              else if(accion==='eliminar'){await pedir(`/configuracion/procesos/${id}`,{metodo:'DELETE'});setId('');setRevisandoCargo(false);}
+              else if(accion==='abrir'||accion==='destacar')await pedir(`/configuracion/procesos/${id}/actual`,{metodo:'POST',datos:{confirmar:true}});
+              else await pedir(`/configuracion/procesos/${id}/estado`,{metodo:'POST',datos:{estado:accion,confirmar:true}});
+            },accion==='reiniciar'?'Nuevo borrador preparado sin actas. Revisa la configuración antes de iniciar.':'Estado actualizado correctamente.')}/>
+
           </section>}
 
+          {['usuarios','asignaciones'].includes(pestana)&&org&&datosInstitucionListos&&<AsignacionesOperadores key={org} organizacion={org} cuentas={cuentas} version={version} alCargo={valor=>{setId(valor);setRevisandoCargo(true);setCreandoProceso(false);setEditandoProceso(false);setPestana('configuracion');}}/>}
           {pestana === 'usuarios' && (<>
+            {org&&<ImportarExcel key={`operadores-${org}`} ruta="/importaciones/operadores" organizacion={org} titulo="operadores" operadores alImportar={()=>setVersion(v=>v+1)}/>}
             <AdministrarCuentas
               key={`${org}-${modoCuenta}`}
               organizacionInicial={org}
               accionInicial={!org && sesion.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null) ? 'organizacion' : modoCuenta}
               rolInicial="OPERADOR"
-              alCrearOrganizacion={creada => { setOrg(creada.idOrganizacion); setId(''); setCreandoProceso(true); setPestana('configuracion'); }}
+              alCrearOrganizacion={creada => { setOrg(creada.idOrganizacion); setId(''); mostrarCargos(); }}
               esGlobal={sesion.roles.some(r => r.rol === 'ADMINISTRADOR' && r.idOrganizacion === null)}
               organizaciones={organizaciones}
               cuentas={cuentas}
@@ -774,6 +631,8 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
   const [contexto, setContexto] = useState(null);
   const [historial, setHistorial] = useState(null);
   const [foto, setFoto] = useState('');
+  const [actaOrigen,setActaOrigen]=useState('');
+  const [actasDisponibles,setActasDisponibles]=useState([]);
   const [votos, setVotos] = useState({});
   const [blancos, setBlancos] = useState(0);
   const [nulos, setNulos] = useState(0);
@@ -784,6 +643,8 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [ocupado, setOcupado] = useState(false);
+
+  useEffect(()=>{let v=true;solicitarRest('/actas?pagina=1&limite=100').then(r=>{if(v)setActasDisponibles(r.elementos);}).catch(e=>{if(v)setError(e.message);});return()=>{v=false};},[version]);
 
   useEffect(() => {
     solicitarRest('/mis-mesas')
@@ -800,7 +661,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
     let v = true;
     setContexto(null);
     setHistorial(null);
-    setFoto('');
+    setFoto('');setActaOrigen('');
     setConfirmado(false);
     setError('');
     if (!id) return;
@@ -839,7 +700,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
         idMesa: id,
         idSolicitud: solicitud,
         versionAnterior: historial.versionAnterior,
-        foto,
+        ...(actaOrigen?{idActaOrigen:actaOrigen}:{foto}),
         votos: Object.entries(votos).map(([idCandidato, cantidad]) => ({ idCandidato, cantidad })),
         blancos,
         nulos,
@@ -893,11 +754,11 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
           <div className="titulo-seccion-privada">
             <h1>Registro de actas</h1>
             <div className="subtitulo-seccion-privada">
-              {contexto ? `Elección actual · ${contexto.unidad}` : 'Selecciona una mesa asignada'}
+              {contexto ? `${contexto.cargo} · ${contexto.unidad}` : 'Selecciona una mesa asignada'}
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="controles-cabecera-operador">
             {mesas.length > 0 && (
               <select
                 aria-label="Mesa asignada"
@@ -905,9 +766,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                 onChange={e => setId(e.target.value)}
                 className="selector-mesa-topbar"
               >
-                {mesas.map(m => (
-                  <option key={m.id} value={m.id}>Mesa {m.codigo}</option>
-                ))}
+                {agruparMesasFisicas(mesas).map(g=><optgroup key={g.id} label={`Mesa ${g.codigo} · ${g.unidad} · ${g.sector} · ${g.cargos.length} cargos`}>{g.cargos.map(m=><option key={m.id} value={m.id}>{m.cargo} · Mesa {m.codigo} · {m.unidad}</option>)}</optgroup>)}
               </select>
             )}
 
@@ -933,6 +792,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
             <p style={{ color: 'var(--secundario)' }}>Cargando información de la mesa…</p>
           ) : (
             <>
+              {contexto.estado!=='recepcion'&&<p className="aviso" role="status">La recepción está cerrada. Puedes consultar el historial, pero no registrar cambios.</p>}
               <form onSubmit={publicar}>
                 <div className="grid-operador-registro">
                   {/* Columna Izquierda: Fotografía del acta */}
@@ -945,9 +805,11 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                       <span className="insignia-suave">Copia digital respaldada</span>
                     </div>
 
+                    <p>Sector de la mesa: <strong>{contexto.sectorNombre??contexto.sector??'General'}</strong>. No se mezcla con otros sectores.</p>
+                    <label>O reutilizar una foto ya registrada para otro cargo del mismo sector<select value={actaOrigen} disabled={ocupado} onChange={e=>{setFoto('');cambiar(setActaOrigen,e.target.value);}}><option value="">Usar una fotografía nueva</option>{actasDisponibles.filter(a=>a.idProceso!==contexto.idProceso&&a.estado!=='anulada'&&(a.sector??'general')===(contexto.sector??'general')&&mesas.some(m=>m.id===a.idMesa)).map(a=><option key={a.id} value={a.id}>{mesas.find(m=>m.id===a.idMesa)?.cargo} · {mesas.find(m=>m.id===a.idMesa)?.codigo} · versión {a.version}</option>)}</select></label>
                     <div className="visor-foto-acta">
-                      {foto ? (
-                        <img src={foto} alt="Fotografía del acta a comparar con el conteo" className="imagen-acta-cargada" />
+                      {foto || actaOrigen ? (
+                        <img src={actaOrigen?`/api/v1/actas/${actaOrigen}/foto`:foto} alt="Fotografía del acta a comparar con el conteo" className="imagen-acta-cargada" />
                       ) : (
                         <div className="visor-placeholder">
                           <IconoCamara tamano={48} color="#94A3B8" />
@@ -965,14 +827,14 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                           type="file"
                           accept="image/jpeg,image/png"
                           capture="environment"
-                          required={!foto}
+                          required={!foto&&!actaOrigen}
                           disabled={ocupado}
                           onChange={async e => {
                             try {
                               const f = e.target.files[0];
                               if (f) {
                                 if (f.size > 10000000) throw Error('Máximo 10 MB');
-                                cambiar(setFoto, await archivoComoTexto(f));
+                                setActaOrigen('');cambiar(setFoto, await archivoComoTexto(f));
                               }
                             } catch (err) {
                               setError(err.message);
@@ -993,7 +855,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                               const f = e.target.files[0];
                               if (f) {
                                 if (f.size > 10000000) throw Error('Máximo 10 MB');
-                                cambiar(setFoto, await archivoComoTexto(f));
+                                setActaOrigen('');cambiar(setFoto, await archivoComoTexto(f));
                               }
                             } catch (err) {
                               setError(err.message);
@@ -1135,7 +997,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                     <button
                       type="submit"
                       className="boton-publicar-acta"
-                      disabled={ocupado || !foto || !confirmado || contexto.candidatos.length === 0}
+                      disabled={contexto.estado!=='recepcion' || ocupado || (!foto&&!actaOrigen) || !confirmado || contexto.candidatos.length === 0}
                     >
                       <IconoCheck tamano={18} />
                       <span>{ocupado ? 'Confirmando…' : 'Confirmar y publicar'}</span>

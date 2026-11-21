@@ -1,0 +1,20 @@
+{
+  "fecha": "2026-11-20T16:23:01-0400",
+  "proyecto": "tuvoto",
+  "estado": "OK",
+  "contenedoresSaludables": 13,
+  "comparacionDatosPrevios": "Sin cambios en cantidades y huellas agregadas de usuarios, claves, sesiones, roles, organizaciones, elecciones, candidatos, mesas, asignaciones, actas y eventos",
+  "infraestructura": "Contenedores de PostgreSQL, MongoDB, Redis y RabbitMQ conservados",
+  "otrosProyectos": "Estados conservados",
+  "acceso": [
+    "http://127.0.0.1:8890"
+  ],
+  "verificaciones": [
+    "Recursos React idénticos a compilación actual",
+    "GraphQL público con sectores y resultados",
+    "Anónimo 401 en sesión e importaciones",
+    "Cuatro contratos OpenAPI 0.2.0"
+  ],
+  "sinCargasElectorales": true,
+  "pendienteWifi": "La interfaz Wi-Fi ahora tiene 172.23.166.16; la configuración privada aún publica 192.168.100.36. No se modificó la red ni se declara verificado acceso desde móvil."
+}

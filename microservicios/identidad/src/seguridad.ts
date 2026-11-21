@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import bcrypt from 'bcryptjs';
+import { rutasImportacionOperadores } from './importacion-operadores.js';
 import type { Express, Request, Response } from 'express';
 import type { Pool, PoolClient } from 'pg';
 import { z } from 'zod';
@@ -80,7 +81,7 @@ export async function bootstrap(pool: Pool,entrada: unknown) {
     await auditar(db,'bootstrap',id);await db.query('COMMIT');return {idUsuario:id,usuario:datos.usuario};
   } catch(e) {await db.query('ROLLBACK');throw e;} finally {db.release();}
 }
-async function autenticar(pool: Pool,req: Request) {
+async function autenticar(pool: Pool|PoolClient,req: Request) {
   const token=tokenSesion(req);if(!token || token.length!==43) return null;
   const r=await pool.query('SELECT u.id,u.usuario,s.csrf_hash,s.id_organizacion FROM sesiones s JOIN usuarios u ON u.id=s.id_usuario WHERE s.hash=$1 AND NOT s.revocada AND s.expira_en>now() AND u.activo',[hash(token)]);
   if(!r.rowCount)return null;
@@ -95,7 +96,7 @@ export const permisos: Record<string,string[]> = {
   'informes:consultar':['ADMINISTRADOR','AUDITOR'],
 };
 export function rutasSeguridad(app: Express,pool: Pool) {
-  app.use(['/autenticacion','/usuarios','/organizaciones','/auditoria-seguridad','/interno'],(_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();});
+  app.use(['/autenticacion','/usuarios','/organizaciones','/auditoria-seguridad','/importaciones','/interno'],(_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();});
   app.get('/autenticacion/csrf',(_req,res)=>{
     const token=secreto();res.cookie(cookieCsrf,token,{secure:cookieSegura,httpOnly:false,sameSite:'strict',path:'/'});res.json({csrf:token});
   });
@@ -151,13 +152,14 @@ export function rutasSeguridad(app: Express,pool: Pool) {
       await db.query('UPDATE recuperaciones SET usada=true WHERE id_usuario=$1',[id]);await db.query('UPDATE sesiones SET revocada=true WHERE id_usuario=$1',[id]);await auditar(db,'recuperacion_completada',id);await db.query('COMMIT');res.status(204).end();
     }catch{await db.query('ROLLBACK');error(res,503,'Recuperación no disponible');}finally{db.release();}
   });
-  app.use(['/usuarios','/organizaciones','/auditoria-seguridad','/autenticacion/logout','/autenticacion/contrasena','/autenticacion/organizacion'],async(req,res,next)=>{
+  app.use(['/importaciones','/usuarios','/organizaciones','/auditoria-seguridad','/autenticacion/logout','/autenticacion/contrasena','/autenticacion/organizacion'],async(req,res,next)=>{
     const actor=await autenticar(pool,req);if(!actor)return error(res,401,'Sesión requerida');
     if(!['GET','HEAD'].includes(req.method)&&(!csrf(req)||hash(req.header('X-CSRF-Token')??'')!==actor.csrf_hash))return error(res,403,'Origen o CSRF inválido');
     res.locals.actor=actor;next();
   });
   const esAdministradorGlobal=(actor:any)=>actor.asignaciones.some((r:any)=>r.rol==='ADMINISTRADOR'&&r.idOrganizacion===null);
   const puedeAdministrar=(actor:any,org:string)=>esAdministradorGlobal(actor)||actor.asignaciones.some((r:any)=>r.rol==='ADMINISTRADOR'&&r.idOrganizacion===org);
+  rutasImportacionOperadores(app,pool,puedeAdministrar,(req,db)=>autenticar(db,req));
   app.post('/autenticacion/organizacion',async(req,res)=>{
     const datos=z.object({idOrganizacion:uuid}).strict().safeParse(req.body);if(!datos.success)return error(res,400,'Solicitud inválida');
     if(!(await pool.query('SELECT 1 FROM asignaciones_roles r JOIN organizaciones o ON o.id=r.id_organizacion WHERE r.id_usuario=$1 AND o.id=$2 AND o.activa',[res.locals.actor.id,datos.data.idOrganizacion])).rowCount)return error(res,403,'Organización no permitida');
@@ -189,7 +191,12 @@ export function rutasSeguridad(app: Express,pool: Pool) {
   });
   app.get('/usuarios',async(req,res)=>{
     const org=req.header('X-Organizacion')??'';if(!esAdministradorGlobal(res.locals.actor)&&(!uuid.safeParse(org).success||!puedeAdministrar(res.locals.actor,org)))return error(res,403,'Permiso denegado');
-    const filas=await pool.query(`SELECT u.id AS "idUsuario",u.usuario,u.activo,COALESCE((SELECT jsonb_agg(jsonb_build_object('rol',r.rol,'idOrganizacion',r.id_organizacion)) FROM asignaciones_roles r WHERE r.id_usuario=u.id AND ($1 OR r.id_organizacion=$2::uuid)),'[]'::jsonb) AS roles FROM usuarios u WHERE $1 OR u.id IN (SELECT id_usuario FROM asignaciones_roles WHERE id_organizacion=$2::uuid) ORDER BY u.usuario LIMIT 100`,[esAdministradorGlobal(res.locals.actor),uuid.safeParse(org).success?org:null]);res.json({elementos:filas.rows});
+    const pagina=z.coerce.number().int().min(1).default(1).parse(req.query.pagina),limite=z.coerce.number().int().min(1).max(100).default(100).parse(req.query.limite);
+    const usuario=req.query.usuario===undefined?null:esquemaUsuario.parse(req.query.usuario),idUsuario=req.query.idUsuario===undefined?null:uuid.parse(req.query.idUsuario);
+    const valores=[esAdministradorGlobal(res.locals.actor),uuid.safeParse(org).success?org:null,usuario,idUsuario];
+    const donde=`($1 OR u.id IN (SELECT id_usuario FROM asignaciones_roles WHERE id_organizacion=$2::uuid)) AND ($3::text IS NULL OR u.usuario=$3) AND ($4::uuid IS NULL OR u.id=$4)`;
+    const filas=await pool.query(`SELECT u.id AS "idUsuario",u.usuario,u.activo,COALESCE((SELECT jsonb_agg(jsonb_build_object('rol',r.rol,'idOrganizacion',r.id_organizacion)) FROM asignaciones_roles r WHERE r.id_usuario=u.id AND ($1 OR r.id_organizacion=$2::uuid)),'[]'::jsonb) AS roles FROM usuarios u WHERE ${donde} ORDER BY u.usuario LIMIT $5 OFFSET $6`,[...valores,limite,(pagina-1)*limite]);
+    const total=(await pool.query(`SELECT count(*)::int AS n FROM usuarios u WHERE ${donde}`,valores)).rows[0].n;res.json({elementos:filas.rows,pagina,limite,total});
   });
   app.post('/usuarios',async(req,res)=>{
     const datos=z.object({usuario:esquemaUsuario,contrasena:esquemaClave,idOrganizacion:uuid,rol:z.enum(['ADMINISTRADOR','OPERADOR','AUDITOR'])}).strict().safeParse(req.body);if(!datos.success)return error(res,400,'Solicitud inválida');

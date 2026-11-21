@@ -4,7 +4,7 @@ package tuvoto.mesas.v1;
 service ServicioMesas {
   rpc ConsultarMesa (SolicitudMesa) returns (RespuestaMesa);
 }
-message SolicitudMesa { string id_mesa = 1; bool para_registro = 2; }
+message SolicitudMesa { string id_mesa = 1; bool para_registro = 2; string id_registro = 3; bool finalizar_registro = 4; }
 message Candidato { string id = 1; string nombre = 2; }
 message RespuestaMesa {
   string id = 1;
@@ -12,4 +12,7 @@ message RespuestaMesa {
   string codigo = 3;
   string unidad = 4;
   repeated Candidato candidatos = 5;
+  string sector = 6;
+  string nombre_proceso = 7;
+  string estado_proceso = 8;
 }

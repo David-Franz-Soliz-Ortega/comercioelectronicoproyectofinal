@@ -70,11 +70,12 @@ export default function Sesion({ children }) {
           ejecutar(() => iniciarSesion(usuario, clave));
         }}>
           <div className="cabecera-login">
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-              <IconoTuvoto tamano={44} />
+            <div className="simbolo-marca" style={{ margin: '0 auto 12px' }}>
+              <IconoTuvoto tamano={28} />
             </div>
-            <h1>TUVOTO</h1>
-            <p>Acceso del personal electoral y auditoría</p>
+            <h1>TUVOTO<span className="punto-marca">.</span></h1>
+            <p className="sobre-titulo-login">ACCESO DEL PERSONAL</p>
+            <p className="subtitulo-login">Gestión electoral, actas y auditoría</p>
           </div>
           <div className="formulario-simple">
             <label htmlFor="usuario">

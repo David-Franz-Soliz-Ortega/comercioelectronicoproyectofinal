@@ -1,6 +1,6 @@
 # Frontend TUVOTO
 
-Portal público en azul y blanco: evento destacado, navegación por cargos, candidaturas con fotografías y porcentajes grandes, votos por unidad y avance de actas, sin login. Panel privado: administración de organización/procesos/cuentas/asignaciones o registro de actas por operadores. Conserva cookies HttpOnly, CSRF, logout y revalidación de sesión.
+Portal público: elección actual, candidatos con fotografías, votos y avance por mesas, sin login. Panel privado: administración de organización/procesos/cuentas/asignaciones o registro de actas por operadores. Conserva cookies HttpOnly, CSRF, logout y revalidación de sesión.
 
 El operador fotografía/sube JPEG/PNG y confirma manualmente números. No hay OCR simulado. Las actas observadas no incorporan votos nuevos. No se muestran cifras ficticias.
 
@@ -12,34 +12,24 @@ Para comprobar la interfaz, iniciar Vite y ejecutar `npm run probar-interfaz`. `
 
 La prueba de navegador utiliza respuestas sintéticas interceptadas exclusivamente en el navegador: verifica filtros, estados vacíos y de error, movimiento reducido y anchos de 320 a 1440 px. No escribe datos ni acredita una integración completa con servicios desplegados.
 
-El panel privado y sus estilos se descargan al entrar en `#panel`. La consulta de resultados ocurre cada 10 segundos y el catálogo cada minuto; ambas se suspenden cuando la pestaña está oculta y se reanudan al volver. Las solicitudes anteriores se cancelan al cambiar de selección. Los empates y los conteos en cero no proclaman ganadores. Una respuesta parcial o inconsistente genera un aviso; los errores de actualización conservan los últimos datos de la misma selección, identificados como anteriores.
+## Integración del diseño publicado en main
 
-Las fotos ausentes o fallidas muestran iniciales y un aviso. No se incluyen retratos ni resultados de demostración en el frontend. Las imágenes sintéticas del test pertenecen únicamente a sus respuestas interceptadas. Los porcentajes y el avance tienen denominadores distintos.
+`Aplicacion.jsx` ahora selecciona `paginas/PortalPublico.jsx` y carga `paginas/PanelPrivado.jsx` de forma diferida. El diseño público, la tipografía local y `privado.css` proceden de main; `ampliaciones.css` conserva Excel, sectores, ponderación y estados. Los clientes mantienen sesión, CSRF y errores 401/403.
 
-Configuración y contrato: [guía de eventos](../docs/portal-eventos.md). El frontend nuevo requiere desplegar también el contrato GraphQL y las versiones coordinadas de Elecciones, Actas y Resultados.
+El catálogo utiliza GraphQL `eventos`; el panel sigue las APIs reales de configuración, importación y estados. Ver `docs/portal-eventos.md`. Pruebas reales locales: `node pruebas/ampliacion/probar-interfaz.mjs` desde la raíz, únicamente después de preparar el entorno sintético documentado. No requiere instalar Chromium.
 
-## Arranque y diagnóstico
+El estilo del administrador se define en `src/administracion.css`, limitado a `.administracion-tuvoto`: tipografía del observatorio, tarjetas azules/blancas, campos y selectores accesibles, formularios adaptables y estados de foco. El operador, auditor y portal conservan sus estilos. No modifica permisos ni contratos.
 
-Iniciar primero los servicios desde la raíz: `python3 infraestructura/tuvoto/iniciar-local.py`. El portal compilado queda en `http://127.0.0.1:8890`. Para editar con recarga automática:
+La selección administrativa está separada en **Institución → Evento electoral → Cargo**, usando únicamente el catálogo autorizado existente. Cambiar de evento limita sus cargos y reinicia el formulario pendiente; el estado y el indicador de portada se muestran aparte. No renombra ni divide registros existentes.
 
-```sh
-URL_ENTRADA_DESARROLLO=http://127.0.0.1:8890 npm run desarrollar --prefix frontend -- --host 127.0.0.1 --port 5174
-```
+En Resumen las instituciones se muestran como tarjetas en una lista, con la ficha de la seleccionada al lado. «Crear nueva institución» usa el endpoint real de organizaciones y solo se ofrece al administrador global. Antes de seleccionar una institución existente no se muestran eventos ni cargos. La prueba Firefox crea exclusivamente una institución sintética en el proyecto aislado y comprueba su persistencia por API; no crea elecciones ni actas.
 
-Vite sirve el frontend; requiere que TUVOTO siga iniciado en el puerto 8890. Si falla la primera consulta, la portada muestra un único aviso con «Reintentar conexión». Si el catálogo responde vacío, muestra «Todavía no hay un evento publicado». Un fallo de actualización mantiene la última respuesta de la misma selección con un aviso.
+La selección de institución permanece en Resumen; eventos y cargos se eligen en Elección. La institución y el cargo se mantienen en el estado del panel al navegar; los demás módulos muestran una referencia compacta con «Cambiar en Resumen». La prueba Firefox comprueba que el bloque no se repite en Usuarios, Mesas y Candidatos y que los IDs seleccionados se conservan.
 
-`npm run probar-conexion --prefix frontend` comprueba desde Chromium la página real, GraphQL y el acceso privado sin iniciar sesión ni crear datos. No intercepta respuestas. Acepta `URL_BASE` (por defecto `http://127.0.0.1:8890`), `CHROMIUM_EJECUTABLE` y `EVIDENCIA_FRONTEND`; guarda capturas y evidencia en `/tmp/tuvoto-conexion-real-*`. Un catálogo vacío no prueba la captura ni el conteo de una elección.
+Resumen muestra totales reales de eventos, candidatos, mesas y operadores activos de la institución; excluye cargos archivados de los totales y los informa aparte. Los accesos solo navegan. Elección concentra el catálogo de eventos/cargos y su configuración: ámbito, vuelta, sectores, conteo normal o ponderado y regla opcional. Candidatos mantiene fotografías/Excel; Mesas, Asignar operadores, Usuarios y Estado conservan sus propias operaciones. No se duplican formularios de gestión en Resumen.
 
-## Diseño del observatorio
+Resumen incluye una vista previa de hasta seis candidatos del cargo activo y «Ver resultados públicos» para los cargos publicados. El enlace usa `#resultados?proceso=UUID` y selecciona el cargo exacto, sin cambiar el destacado ni abrir la recepción. Los cargos retirados muestran un estado no disponible, sin sustituirlos por resultados ajenos. La edición permanece en Candidatos y la publicación en su módulo. Las fotografías de borradores no se solicitan al endpoint público.
 
-La portada usa fondo claro, tarjetas blancas, texto azul oscuro y acentos azules para los controles y el liderazgo. La jerarquía prioriza retratos amplios y nombres grandes, con avance horizontal de actas, navegación por cargo, dos tarjetas de candidatos por fila en escritorio y tabla de facultades/unidades. Cada tarjeta muestra la fotografía, el porcentaje, los votos recibidos y su denominador. La diferencia entre candidaturas se expresa en puntos porcentuales sobre los votos válidos de la selección actual.
+En Resumen, «Tu espacio de trabajo» aparece antes de los indicadores y la vista previa. En Mesas, la importación Excel está desplegada antes del formulario manual: `codigo` único por cargo, `unidad` para facultad/carrera/comunidad y `sector` si está configurado. Las mesas se listan agrupadas por unidad. Se conserva el bloqueo de importación fuera de borrador. La prueba Firefox descarga la plantilla real y persiste dos mesas de facultades distintas exclusivamente en el entorno sintético; no crea actas ni escribe en el entorno habitual.
 
-La tabla permite buscar unidades sin distinguir tildes; la búsqueda es local y no agrega consultas a los servicios. «Ver votos» aplica el filtro existente al conteo. En móvil, las tarjetas se apilan y la tabla tiene desplazamiento horizontal. La urna conserva pausa y movimiento reducido.
-
-No se muestran ponderaciones 50/50, participación, partidos ni desgloses docentes/estudiantes porque esos campos aún no forman parte del contrato público. Los colores del liderazgo se derivan del conteo, no de una afiliación política. La interfaz conserva los estados vacíos hasta que se publiquen datos.
-
-Para ver un catálogo completo sin registrar votos, [Elecciones incluye una herramienta de demostración local](../microservicios/elecciones/README.md#catálogo-universitario-para-desarrollo-local). Se ejecuta explícitamente y publica candidaturas y mesas de prueba mediante las API; el frontend las consulta del mismo modo que cualquier evento. Sin actas, los porcentajes y el avance permanecen en cero y no se señala un líder.
-
-La tipografía pública es **Manrope**, variable de 200 a 800, servida desde los recursos locales con `font-display: swap`. Procede del [repositorio de Google Fonts](https://github.com/google/fonts/tree/main/ofl/manrope); su [licencia SIL OFL](public/fuentes/Manrope-OFL.txt) acompaña la distribución. No hay solicitudes a Google Fonts en tiempo de navegación. Vite genera el nombre con huella para la caché de recursos.
-
-Las fotografías llegan a 280 px de alto en escritorio y a 300 px en tablet; los nombres alcanzan 42 px. El cuerpo usa 16 px, los controles habituales al menos 14 px y los metadatos 12–13 px. En pantallas pequeñas se reorganiza el perfil y los controles conservan superficies de al menos 44 px. La tarjeta de liderazgo combina texto, borde y color; el color por sí solo no indica un ganador.
+En Elección, el administrador puede Iniciar conteo, Terminar conteo y Preparar nuevo conteo. Iniciar requiere candidatos, mesas y al menos una asignación por mesa. Terminar bloquea escrituras; corregir configuración exige preparar el siguiente intento. Esa operación archiva el anterior, conserva sus actas y copia candidatos/fotos, mesas/sectores y asignaciones a IDs nuevos en borrador, sin votos. No limpia bases, Redis ni MongoDB. El inicio del nuevo borrador es una confirmación separada. Las pruebas reales usan exclusivamente el entorno sintético; esta función de demostración no equivale a habilitación para producción.

@@ -1,0 +1,25 @@
+{
+  "fecha": "2026-11-21T10:17:00.039744-04:00",
+  "entorno": "tuvoto-prueba-sectores-c4de5aa6",
+  "tipo": "HTTP real, credenciales y datos sintéticos exclusivos",
+  "comprobaciones": [
+    "Excel operadores: bcrypt/login real, claves ocultas, duplicados sin cambiar contraseña, rollback de lote y 403 al operador",
+    "Formato de candidatos: archivo conjunto rechazado con columnas precisas en ruta individual, aceptado en ruta conjunta sin escribir datos",
+    "Preparación flexible: asignaciones REST y Excel sin candidatos, reintento sin duplicar, 401/403/404, inicio incompleto rechazado y candidatos añadidos después",
+    "Cargos Excel: cuatro tipos, grupos separados, carreras exclusivas por Director, lote atómico, duplicados y concurrencia; operadores consultables por mesa y cargo con separación de organizaciones",
+    "Cargos existentes: mantener sin cambios, reemplazo selectivo sin perder IDs/candidatos/mesas/asignaciones/reglas, lote mixto, decisiones y vistas revalidadas, 409 por carreras usadas y bloqueo real en recepción/cierre",
+    "Excel conjuntos: candidatos/mesas/asignaciones en dos cargos persistidos, referencias explícitas, rollback íntegro, 401/403, aislamiento, huella ligada al destino, concurrencia y bloqueo tras iniciar",
+    "Excel candidatos, mesas y asignaciones: plantillas reales, sectores validados, referencias y configuración congelada",
+    "NGINX → GraphQL → Actas → gRPC → PostgreSQL/outbox → RabbitMQ → MongoDB: pesos 30/70, votos por sector y regla por sector",
+    "Foto compartida explícita entre cargos, sector incorrecto rechazado y elecciones publicadas consultables sin mezclar conteos",
+    "Correcciones simultáneas: una versión aceptada, conflicto 409 y original preservado",
+    "Segunda vuelta independiente: participantes vinculados, nuevos IDs y primera vuelta intacta",
+    "Aislamiento entre organizaciones y prevención de escalamiento de rol",
+    "Compatibilidad del conteo general: votos iguales y opciones avanzadas desactivadas",
+    "Estados reales: edición y eliminación lógica de borrador, cierre serializado con gRPC, 409 en escrituras tardías, historial y actas conservadas al archivar",
+    "Nuevo conteo: solo administrador, concurrencia sin copias dobles, configuración editable, asignaciones copiadas, resultado inicial cero y acta anterior conservada",
+    "Operador: mesa y contexto identifican su cargo sin mezclar candidatos de cargos diferentes"
+  ],
+  "estado": "OK",
+  "limitacion": "No representa certificación electoral ni prueba de carga"
+}
