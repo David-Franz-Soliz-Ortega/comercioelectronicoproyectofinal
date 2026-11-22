@@ -4,6 +4,8 @@ Actualizado: 2026-11-22. Responsable: Antigravity. Siguiente responsable: por as
 
 ## Entregas simultáneas recientes
 
+- [Resultados: destacados en cómputo preliminar y navegación agrupada por cargo](entregas/resultados-destacados-agrupacion-cargos.md) — retirada la sección redundante de candidaturas estáticas; los cargos destacados configurados en administración encabezan y seleccionan por defecto el Cómputo Preliminar con candidatos, fotos, votos y actas. Barra de cargos agrupada por palabra clave (Rector, Vicerrector, Decano, Director) con menú desplegable por facultades y opción «Ver todos» con cómputos completos. 71/71 pruebas frontend OK, compilación Vite y despliegue en `tuvoto-frontend-1` verificado.
+
 - [Asignación directa de actas pendientes y depuración de cabecera](entregas/asignacion-directa-mesas-publicacion.md) — resuelta la visualización de actas sin operador en Estado y publicación: tabla con las mesas y cargos pendientes exactos, asignación directa mediante selector de operadores activos con persistencia inmediata y actualización de estado; eliminado el recuadro redundante de contexto en cabecera. 71/71 pruebas frontend pasadas, compilación Vite y despliegue local en `tuvoto-frontend-1` verificado.
 
 - [Ciclo institucional y destacados](entregas/ciclo-conteo-destacados.md) — nuevo intento institucional conserva el anterior y copia destacados; Terminar solo durante recepción. 70 pruebas frontend y 9 PostgreSQL efímero OK. Elecciones/frontend actualizados con autorización y respaldo validado; 13 saludables, tablas y estados reales conservados.

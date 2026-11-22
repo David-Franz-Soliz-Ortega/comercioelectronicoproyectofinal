@@ -70,6 +70,36 @@
 .navegacion-cargos .cargo-seleccionado { background: var(--acento-publico); color: white; border-color: var(--acento-publico); box-shadow: 0 4px 12px #174bd126; }
 .navegacion-cargos .cargo-seleccionado:hover { background: #123ca9; }
 .nota-base-calculo { display: flex; align-items: center; gap: 8px; white-space: nowrap; font-size: .8125rem; color: var(--suave-publico); }
+.insignia-destacado-estrella { color: #f59e0b; margin-right: 4px; font-weight: 800; }
+.boton-grupo-cargos { display: flex; align-items: center; gap: 6px; }
+.boton-grupo-cargos.grupo-abierto { border-color: var(--acento-publico); background: #eaf1fe; }
+.contador-grupo-cargos { font-size: .75rem; opacity: .85; padding: 2px 7px; border-radius: 12px; background: #eef3fb; }
+.cargo-seleccionado .contador-grupo-cargos { background: rgba(255, 255, 255, 0.28); color: white; }
+.flecha-desplegable { font-size: .75rem; margin-left: 2px; }
+.boton-ver-todos-general { border: 1px dashed var(--borde-control); background: #fbfdff; color: var(--acento-publico); font-weight: 700; }
+.boton-ver-todos-general:hover { background: #eef4ff; border-color: var(--acento-publico); }
+.desplegable-facultades-cargo { background: white; border: 1px solid #c9d8ee; border-radius: 14px; padding: 20px 22px; margin: 16px 0 24px; box-shadow: 0 10px 28px rgba(16, 28, 51, 0.09); animation: aparecer-observatorio .25s ease-out; }
+.cabecera-desplegable-facultades { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.cabecera-desplegable-facultades h3 { font-size: 1.25rem; font-weight: 800; color: var(--texto-publico); margin: 0; }
+.cabecera-desplegable-facultades p { font-size: .875rem; color: var(--suave-publico); margin: 4px 0 0; }
+.acciones-cabecera-desplegable { display: flex; align-items: center; gap: 10px; }
+.boton-ver-todos-grupo { display: flex; align-items: center; gap: 6px; min-height: 38px; padding: 8px 16px; background: #e8f0fe; color: var(--acento-publico); border: 1px solid #b8d2fa; border-radius: 8px; font-size: .875rem; font-weight: 700; cursor: pointer; transition: background .15s; }
+.boton-ver-todos-grupo:hover { background: #d3e3fd; }
+.boton-cerrar-desplegable { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--borde-control); border-radius: 50%; background: white; color: var(--suave-publico); font-size: .875rem; cursor: pointer; }
+.boton-cerrar-desplegable:hover { background: #f1f4f9; color: var(--texto-publico); }
+.filtro-desplegable-facultades { margin-bottom: 14px; }
+.filtro-desplegable-facultades input { width: 100%; max-width: 420px; min-height: 40px; padding: 8px 14px; border: 1px solid var(--borde-control); border-radius: 8px; font-size: .875rem; }
+.rejilla-facultades-cargos { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
+.item-facultad-cargo { display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 12px 14px; border: 1px solid #e1e8f2; border-radius: 8px; background: white; cursor: pointer; transition: background .15s, border-color .15s; width: 100%; }
+.item-facultad-cargo:hover { background: #f0f6ff; border-color: var(--acento-publico); }
+.item-facultad-seleccionado { background: #eaf1fe; border-color: var(--acento-publico); box-shadow: 0 0 0 1px var(--acento-publico); }
+.nombre-facultad-item { font-size: .875rem; font-weight: 700; color: #101c33; line-height: 1.35; }
+.detalle-facultad-item { font-size: .75rem; color: var(--suave-publico); margin-top: 4px; }
+.insignia-destacado-mini { background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 4px; font-weight: 700; }
+.seccion-ver-todos-computo { margin: 24px 0; }
+.cabecera-seccion-ver-todos { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.cabecera-seccion-ver-todos h2 { font-size: 1.75rem; font-weight: 800; letter-spacing: -.6px; margin: 4px 0 0; }
+.cabecera-seccion-ver-todos p:last-child { font-size: .875rem; color: var(--suave-publico); margin: 6px 0 0; }
 .encabezado-conteo { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 30px 0 24px; outline: none; scroll-margin-top: 20px; }
 .encabezado-conteo h2 { font-size: 2rem; font-weight: 800; letter-spacing: -.9px; line-height: 1.2; overflow-wrap: anywhere; }
 .encabezado-conteo p:last-child { font-size: .875rem; color: var(--suave-publico); margin-top: 8px; }

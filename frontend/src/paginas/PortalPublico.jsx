@@ -1,10 +1,10 @@
-import ResumenResultadosCargos from '../componentes/ResumenResultadosCargos.jsx';
 import CargosDestacados from '../componentes/CargosDestacados.jsx';
+import ResumenResultadosCargos from '../componentes/ResumenResultadosCargos.jsx';
 import { procesoDesdeEnlace } from '../api/enlacesResultados.js';
 import ResultadosSectores from '../componentes/ResultadosSectores.jsx';
 import { nombresEstado } from '../api/catalogos.js';
 import { puntuacionCandidatura, ordenarCandidaturas } from '../api/presentacionResultados.js';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import UrnaAnimada from '../componentes/UrnaAnimada.jsx';
 import { IconoUrna, IconoEdificio, IconoUsuario, IconoReloj, IconoBarras, IconoInfo } from '../componentes/Iconos.jsx';
 import { usarConsultaPublica } from '../api/usarConsultaPublica.js';
@@ -85,24 +85,91 @@ function TablaUnidades({ resultados, unidad, etiqueta, alElegir }) {
   </section>;
 }
 
+function agruparCargosPublicos(procesos) {
+  if (!Array.isArray(procesos) || !procesos.length) return [];
+  const grupos = new Map();
+
+  for (const p of procesos) {
+    const texto = String(p.cargo || '').trim();
+    const normalizado = texto.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
+    let clave = 'otros';
+    let etiqueta = texto;
+
+    if (/\bvice\s*r?rector/i.test(normalizado)) {
+      clave = 'vicerrector';
+      etiqueta = texto;
+    } else if (/\brector/i.test(normalizado)) {
+      clave = 'rector';
+      etiqueta = texto;
+    } else if (/\bdecan/i.test(normalizado)) {
+      clave = 'decano';
+      etiqueta = 'Decano';
+    } else if (/\bdirect/i.test(normalizado)) {
+      clave = 'director';
+      etiqueta = 'Director';
+    } else {
+      clave = normalizado;
+      etiqueta = texto.split(/\s*·\s*|\s*-\s*/)[0].trim() || texto;
+    }
+
+    if (!grupos.has(clave)) {
+      grupos.set(clave, { clave, etiqueta, procesos: [] });
+    }
+    grupos.get(clave).procesos.push(p);
+  }
+
+  for (const g of grupos.values()) {
+    if (g.procesos.length === 1) {
+      g.etiqueta = g.procesos[0].cargo;
+    }
+  }
+
+  const orden = ['rector', 'vicerrector', 'decano', 'director'];
+  return [...grupos.values()].sort((a, b) => {
+    const idxA = orden.indexOf(a.clave);
+    const idxB = orden.indexOf(b.clave);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.etiqueta.localeCompare(b.etiqueta, 'es');
+  });
+}
+
 export default function PortalPublico() {
   const enfocarAlCargar = useRef(false);
   const encabezadoResultados = useRef(null);
   const [seleccion, cambiarSeleccion] = useState(()=>({evento:'',proceso:procesoDesdeEnlace(location.hash),unidad:''}));
   const [pausadas, cambiarPausadas] = useState(() => { try { return localStorage.getItem('tuvoto:pausar-animaciones') === 'si'; } catch { return false; } });
+  const [grupoDesplegado, cambiarGrupoDesplegado] = useState(null);
+  const [verTodosGrupo, cambiarVerTodosGrupo] = useState(null);
+  const [busquedaFacultad, cambiarBusquedaFacultad] = useState('');
+
   const catalogo = usarConsultaPublica(consultaEventos, {}, validarEventos, 60000);
   const eventos = catalogo.datos ?? [];
   const evento = seleccion.evento?eventos.find(e=>e.id===seleccion.evento):seleccion.proceso?eventos.find(e=>e.procesos.some(p=>p.id===seleccion.proceso)):eventos[0];
-  const proceso = seleccion.proceso?evento?.procesos.find(p=>p.id===seleccion.proceso):evento?.procesos[0];
+  const primerDestacado = evento?.procesos.find(p => p.destacadoPortada) || evento?.procesos[0];
+  const proceso = seleccion.proceso?evento?.procesos.find(p=>p.id===seleccion.proceso):primerDestacado;
   const seleccionRetirada=!!(seleccion.proceso||seleccion.evento)&&!proceso;
   const unidad = seleccion.proceso === proceso?.id ? seleccion.unidad : '';
-  const conteo = usarConsultaPublica(consultaPortal, { idProceso: proceso?.id ?? '', unidad: unidad || null }, validarPortal, 10000, !!proceso);
+  const conteo = usarConsultaPublica(consultaPortal, { idProceso: proceso?.id ?? '', unidad: unidad || null }, validarPortal, 10000, !!proceso && !verTodosGrupo);
   const portal = proceso ? conteo.datos : null;
   const r = portal?.resultados;
   const candidatos = r ? ordenarCandidaturas(r) : [];
   const fecha = r?.actualizadoEn ? new Intl.DateTimeFormat('es-BO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/La_Paz' }).format(new Date(r.actualizadoEn)) : null;
-  const cargando = catalogo.cargando || (!!proceso && conteo.cargando);
-  const error = catalogo.error || (proceso && conteo.error);
+  const cargando = catalogo.cargando || (!!proceso && !verTodosGrupo && conteo.cargando);
+  const error = catalogo.error || (!verTodosGrupo && proceso && conteo.error);
+
+  const gruposCargos = useMemo(() => agruparCargosPublicos(evento?.procesos || []), [evento?.procesos]);
+  const grupoActivo = gruposCargos.find(g => g.clave === grupoDesplegado);
+  const procesosDelGrupoFiltrados = useMemo(() => {
+    if (!grupoActivo) return [];
+    if (!busquedaFacultad.trim()) return grupoActivo.procesos;
+    const q = busquedaFacultad.toLowerCase().normalize('NFKD').replace(/\p{M}/gu, '');
+    return grupoActivo.procesos.filter(p => {
+      const texto = `${p.ambito || ''} ${p.nombre || ''} ${p.cargo || ''}`.toLowerCase().normalize('NFKD').replace(/\p{M}/gu, '');
+      return texto.includes(q);
+    });
+  }, [grupoActivo, busquedaFacultad]);
 
   useEffect(()=>{const alEnlace=()=>{if(location.hash.startsWith('#resultados?'))cambiarSeleccion({evento:'',proceso:procesoDesdeEnlace(location.hash),unidad:''});};window.addEventListener('hashchange',alEnlace);return()=>window.removeEventListener('hashchange',alEnlace);},[]);
 
@@ -118,7 +185,8 @@ export default function PortalPublico() {
   }, [portal, pausadas]);
 
   function elegirProceso(id) {
-    if (id === proceso?.id && !unidad && portal) { mostrarResultados(); return; }
+    if (id === proceso?.id && !unidad && portal && !verTodosGrupo) { mostrarResultados(); return; }
+    cambiarVerTodosGrupo(null);
     enfocarAlCargar.current = true;
     cambiarSeleccion({ evento: evento.id, proceso: id, unidad: '' });
   }
@@ -147,24 +215,184 @@ export default function PortalPublico() {
         </div>
         <div className="urna-portada"><UrnaAnimada compacta /><span className="leyenda-urna">Del acta al resultado.</span><button type="button" className="pausa-urna" aria-pressed={pausadas} onClick={alternarAnimaciones}>{pausadas ? 'Reanudar animaciones' : 'Pausar animaciones'}</button><small>Una comunidad informada.</small></div>
       </section>
-      {evento && <CargosDestacados cargos={evento.procesos} alElegir={elegirProceso}/> }
-      {evento && <div className="barra-cargos"><nav className="navegacion-cargos" aria-label="Cargos del evento">{evento.procesos.map(p => <button key={p.id} type="button" aria-pressed={p.id === proceso?.id} className={p.id === proceso?.id ? 'cargo-seleccionado' : ''} onClick={() => elegirProceso(p.id)}>{p.cargo}{p.ambito?' · '+p.ambito:''}{p.vuelta===2?' · Segunda vuelta':''}</button>)}</nav><a href="#como-leer" className="nota-base-calculo">{r?.ponderacionAplicada?'% ponderado configurado':'% sobre votos válidos'} <IconoInfo tamano={13} /></a></div>}
-      {evento&&<ResumenResultadosCargos key={evento.id} cargos={evento.procesos} alElegir={elegirProceso}/>}
-      {error && portal && <div className="aviso-observatorio" role="alert"><div><strong>No pudimos actualizar la información.</strong><p>{error}</p><p>Estás viendo la última respuesta recibida para esta selección.</p></div><button type="button" onClick={reintentar}>Reintentar <span aria-hidden="true">↻</span></button></div>}
-      {cargando ? <section className="estado-observatorio" role="status"><UrnaAnimada compacta /><h2>Preparando los resultados…</h2><p>Consultando los eventos y el conteo publicado.</p></section> : !portal ? <section className="estado-observatorio" role={error ? 'alert' : undefined}>
+      {evento && (
+        <div className="barra-cargos">
+          <nav className="navegacion-cargos" aria-label="Cargos del evento">
+            {gruposCargos.map(g => {
+              if (g.procesos.length === 1) {
+                const p = g.procesos[0];
+                const activo = !verTodosGrupo && p.id === proceso?.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    aria-pressed={activo}
+                    className={activo ? 'cargo-seleccionado' : ''}
+                    onClick={() => {
+                      cambiarVerTodosGrupo(null);
+                      cambiarGrupoDesplegado(null);
+                      elegirProceso(p.id);
+                    }}
+                  >
+                    {p.destacadoPortada && <span className="insignia-destacado-estrella" aria-hidden="true">★ </span>}
+                    {p.cargo}
+                    {p.vuelta === 2 ? ' · 2.ª vuelta' : ''}
+                  </button>
+                );
+              }
+
+              const activoEnGrupo = !verTodosGrupo && g.procesos.some(p => p.id === proceso?.id);
+              const abierto = grupoDesplegado === g.clave;
+              const cargoActualEnGrupo = activoEnGrupo ? g.procesos.find(p => p.id === proceso?.id) : null;
+
+              return (
+                <button
+                  key={g.clave}
+                  type="button"
+                  aria-expanded={abierto}
+                  aria-pressed={activoEnGrupo}
+                  className={`boton-grupo-cargos ${activoEnGrupo ? 'cargo-seleccionado' : ''} ${abierto ? 'grupo-abierto' : ''}`}
+                  onClick={() => {
+                    cambiarGrupoDesplegado(abierto ? null : g.clave);
+                    cambiarBusquedaFacultad('');
+                  }}
+                >
+                  {g.procesos.some(p => p.destacadoPortada) && <span className="insignia-destacado-estrella" aria-hidden="true">★ </span>}
+                  {g.etiqueta}
+                  {cargoActualEnGrupo ? ` · ${cargoActualEnGrupo.ambito || cargoActualEnGrupo.nombre}` : ` (${g.procesos.length})`}
+                  <span className="flecha-desplegable" aria-hidden="true">{abierto ? ' ▴' : ' ▾'}</span>
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              className={`boton-ver-todos-general ${verTodosGrupo === evento.procesos ? 'cargo-seleccionado' : ''}`}
+              onClick={() => {
+                cambiarVerTodosGrupo(verTodosGrupo === evento.procesos ? null : evento.procesos);
+                cambiarGrupoDesplegado(null);
+              }}
+            >
+              Ver todos los cargos
+            </button>
+          </nav>
+
+          <a href="#como-leer" className="nota-base-calculo">
+            {r?.ponderacionAplicada ? '% ponderado configurado' : '% sobre votos válidos'} <IconoInfo tamano={13} />
+          </a>
+        </div>
+      )}
+
+      {grupoActivo && (
+        <section className="desplegable-facultades-cargo" aria-label={`Cargos de ${grupoActivo.etiqueta}`}>
+          <div className="cabecera-desplegable-facultades">
+            <div>
+              <h3>{grupoActivo.etiqueta}s ({grupoActivo.procesos.length})</h3>
+              <p>Elige la facultad o carrera para ver su cómputo preliminar, o consulta todos los {grupoActivo.etiqueta.toLowerCase()}s juntos.</p>
+            </div>
+            <div className="acciones-cabecera-desplegable">
+              <button
+                type="button"
+                className="boton secundario boton-ver-todos-grupo"
+                onClick={() => {
+                  cambiarVerTodosGrupo(grupoActivo.procesos);
+                  cambiarGrupoDesplegado(null);
+                }}
+              >
+                Ver todos los {grupoActivo.etiqueta.toLowerCase()}s con cómputos
+              </button>
+              <button
+                type="button"
+                className="boton-cerrar-desplegable"
+                onClick={() => cambiarGrupoDesplegado(null)}
+                aria-label="Cerrar opciones"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {grupoActivo.procesos.length > 4 && (
+            <div className="filtro-desplegable-facultades">
+              <input
+                type="search"
+                placeholder={`Buscar facultad o ámbito de ${grupoActivo.etiqueta.toLowerCase()}…`}
+                value={busquedaFacultad}
+                onChange={e => cambiarBusquedaFacultad(e.target.value)}
+                aria-label={`Buscar facultad de ${grupoActivo.etiqueta}`}
+              />
+            </div>
+          )}
+
+          <div className="rejilla-facultades-cargos">
+            {procesosDelGrupoFiltrados.map(p => {
+              const seleccionado = !verTodosGrupo && p.id === proceso?.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`item-facultad-cargo ${seleccionado ? 'item-facultad-seleccionado' : ''}`}
+                  onClick={() => {
+                    cambiarVerTodosGrupo(null);
+                    cambiarGrupoDesplegado(null);
+                    elegirProceso(p.id);
+                  }}
+                >
+                  <strong className="nombre-facultad-item">{p.ambito || p.nombre || p.cargo}</strong>
+                  <span className="detalle-facultad-item">
+                    {p.candidatos?.length ? `${p.candidatos.length} candidaturas` : 'Ver cómputo preliminar'}
+                    {p.vuelta === 2 ? ' · 2.ª vuelta' : ''}
+                    {p.destacadoPortada ? ' · ★ Destacado' : ''}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {verTodosGrupo && (
+        <section className="seccion-ver-todos-computo">
+          <div className="cabecera-seccion-ver-todos">
+            <div>
+              <p className="sobre-titulo">CÓMPUTOS PRELIMINARES AGRUPADOS</p>
+              <h2>Resultados de {verTodosGrupo.length} cargos</h2>
+              <p>Candidatos, votos y actas contabilizadas de la selección.</p>
+            </div>
+            <button
+              type="button"
+              className="boton secundario"
+              onClick={() => cambiarVerTodosGrupo(null)}
+            >
+              ← Volver al cómputo individual
+            </button>
+          </div>
+          <ResumenResultadosCargos
+            key={verTodosGrupo.map(p => p.id).join(',')}
+            cargos={verTodosGrupo}
+            alElegir={id => {
+              cambiarVerTodosGrupo(null);
+              elegirProceso(id);
+            }}
+          />
+        </section>
+      )}
+
+      {error && portal && !verTodosGrupo && <div className="aviso-observatorio" role="alert"><div><strong>No pudimos actualizar la información.</strong><p>{error}</p><p>Estás viendo la última respuesta recibida para esta selección.</p></div><button type="button" onClick={reintentar}>Reintentar <span aria-hidden="true">↻</span></button></div>}
+      {cargando ? <section className="estado-observatorio" role="status"><UrnaAnimada compacta /><h2>Preparando los resultados…</h2><p>Consultando los eventos y el conteo publicado.</p></section> : !portal && !verTodosGrupo ? <section className="estado-observatorio" role={error ? 'alert' : undefined}>
         <IconoUrna tamano={32} />
         <h2>{error ? 'No se pudieron cargar los resultados' : (proceso||seleccionRetirada) ? 'Este cargo ya no está publicado' : 'Todavía no hay un evento publicado'}</h2>
         <p>{error || 'Cuando se publique una elección, podrás consultar aquí sus candidatos y el avance de actas. La página se actualizará automáticamente.'}</p>
         {!error && !proceso && !seleccionRetirada && <div className="informacion-portada-vacia" aria-label="Qué podrás consultar"><div><IconoUsuario tamano={20} /><strong>Candidaturas</strong><span>Fotos, nombres y cargos publicados.</span></div><div><IconoBarras tamano={20} /><strong>Resultados</strong><span>Votos y porcentajes de las actas contabilizadas.</span></div><div><IconoEdificio tamano={20} /><strong>Tu facultad o unidad</strong><span>El detalle del conteo de tu comunidad.</span></div></div>}
         <button type="button" onClick={reintentar}>{error ? 'Reintentar conexión' : 'Volver a consultar'}</button>
         {!error && !proceso && !seleccionRetirada && <p className="acceso-configuracion-vacia">¿Organizas la elección? <a href="#panel">Configurar un evento</a></p>}
-      </section> : <>
+      </section> : !verTodosGrupo ? <>
         <section ref={encabezadoResultados} tabIndex="-1" className="encabezado-conteo" aria-label="Selección de resultados"><div><p className="sobre-titulo">CÓMPUTO PRELIMINAR</p><h2>{portal.proceso.cargo}</h2><span className={`etiqueta-estado estado-${portal.proceso.estado}`}>{nombresEstado[portal.proceso.estado]}</span><p>{unidad ? `Resultados de ${unidad}` : 'Vista general · Todas las unidades'} · {numero(candidatos.length)} candidaturas</p></div><div className="controles-conteo"><label className="filtro-unidad"><IconoEdificio tamano={16} /><select value={unidad} onChange={e => elegirUnidad(e.target.value)} aria-label={`Filtrar por ${portal.proceso.unidad.toLowerCase()}`}><option value="">Todas las unidades</option>{portal.proceso.unidades.map(u => <option key={u} value={u}>{u}</option>)}</select></label><div className="actualizacion-conteo"><IconoReloj tamano={13} /><span>{error ? 'Actualización interrumpida' : fecha ? `Último conteo: ${fecha}` : 'Esperando la primera acta'}</span><button type="button" aria-label="Actualizar resultados" onClick={conteo.reintentar}>↻</button></div></div></section>
         <section className="panel-candidaturas" aria-label="Votos por candidatura"><div className="tarjetas-candidaturas">{candidatos.map((c, indice) => <TarjetaCandidatura key={`${c.id}-${c.foto}`} candidato={c} indice={indice} candidatos={candidatos} resultados={r} proceso={portal.proceso} unidad={unidad} />)}</div>{!candidatos.length && <p className="sin-candidaturas">Todavía no hay candidaturas publicadas para este cargo.</p>}<p className="nota-candidaturas"><IconoInfo tamano={14} /> El orden puede cambiar mientras se contabilizan las actas. Consulta cada 10 s.</p></section>
         <section className="resumen-votos" aria-label="Resumen de votos y actas"><dl>{[['Votos contabilizados', r.total], ['Votos válidos', r.validos], ['Blancos', r.blancos], ['Nulos', r.nulos], ['Actas pendientes', r.pendientes], ['Observadas', r.observadas]].map(([titulo, valor]) => <div key={titulo}><dt>{titulo}</dt><dd>{numero(valor)}</dd></div>)}</dl></section>
         <ResultadosSectores resultados={r} proceso={portal.proceso}/>
         <TablaUnidades key={`${portal.proceso.id}-${unidad}`} resultados={r} unidad={unidad} etiqueta={portal.proceso.unidad} alElegir={elegirUnidad} />
-      </>}
+      </> : null}
       <section className="ayuda-conteo" id="como-leer"><IconoInfo tamano={20} /><div><h2>Una lectura clara del conteo.</h2><p>Los porcentajes se calculan sobre votos válidos; cuando se activa ponderación, se aplican los pesos configurados por sector y se muestra su desglose. El avance indica mesas contabilizadas; las observadas están incluidas en las pendientes. Los resultados son preliminares y no constituyen una proclamación oficial.</p></div><a href="#resultados-electorales">Volver arriba</a></section>
     </main>
     <footer className="pie-observatorio"><span className="marca-pie">TUVOTO.</span><p>Información abierta. Una comunidad informada.</p><small>Proyecto académico independiente · Resultados preliminares no oficiales</small></footer>
