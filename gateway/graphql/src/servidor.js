@@ -14,10 +14,42 @@ async function pedir(url, opciones = {}) {
  if (!r.ok) throw new GraphQLError('Servicio no disponible o acceso denegado', { extensions: { code: r.status === 401 ? 'NO_AUTENTICADO' : r.status === 403 ? 'NO_AUTORIZADO' : r.status===409?'CONFLICTO':r.status===400||r.status===422?'ENTRADA_INVALIDA':'SERVICIO_NO_DISPONIBLE' } });
  return r.json();
 }
+const GRAPHIQL_HTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>TUVOTO — Explorador GraphQL</title>
+  <link rel="stylesheet" href="https://unpkg.com/graphiql@3.7.1/graphiql.min.css" />
+  <style>body { height: 100vh; margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <div id="graphiql" style="height: 100vh;"></div>
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/graphiql@3.7.1/graphiql.min.js"></script>
+  <script>
+    const fetcher = GraphiQL.createFetcher({ url: '/graphql' });
+    ReactDOM.render(
+      React.createElement(GraphiQL, {
+        fetcher,
+        defaultQuery: 'query {\\n  eventos {\\n    id\\n    nombre\\n    procesos {\\n      id\\n      cargo\\n      candidatos {\\n        id\\n        nombre\\n      }\\n    }\\n  }\\n  portal {\\n    proceso {\\n      id\\n      nombre\\n      cargo\\n    }\\n    resultados {\\n      total\\n      avance\\n      candidatos {\\n        nombre\\n        votos\\n        porcentaje\\n      }\\n    }\\n  }\\n}'
+      }),
+      document.getElementById('graphiql')
+    );
+  </script>
+</body>
+</html>`;
 http.createServer(async (req, res) => {
  const idCorrelacion = randomUUID();
  const responder = (codigo, cuerpo) => { res.writeHead(codigo, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Correlation-ID':idCorrelacion }); res.end(JSON.stringify(cuerpo)); };
  if (req.url === '/salud') { try { await pedir(elecciones + '/api/v1/salud'); return responder(200, { servicio: 'graphql', estado: 'saludable' }); } catch { return responder(503, { servicio: 'graphql' }); } }
+ if (req.url === '/graphql' && req.method === 'GET') {
+  if (req.headers.accept && req.headers.accept.includes('text/html')) {
+   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+   return res.end(GRAPHIQL_HTML);
+  }
+  return responder(405, { errors: [{ message: 'Use POST /graphql' }] });
+ }
  if (req.url !== '/graphql' || req.method !== 'POST') return responder(405, { errors: [{ message: 'Use POST /graphql' }] });
  try {
   const partes = []; let longitud = 0;

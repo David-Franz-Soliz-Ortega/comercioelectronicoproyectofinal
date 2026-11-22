@@ -1,0 +1,77 @@
+================================================================================
+          TUVOTO - REQUISITOS PENDIENTES POR PRESENTACIÓN (TRABAJO FINAL)
+================================================================================
+
+--------------------------------------------------------------------------------
+1. PRESENTACIÓN 1 (P1) - Arquitectura y comunicación entre servicios (30 pts)
+   Estado general: Casi completo (Core funcional operativo).
+--------------------------------------------------------------------------------
+[ ] Sembrado y demostración de 10.000 registros:
+    - Ejecutar la carga masiva sintética de al menos 10.000 actas en PostgreSQL.
+    - Demostrar filtros y paginación rápida sobre la colección más grande.
+[ ] Ensayo de demostración en vivo (máx. 12 minutos):
+    - Practicar el flujo de punta a punta: clon limpio -> docker compose up -d -> 
+      registro de acta -> validación por gRPC -> emisión de evento a RabbitMQ -> 
+      consumo independiente por los 2 workers -> actualización en MongoDB/Redis -> 
+      consulta visual en el frontend vía NGINX/GraphQL.
+
+--------------------------------------------------------------------------------
+2. PRESENTACIÓN 2 (P2) - Calidad, entrega continua y despliegue (30 pts)
+   Estado general: PENDIENTE DE IMPLEMENTACIÓN.
+--------------------------------------------------------------------------------
+[ ] Comando único de pruebas y umbral de cobertura (Práctica 7):
+    - Crear un script o comando único (ej. npm test unificado) que corra todas 
+      las pruebas unitarias, de integración y de contrato.
+    - Configurar y justificar el reporte de cobertura mínima requerida.
+[ ] Pipeline CI/CD en GitHub Actions (Práctica 8):
+    - Crear la carpeta .github/workflows/ con el pipeline por microservicio.
+    - Etapas del workflow: instalar, probar, analizar, construir y publicar.
+    - Evidencia requerida por la rúbrica: una corrida en ROJO (fallida) y la 
+      misma en VERDE tras la corrección.
+[ ] Registro de imágenes de contenedores:
+    - Publicar imágenes versionadas por SHA del commit (${{ github.sha }}) en 
+      Docker Hub o GitHub Container Registry (GHCR). Prohibido usar solo latest.
+[ ] Protección de rama:
+    - Configurar en GitHub la protección de la rama 'main' (bloqueo de commits 
+      directos; requerir Pull Request y pipeline en verde para merge).
+[ ] Manifiestos de Kubernetes y Helm Charts (Práctica 9):
+    - Completar 'infraestructura/kubernetes' con Deployments, Services, Ingress, 
+      HPA, ConfigMaps y Secrets.
+    - Completar 'infraestructura/helm' con charts y dos entornos: values-dev.yaml 
+      y values-prod.yaml.
+    - Configurar sondas liveness y readiness que reflejen la salud real.
+[ ] GitOps con Argo CD:
+    - Configurar los manifiestos en 'infraestructura/argocd' para sincronización 
+      declarativa desde el repositorio Git.
+    - Demostración de actualización progresiva (rolling update) sin corte de 
+      servicio bajo un bucle continuo de peticiones.
+
+--------------------------------------------------------------------------------
+3. PRESENTACIÓN 3 (P3) - Operación, seguridad, alta escala y defensa oral (40 pts)
+   Estado general: PENDIENTE / PARCIALMENTE IMPLEMENTADO.
+--------------------------------------------------------------------------------
+[ ] Observabilidad completa (Práctica 10):
+    - Exportar métricas de negocio en Prometheus (/metrics).
+    - Montar tableros en Grafana con métricas de salud y electorales.
+    - Instrumentar OpenTelemetry / Jaeger con una traza distribuida que cubra 
+      al menos 3 saltos (Gateway -> Microservicio -> RabbitMQ -> Consumidor).
+    - Definir al menos un Objetivo de Nivel de Servicio (SLO) con su regla de alerta.
+[ ] Seguridad y escaneo (Práctica 11):
+    - Migrar de forma estricta las rutas de escritura a tokens JWT.
+    - Integrar escaneo de vulnerabilidades y dependencias (Trivy / npm audit) en el CI.
+    - Generar el inventario de componentes (SBOM) en formato CycloneDX.
+    - Habilitar HTTPS en el proxy reverso de entrada.
+    - Redactar el modelo de amenazas basado en OWASP API Security Top 10.
+[ ] Alta concurrencia y resiliencia con Apache JMeter (Tema 10):
+    - Completar 'pruebas/rendimiento' con el plan de pruebas .jmx para 5.000 
+      usuarios concurrentes sobre la consulta pública de resultados.
+    - Ejecutar en modo no gráfico y generar el reporte HTML oficial.
+    - Comparativa antes vs. después de la optimización (con y sin Redis / réplicas) 
+      reportando p50, p95, p99, throughput y tasa de error (< 1%).
+    - Patrones de resiliencia: timeout, reintentos y circuit breaker demostrados 
+      apagando un contenedor en vivo.
+[ ] Entregables finales:
+    - Informe técnico final y manual de despliegue reproducible (PDF).
+    - Diapositivas de la defensa.
+    - Video de respaldo de 3 a 5 minutos.
+    - Preparación individual de cada miembro para la defensa oral (8 minutos).
