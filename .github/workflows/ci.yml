@@ -1,0 +1,100 @@
+name: Integración Continua (CI) — TUVOTO
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  frontend:
+    name: Frontend (React & Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm --prefix frontend ci
+
+      - name: Ejecutar pruebas unitarias
+        run: npm --prefix frontend run probar
+
+      - name: Compilar aplicación (Vite build)
+        run: npm --prefix frontend run compilar
+
+  gateway-graphql:
+    name: Gateway GraphQL
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: gateway/graphql/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm --prefix gateway/graphql ci
+
+      - name: Verificar contratos y servidor GraphQL
+        run: npm --prefix gateway/graphql run verificar
+
+  typescript-servicios:
+    name: TypeScript (Identidad y Elecciones)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verificar servicio Identidad
+        run: |
+          cd microservicios/identidad
+          npm ci
+          npx tsc -p tsconfig.json --noEmit
+
+      - name: Verificar servicio Elecciones
+        run: |
+          cd microservicios/elecciones
+          npm ci
+          npx tsc -p tsconfig.json --noEmit
+
+  python-servicios:
+    name: Microservicios Python (Actas y Resultados)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Instalar dependencias de Actas
+        run: pip install -r microservicios/actas/requirements.txt
+
+      - name: Instalar dependencias de Resultados
+        run: pip install -r microservicios/resultados/requirements.txt
+
+      - name: Ejecutar pruebas de Actas
+        run: python -m unittest discover -s microservicios/actas/pruebas
+
+      - name: Ejecutar pruebas de Resultados
+        run: python -m unittest discover -s microservicios/resultados/pruebas-tuvoto
