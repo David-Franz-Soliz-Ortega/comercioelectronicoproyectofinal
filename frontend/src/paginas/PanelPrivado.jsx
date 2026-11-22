@@ -1,3 +1,4 @@
+import ConteoInstitucion from '../componentes/ConteoInstitucion.jsx';
 import { notificarExito } from '../api/confirmaciones.js';
 import ConfirmarEliminacion from '../componentes/ConfirmarEliminacion.jsx';
 import MesasCompartidas from '../componentes/MesasCompartidas.jsx';
@@ -151,7 +152,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
   function abrirApartado(paso) {
     if (paso.id === 'organizacion') { setPestana('resumen');setError('');return; }
     if (!org) { setError('Selecciona una institución en Resumen para continuar.');setPestana('resumen');return; }
-    if (!actual && !['eleccion', 'operadores', 'asignaciones'].includes(paso.id)) { mostrarCargos();setError('Agrega un cargo para continuar su preparación.');return; }
+    if (!actual && !['eleccion', 'operadores', 'asignaciones', 'publicacion'].includes(paso.id)) { mostrarCargos();setError('Agrega un cargo para continuar su preparación.');return; }
     if (paso.id === 'operadores') setModoCuenta('usuario');
     if (paso.id === 'eleccion') { mostrarCargos();return; }
     setError(''); setPestana(paso.destino);
@@ -295,10 +296,12 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
         <header className="cabecera-superior-privada">
           <div className="titulo-seccion-privada">
             <p className="etiqueta-panel">TUVOTO · Administración</p>
-            <h1>{{resumen:'Tu centro de administración',configuracion:'Elección y cargos',candidatos:'Candidatos',mesas:'Mesas de recepción',usuarios:'Usuarios y organizaciones',asignaciones:'Asignar operadores',publicacion:'Estado y publicación'}[pestana]??'Administración'}</h1>
-            <div className="subtitulo-seccion-privada">
-              Elección seleccionada: <strong>{actual?.nombre ?? 'Selecciona una organización y proceso'}</strong>
-            </div>
+            <h1>{{resumen:'Tu centro de administración',configuracion:'Elección y cargos',candidatos:'Candidatos',mesas:'Mesas de recepción',usuarios:'Administradores del sistema',asignaciones:'Asignar operadores',publicacion:'Estado y publicación'}[pestana]??'Administración'}</h1>
+            {pestana !== 'usuarios' && (
+              <div className="subtitulo-seccion-privada">
+                Elección seleccionada: <strong>{actual?.nombre ?? 'Selecciona una organización y proceso'}</strong>
+              </div>
+            )}
           </div>
 
           <ControlesSesion
@@ -329,14 +332,25 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
 
           </>}
           {!['resumen', 'usuarios'].includes(pestana) && <div className="contexto-modulo-admin" data-contexto-institucion={org} data-contexto-proceso={id}>
-            <div>{institucionSeleccionada?<><strong>{institucionSeleccionada.nombre}</strong>{creandoProceso?<span>Nuevo cargo</span>:actual&&<span>Cargo seleccionado: {actual.cargo}{actual.ambito?' · '+actual.ambito:''}</span>}</>:<span>Selecciona una institución en Resumen para continuar.</span>}</div>
+            <div>{institucionSeleccionada?<><strong>{institucionSeleccionada.nombre}</strong>{pestana==='publicacion'?<span>Toda la organización</span>:creandoProceso?<span>Nuevo cargo</span>:actual&&<span>Cargo seleccionado: {actual.cargo}{actual.ambito?' · '+actual.ambito:''}</span>}</>:<span>Selecciona una institución en Resumen para continuar.</span>}</div>
             <div className="acciones-contexto-cargo">
               <button type="button" className="boton secundario" disabled={bloqueado} onClick={()=>setPestana('resumen')}>Cambiar institución</button>
             </div>
           </div>}
           {pestana==='configuracion' && institucionSeleccionada && !creandoProceso && !editandoProceso && !revisandoCargo && <SeleccionAdministracion organizacion={org} procesos={procesos} idProceso={id} ocupado={bloqueado} cargando={cargandoDatos} disponible={datosInstitucionListos}
             alProceso={valor=>{setId(valor);setRevisandoCargo(true);setError('');}}
-            alEliminar={p=>guardar(async()=>{await pedir(`/configuracion/procesos/${p.id}`,{metodo:'DELETE',mostrarDetalleValidacion:true});if(id===p.id)setId('');setRevisandoCargo(false);},'Cargo retirado del catálogo.')} alAgregar={()=>prepararNuevoCargo()} alReintentar={()=>setVersion(v=>v+1)}/>}
+            alEliminar={p=>guardar(async()=>{await pedir(`/configuracion/procesos/${p.id}`,{metodo:'DELETE',mostrarDetalleValidacion:true});if(id===p.id)setId('');setRevisandoCargo(false);},'Cargo retirado del catálogo.')}
+            alGuardarEdicion={async (idCargo, datosCargo) => {
+              const actualizado = await pedir(`/configuracion/procesos/${idCargo}`, {
+                metodo: 'PUT',
+                datos: completarNombreEleccion(datosCargo, institucionSeleccionada),
+                mostrarDetalleValidacion: true
+              });
+              setVersion(v => v + 1);
+              notificarExito('Cargo actualizado correctamente.');
+              return actualizado;
+            }}
+            alAgregar={()=>prepararNuevoCargo()} alReintentar={()=>setVersion(v=>v+1)}/>}
           {pestana==='configuracion'&&institucionSeleccionada&&datosInstitucionListos&&!creandoProceso&&!editandoProceso&&!revisandoCargo&&<ImportarExcel key={'cargos-'+org} ruta="/configuracion/importaciones/cargos" organizacion={org} titulo="cargos" gestionarExistentes datosAdicionales={{nombre:institucionSeleccionada.nombre.slice(0,120)}} alImportar={()=>{notificarExito('Archivo de cargos procesado. Revisa el resumen de creados, actualizados y mantenidos.');setVersion(v=>v+1);}}/>}
 
           {pestana === 'configuracion' && org && (creandoProceso || editandoProceso || (revisandoCargo && actual)) && (
@@ -480,7 +494,8 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
           {datosInstitucionListos&&<ImportarExcel key={'general-candidatos-'+org} general cargos={procesos} ruta="/configuracion/importaciones-generales/candidatos" organizacion={org} titulo="candidatos" alImportar={()=>{setError('');notificarExito('Archivo completo importado. Cada candidato quedó en su cargo de destino.');setVersion(v=>v+1);}}/>}
           </>}
 
-          {(pestana==='publicacion'||(pestana==='configuracion'&&revisandoCargo&&actual?.estado!=='borrador')) && actual && !creandoProceso && !editandoProceso && (() => {
+          {pestana==='publicacion'&&org&&datosInstitucionListos&&<ConteoInstitucion key={org} organizacion={org} nombre={institucionSeleccionada?.nombre} procesos={procesos} revision={version} ocupado={bloqueado} alOcupado={setOcupado} alGuardar={()=>setVersion(v=>v+1)}/>}
+          {(pestana==='configuracion'&&revisandoCargo&&actual?.estado!=='borrador') && actual && !creandoProceso && !editandoProceso && (() => {
             const mesasConOperador = actual.mesas.filter(m => asignacionesGuardadas.some(a => a.idMesa === m.id));
             const mesasSinOperador = actual.mesas.filter(m => !asignacionesGuardadas.some(a => a.idMesa === m.id));
             const coberturaOperadores = actual.mesas.length > 0 && mesasConOperador.length === actual.mesas.length;
@@ -613,7 +628,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                             <span className="icono-check-verde">✓</span>
                             <div>
                               <strong>Todo configurado correctamente.</strong>
-                              <p>El cargo cumple todos los requisitos. Pulsa Iniciar conteo abajo para empezar a recibir actas.</p>
+                              <p>Este cargo está preparado. Inicia toda la institución con el control superior.</p>
                             </div>
                           </div>
                         ) : (
@@ -633,6 +648,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                       <EstadoEleccion
                         key={actual.id + '-' + actual.estado}
                         proceso={actual}
+                        gestionInstitucional
                         ocupado={bloqueado}
                         puedeAbrir={puedeIniciarConteo}
                         alCambiar={accion => guardar(async () => {
@@ -643,8 +659,8 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                           } else if (accion === 'eliminar') {
                             await pedir(`/configuracion/procesos/${id}`, { metodo: 'DELETE' });
                             setId(''); setRevisandoCargo(false);
-                          } else if (accion === 'abrir' || accion === 'destacar') {
-                            await pedir(`/configuracion/procesos/${id}/actual`, { metodo: 'POST', datos: { confirmar: true } });
+                          } else if (accion === 'abrir') {
+                            await pedir('/configuracion/institucion/iniciar', { metodo: 'POST', datos: { confirmar: true } });
                           } else {
                             await pedir(`/configuracion/procesos/${id}/estado`, { metodo: 'POST', datos: { estado: accion, confirmar: true } });
                           }
@@ -663,8 +679,8 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
             <section className="panel-admin cuentas-preparacion">
               <div className="cabecera-panel-admin" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <div>
-                  <h2 style={{ margin: 0 }}>Usuarios del sistema</h2>
-                  <p style={{ margin: '4px 0 0', color: 'var(--secundario)', fontSize: 13 }}>Cuentas autorizadas y sus roles e instituciones.</p>
+                  <h2 style={{ margin: 0 }}>Administradores del sistema</h2>
+                  <p style={{ margin: '4px 0 0', color: 'var(--secundario)', fontSize: 13 }}>Cuentas con rol de administrador. Los operadores se gestionan en Asignar operadores.</p>
                 </div>
               </div>
               <ListadoCuentas cuentas={cuentas} organizaciones={organizaciones} idActual={sesion.idUsuario}
@@ -674,7 +690,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
               {!mostrarCrearAdmin && (
                 <div style={{ marginTop: 20 }}>
                   <button type="button" className="boton primario" onClick={() => setMostrarCrearAdmin(true)}>
-                    + Crear nuevo usuario
+                    + Crear administrador
                   </button>
                 </div>
               )}
