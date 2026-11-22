@@ -2,9 +2,8 @@ name: Integración Continua (CI) — TUVOTO
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: -davidversion
+
 
 jobs:
   frontend:
