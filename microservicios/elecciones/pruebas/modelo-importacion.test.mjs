@@ -145,7 +145,25 @@ test('inicio y cierre institucional atómicos, concurrentes e independientes de 
  assert.equal((await db.query("SELECT count(*)::int n FROM tuvoto_procesos WHERE id=ANY($1::uuid[]) AND estado='recepcion'",[ids.slice(0,2)])).rows[0].n,2);
  await db.query('DELETE FROM registros_en_curso WHERE id=$1',[registro]);
  assert.equal((await cambiarConteoInstitucion(db,org,actor,'terminar')).actualizados,2);
- assert.equal((await cambiarConteoInstitucion(db,org,actor,'iniciar')).actualizados,0,'No reabre ni vacía conteos cerrados');
+ await assert.rejects(cambiarConteoInstitucion(db,org,actor,'iniciar'),e=>e.estado===409);
  assert.equal((await db.query('SELECT count(*)::int n FROM historial_procesos WHERE id_proceso=ANY($1::uuid[])',[ids.slice(0,2)])).rows[0].n,4,'Una transición por cargo e intento');
  assert.equal((await db.query('SELECT count(*)::int n FROM tuvoto_candidatos WHERE id_proceso=ANY($1::uuid[])',[ids])).rows[0].n,3,'Conserva candidatos');
+ await db.query('INSERT INTO registros_en_curso(id,id_proceso,id_usuario) VALUES($1,$2,$3)',[registro,ids[1],actor]);
+ await assert.rejects(cambiarConteoInstitucion(db,org,actor,'preparar'),e=>e.estado===409);
+ assert.equal((await db.query("SELECT count(*)::int n FROM tuvoto_procesos WHERE id=ANY($1::uuid[]) AND estado='cerrada'",[ids.slice(0,2)])).rows[0].n,2,'Preparación parcial revierte todos los cambios');
+ await db.query('DELETE FROM registros_en_curso WHERE id=$1',[registro]);
+ const preparados=await Promise.all([cambiarConteoInstitucion(db,org,actor,'preparar'),cambiarConteoInstitucion(db,org,actor,'preparar')]);
+ assert.equal(preparados.reduce((n,r)=>n+r.actualizados,0),2,'Reintentos no duplican borradores');
+ const nuevos=preparados.flatMap(r=>r.idProcesos);
+ assert.equal(nuevos.length,2);assert.ok(nuevos.every(id=>!ids.includes(id)));
+ const copias=(await db.query('SELECT estado,publicado,actual,destacado_portada FROM tuvoto_procesos WHERE id=ANY($1::uuid[])',[nuevos])).rows;
+ assert.ok(copias.every(p=>p.estado==='borrador'&&!p.publicado&&!p.actual));
+ assert.equal(copias.filter(p=>p.destacado_portada).length,1);
+ assert.equal((await db.query("SELECT count(*)::int n FROM tuvoto_procesos WHERE id=ANY($1::uuid[]) AND estado='archivada'",[ids.slice(0,2)])).rows[0].n,2);
+ assert.equal((await db.query('SELECT count(*)::int n FROM tuvoto_candidatos WHERE id_proceso=ANY($1::uuid[])',[ids])).rows[0].n,3,'Conserva candidatos históricos');
+ assert.equal((await db.query('SELECT count(*)::int n FROM tuvoto_asignaciones a JOIN tuvoto_mesas m ON a.id_mesa=m.id WHERE m.id_proceso=ANY($1::uuid[])',[nuevos])).rows[0].n,2);
+ assert.equal((await cambiarConteoInstitucion(db,org,actor,'iniciar')).actualizados,2);
+ await assert.rejects(cambiarConteoInstitucion(db,org,actor,'preparar'),e=>e.estado===409);
+ assert.equal((await cambiarConteoInstitucion(db,org,actor,'terminar')).actualizados,2);
+
 });

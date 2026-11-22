@@ -7,7 +7,7 @@ export async function prepararNuevoConteo(c:PoolClient,id:string,organizacion:st
  if(p.estado!=='cerrada')throw Object.assign(new Error(),{estado:409,detalle:'Primero termina la recepción del conteo anterior'});
  if((await c.query('SELECT 1 FROM registros_en_curso WHERE id_proceso=$1 LIMIT 1',[id])).rowCount)throw Object.assign(new Error(),{estado:409,detalle:'Hay actas en curso; no se puede preparar otro conteo'});
  const nuevo=randomUUID();
- await c.query('INSERT INTO tuvoto_procesos(id,id_organizacion,nombre,cargo,tipo,unidad,configuracion) VALUES($1,$2,$3,$4,$5,$6,$7)',[nuevo,organizacion,p.nombre,p.cargo,p.tipo,p.unidad,p.configuracion]);
+ await c.query('INSERT INTO tuvoto_procesos(id,id_organizacion,nombre,cargo,tipo,unidad,configuracion,destacado_portada) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[nuevo,organizacion,p.nombre,p.cargo,p.tipo,p.unidad,p.configuracion,p.destacado_portada]);
  for(const candidato of (await c.query('SELECT * FROM tuvoto_candidatos WHERE id_proceso=$1 AND NOT eliminada ORDER BY orden,id',[id])).rows)await c.query('INSERT INTO tuvoto_candidatos(id,id_proceso,nombre,orden,foto,mime,id_candidato_origen) VALUES($1,$2,$3,$4,$5,$6,$7)',[randomUUID(),nuevo,candidato.nombre,candidato.orden,candidato.foto,candidato.mime,candidato.id_candidato_origen]);
  for(const mesa of (await c.query('SELECT * FROM tuvoto_mesas WHERE id_proceso=$1 AND NOT eliminada',[id])).rows){
   const nuevaMesa=randomUUID();await c.query('INSERT INTO tuvoto_mesas(id,id_proceso,codigo,unidad,sector,id_mesa_fisica) VALUES($1,$2,$3,$4,$5,$6)',[nuevaMesa,nuevo,mesa.codigo,mesa.unidad,mesa.sector,mesa.id_mesa_fisica]);

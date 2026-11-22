@@ -92,7 +92,7 @@ export default function PortadaAdministracion({
 
       {seleccionados.length > 0 && (
         <small className="nota-previa-destacados subtexto-destacados-resumen">
-          Vista previa interna. Las fotografías se gestionan en Candidatos.
+          Estos son los cargos elegidos para la portada pública de Resultados. Se mostrarán cuando estén publicados; seleccionarlos no inicia el conteo.
         </small>
       )}
 

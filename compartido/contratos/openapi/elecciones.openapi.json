@@ -2574,7 +2574,7 @@
     "/configuracion/institucion/iniciar": {
       "post": {
         "summary": "Iniciar el conteo de todos los cargos de la institución autorizada",
-        "description": "Operación atómica con auditoría. No cambia actual ni destacado_portada, no elimina datos ni reabre cargos cerrados. Iniciar exige candidatos, mesas, cobertura de sectores y asignaciones en todos los borradores. Terminar bloquea si hay actas en curso. Repetir no duplica transiciones.",
+        "description": "Operación atómica con auditoría. No cambia actual ni destacado_portada, no elimina datos ni reabre cargos cerrados. Iniciar exige candidatos, mesas, cobertura de sectores y asignaciones en todos los borradores. Terminar bloquea si hay actas en curso. Repetir no duplica transiciones. Si existen cargos cerrados, exige preparar un nuevo conteo antes de iniciar; no vacía resultados anteriores.",
         "security": [
           {
             "sesion": []
@@ -2702,6 +2702,75 @@
           },
           "409": {
             "description": "Hay actas en curso"
+          },
+          "422": {
+            "description": "Confirmación inválida o cargos incompletos; no cambia ningún estado"
+          }
+        }
+      }
+    },
+    "/configuracion/institucion/preparar": {
+      "post": {
+        "summary": "Preparar un nuevo conteo institucional",
+        "description": "Archiva cargos cerrados y copia configuración, candidatos, mesas, asignaciones y destacados a borradores con UUID nuevos. No copia actas ni resultados. Transacción única; rechaza recepción o registros en curso. Reintentos no duplican borradores. Requiere permiso administrativo, organización y CSRF.",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organizacion",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "confirmar"
+                ],
+                "properties": {
+                  "confirmar": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Acción y número de cargos actualizados"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Sin permiso en la institución o CSRF inválido"
+          },
+          "409": {
+            "description": "Recepción o registros en curso"
           },
           "422": {
             "description": "Confirmación inválida o cargos incompletos; no cambia ningún estado"

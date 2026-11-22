@@ -483,7 +483,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
               )
             )
           )}
-          {!['resumen', 'usuarios', 'candidatos', 'mesas', 'asignaciones'].includes(pestana) && !catalogoEleccion && <div className="contexto-modulo-admin" data-contexto-institucion={org} data-contexto-proceso={id}>
+          {!['resumen', 'usuarios', 'candidatos', 'mesas', 'asignaciones', 'publicacion'].includes(pestana) && !catalogoEleccion && <div className="contexto-modulo-admin" data-contexto-institucion={org} data-contexto-proceso={id}>
             <div>{institucionSeleccionada?<><strong>{institucionSeleccionada.nombre}</strong>{pestana==='publicacion'?<span>Toda la organización</span>:creandoProceso?<span>Nuevo cargo</span>:actual&&<span>Cargo seleccionado: {actual.cargo}{actual.ambito?' · '+actual.ambito:''}</span>}</>:<span>Selecciona una institución en Resumen para continuar.</span>}</div>
 
           </div>}
@@ -597,7 +597,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
           </CandidatosAdministracion>
           </>}
 
-          {pestana==='publicacion'&&org&&datosInstitucionListos&&<ConteoInstitucion key={org} organizacion={org} nombre={institucionSeleccionada?.nombre} procesos={procesos} revision={version} ocupado={bloqueado} alOcupado={setOcupado} alGuardar={()=>setVersion(v=>v+1)} alIr={destino=>setPestana(destino)}/>}
+          {pestana==='publicacion'&&org&&datosInstitucionListos&&<ConteoInstitucion key={org} cuentas={cuentas} organizacion={org} nombre={institucionSeleccionada?.nombre} procesos={procesos} revision={version} ocupado={bloqueado} alOcupado={setOcupado} alGuardar={()=>setVersion(v=>v+1)} alIr={destino=>setPestana(destino)}/>}
           {(pestana==='configuracion'&&revisandoCargo&&actual?.estado!=='borrador') && actual && !creandoProceso && !editandoProceso && (() => {
             const mesasConOperador = actual.mesas.filter(m => asignacionesGuardadas.some(a => a.idMesa === m.id));
             const mesasSinOperador = actual.mesas.filter(m => !asignacionesGuardadas.some(a => a.idMesa === m.id));

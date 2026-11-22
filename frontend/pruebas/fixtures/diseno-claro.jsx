@@ -16,6 +16,13 @@ const png='iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEUlEQVR4nGNwa//6H4QZY
 window.fallarFoto=false;
 window.fetch=async(ruta,op={})=>{
  window.solicitudes.push({ruta,metodo:op.method??'GET'});
+ if(op.method==='POST'&&/\/configuracion\/mesas\/[^/]+\/asignar$/.test(ruta)){
+  if(window.fallarAsignacion){window.fallarAsignacion=false;return Response.json({},{status:503});}
+  const id=ruta.split('/').at(-2),p=procesos.find(p=>p.estado!=='archivada'&&p.mesas.some(m=>m.id===id)),m=p?.mesas.find(m=>m.id===id);
+  if(!m)throw Error('Mesa sintética no encontrada');
+  asignaciones.push({idUsuario:JSON.parse(op.body).idUsuario,idMesa:m.id,idProceso:p.id,codigo:m.codigo,unidad:m.unidad,sector:m.sector,cargo:p.cargo,estado:p.estado});
+  return Response.json({asignada:true});
+ }
  if(ruta.endsWith('/autenticacion/logout'))return new Response(null,{status:204});
  if(ruta.includes('/configuracion/candidatos/')){
   const id=ruta.split('/')[5],candidato=procesos.flatMap(p=>p.candidatos).find(c=>c.id===id);

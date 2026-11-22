@@ -1,0 +1,18 @@
+{
+  "fecha": "2026-11-22T15:57:22.009809+00:00",
+  "proyecto": "tuvoto",
+  "serviciosActualizados": [
+    "elecciones",
+    "frontend"
+  ],
+  "saludables": 13,
+  "otrosContenedoresConservados": 11,
+  "montajesConservados": true,
+  "respaldoEleccionesValidado": true,
+  "todasLasTablasEleccionesSinCambios": true,
+  "otrosModulosSinCambios": true,
+  "recursosServidosCoinciden": true,
+  "modulosEleccionesCoinciden": true,
+  "contratoDesplegadoCoincide": true,
+  "sinEscriturasDePruebaEnBD": true
+}

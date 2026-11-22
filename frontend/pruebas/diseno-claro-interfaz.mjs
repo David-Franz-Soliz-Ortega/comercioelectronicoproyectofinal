@@ -41,6 +41,35 @@ try{
  await comando('browsingContext.navigate',{context,url:origen,wait:'complete'});
  const pulsar=async(texto)=>{await hasta(`Array.from((document.querySelector('dialog[open]')??document).querySelectorAll('button')).some(b=>b.textContent.trim()===${JSON.stringify(texto)}&&!b.disabled)`);await evaluar(`Array.from((document.querySelector('dialog[open]')??document).querySelectorAll('button')).find(b=>b.textContent.trim()===${JSON.stringify(texto)}&&!b.disabled).click();true`);};
  const llenar=async(selector,valor)=>evaluar(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(e.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype,'value').set.call(e,${JSON.stringify(valor)});e.dispatchEvent(new Event(e.tagName==='SELECT'?'change':'input',{bubbles:true}));return true;})()`);
+ if(process.argv.includes('--pendientes-inicio')){
+  await hasta("!!document.querySelector('.item-menu-lateral')&&!document.querySelector('.item-menu-lateral').disabled");
+  await pulsar('Estado y publicación');
+  await hasta("document.querySelectorAll('[data-pendiente-inicio]').length>0");
+  const pendientes=await evaluar("document.querySelectorAll('[data-pendiente-inicio]').length");
+  assert.equal(await evaluar("document.querySelector('.boton-iniciar-conteo-publicacion').disabled"),true,'No inicia con asignaciones incompletas');
+  assert.equal(await evaluar("document.querySelector('[data-pendiente-inicio] button').disabled"),true,'Seleccionar operador es obligatorio');
+  const id=await evaluar("document.querySelector('[data-pendiente-inicio]').dataset.pendienteInicio");
+  const selector='[data-pendiente-inicio="'+id+'"] select';
+  await llenar(selector,'operador-1');
+  await evaluar("window.fallarAsignacion=true;true");
+  await evaluar("document.querySelector('[data-pendiente-inicio] button').click();true");
+  await hasta("!!document.querySelector('.seccion-estado-publicacion>[role=alert]')");
+  assert.equal(await evaluar("document.querySelectorAll('[data-pendiente-inicio]').length"),pendientes,'El fallo no simula una asignación');
+  await evaluar("document.querySelector('[data-pendiente-inicio] button').click();true");
+  await hasta("!!document.querySelector('.modal-confirmacion-global[open]')");
+  await pulsar('Entendido');
+  await hasta("document.querySelectorAll('[data-pendiente-inicio]').length==="+(pendientes-1));
+  assert.equal(await evaluar('!!document.querySelector('+JSON.stringify('[data-pendiente-inicio="'+id+'"]')+')'),false);
+  await pulsar('Ver mesas pendientes ↓');
+  for(const ancho of [390,768,1440]){
+   await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1100}});
+   assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Pendientes adaptables sin desbordamiento global');
+  }
+  assert.equal(await evaluar("window.solicitudes.filter(s=>s.metodo==='POST'&&s.ruta.includes('/institucion/')).length"),0,'No inicia ni termina un conteo');
+  await pulsar('Ir a operadores');
+  await hasta("!!document.querySelector('.directorio-operadores-recepcion')");
+  console.log('OK: pendientes exactos, selección obligatoria, fallo/reintento, recarga tras asignación sintética, enlace a operadores y tres tamaños; sin escrituras reales.');
+ }else{
  await hasta("!!document.querySelector('.indicadores-institucion')&&!document.querySelector('.item-menu-lateral').disabled");
  await pulsar('Elección');
  await hasta("document.querySelectorAll('[data-cargo]').length===34");
@@ -173,7 +202,8 @@ try{
  await pulsar('Reintentar');
  await hasta("document.querySelectorAll('[data-operador]').length===10");
  assert.equal(await evaluar("window.solicitudes.every(s=>s.metodo==='GET')"),true,'Ninguna escritura para revisar el diseño');
+ }
  assert.equal(erroresJavascript.length,0,'Sin errores JavaScript');
  await comando('session.end');
- console.log('OK: panel claro, 34 cargos sintéticos, filtros de grupo/estado/búsqueda/archivados, detalle/edición/creación/Excel y mesas con facultades laterales, tabla y detalle, búsqueda, sector, eliminación confirmada, alta/Excel y operadores con paginación, pendientes, filtros, mesas desplegadas, edición/alta/importaciones y cuatro tamaños; sin escrituras ni API real.');
+ if(!process.argv.includes('--pendientes-inicio'))console.log('OK: panel claro, 34 cargos sintéticos, filtros de grupo/estado/búsqueda/archivados, detalle/edición/creación/Excel y mesas con facultades laterales, tabla y detalle, búsqueda, sector, eliminación confirmada, alta/Excel y operadores con paginación, pendientes, filtros, mesas desplegadas, edición/alta/importaciones y cuatro tamaños; sin escrituras ni API real.');
 }finally{if(ws)ws.close();navegador.kill('SIGTERM');await new Promise(r=>servidor.close(r));}

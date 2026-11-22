@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import {asignarMesasOperador} from '../api/operadores.js';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { nombresEstadoInstitucion } from '../api/catalogos.js';
 import { resumirInstitucion } from '../api/estadoInstitucion.js';
 import { solicitarRest } from '../api/clienteRest.js';
@@ -21,8 +22,11 @@ export default function ConteoInstitucion({
   alGuardar,
   alOcupado,
   revision,
-  alIr
+  alIr,
+  cuentas = []
 }) {
+  const pendientesRef=useRef(null);
+  const [responsables,setResponsables]=useState({});
   const [accion, setAccion] = useState('');
   const [confirmado, setConfirmado] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -57,8 +61,18 @@ export default function ConteoInstitucion({
   const resumen = resumirInstitucion(procesos, asignaciones);
   const borradores = procesos.filter(p => p.estado === 'borrador');
   const abiertos = procesos.filter(p => p.estado === 'recepcion');
-  const finalizados = procesos.filter(p => p.estado === 'cerrada' || p.estado === 'finalizado');
+  const finalizados = procesos.filter(p => p.estado === 'cerrada');
   const bloqueado = ocupado || guardando;
+  const operadoresDisponibles=cuentas.filter(c=>c.activo&&c.roles?.some(r=>r.rol==='OPERADOR'&&r.idOrganizacion===organizacion)&&!c.roles.some(r=>r.rol==='ADMINISTRADOR'&&(r.idOrganizacion===null||r.idOrganizacion===organizacion)));
+  async function asignarPendiente(mesa){
+    const idUsuario=responsables[mesa.id];
+    if(bloqueado||!mesa.puedeAsignar||!operadoresDisponibles.some(c=>c.idUsuario===idUsuario))return;
+    setGuardando(true);alOcupado?.(true);setError('');
+    try{
+      await asignarMesasOperador({pedir:solicitarRest,organizacion,idUsuario,mesas:[mesa.id],completadas:new Set()});
+      setIntento(v=>v+1);alGuardar();notificarExito('Operador asignado a '+mesa.codigo+' · '+mesa.cargo+'.');
+    }catch(e){setError(e.message);}finally{setGuardando(false);alOcupado?.(false);}
+  }
 
   // Lista de ámbitos / facultades únicos para el dropdown
   const opcionesAmbito = useMemo(() => {
@@ -122,7 +136,7 @@ export default function ConteoInstitucion({
           ' cargos ' +
           (accion === 'iniciar'
             ? 'habilitados para recibir actas.'
-            : 'cerrados; resultados conservados.')
+            : accion === 'preparar' ? 'preparados para un nuevo conteo sin actas anteriores.' : 'cerrados; resultados conservados.')
       );
     } catch (e) {
       setError(e.message);
@@ -228,20 +242,88 @@ export default function ConteoInstitucion({
       ) : asignaciones === null ? (
         <p role="status">Consultando asignaciones de la organización…</p>
       ) : resumen.mesasSinOperador > 0 ? (
-        <div className="banner-alerta-publicacion">
+        <><div className="banner-alerta-publicacion">
           <div className="contenido-alerta-banner">
             <IconoAlerta tamano={20} color="#D97706" />
             <span>{resumen.mesasSinOperador} actas por cargo sin operador asignado.</span>
           </div>
-          <button
-            type="button"
-            className="enlace-revisar-asignaciones"
-            disabled={bloqueado}
-            onClick={() => alIr?.('asignaciones')}
-          >
-            Revisar asignaciones →
-          </button>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="enlace-revisar-asignaciones"
+              disabled={bloqueado}
+              onClick={() => {pendientesRef.current?.scrollIntoView({behavior:'smooth',block:'center'});pendientesRef.current?.focus({preventScroll:true});}}
+            >
+              Ver mesas pendientes ↓
+            </button>
+            <span style={{ color: '#FCD34D' }}>|</span>
+            <button
+              type="button"
+              className="enlace-revisar-asignaciones"
+              disabled={bloqueado}
+              onClick={() => alIr?.('asignaciones')}
+            >
+              Revisar asignaciones →
+            </button>
+          </div>
         </div>
+        <section ref={pendientesRef} tabIndex={-1} className="pendientes-inicio-conteo" aria-label="Asignaciones pendientes para iniciar">
+          <header>
+            <div>
+              <h3>Mesas y cargos sin operador asignado ({resumen.pendientes.length})</h3>
+              <p>Cada acta debe tener un operador asignado para poder iniciar el conteo. Elige un operador para cada fila y pulsa Asignar.</p>
+            </div>
+            <button type="button" className="boton secundario" disabled={bloqueado} onClick={()=>alIr?.('asignaciones')}>
+              Ir a Operadores →
+            </button>
+          </header>
+          <div className="tabla-pendientes-inicio-scroll">
+            <table className="tabla-admin">
+              <thead>
+                <tr>
+                  <th>Mesa</th>
+                  <th>Cargo y unidad</th>
+                  <th>Sector</th>
+                  <th>Operador activo</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>{resumen.pendientes.map(m=><tr key={m.id} data-pendiente-inicio={m.id}>
+                <td><strong>{m.codigo}</strong></td>
+                <td>
+                  <strong>{m.cargo}</strong>
+                  <span style={{ display: 'block', fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                    {m.unidad}{m.ambito&&m.ambito!==m.unidad?' · '+m.ambito:''}
+                  </span>
+                </td>
+                <td>{m.sector||'General'}</td>
+                <td>
+                  <select
+                    aria-label={'Operador para '+m.codigo+' · '+m.cargo}
+                    value={responsables[m.id]||''}
+                    disabled={bloqueado||!m.puedeAsignar||!operadoresDisponibles.length}
+                    onChange={e=>setResponsables(prev=>({...prev,[m.id]:e.target.value}))}
+                  >
+                    <option value="">Seleccionar operador…</option>
+                    {operadoresDisponibles.map(c=><option key={c.idUsuario} value={c.idUsuario}>{c.usuario}</option>)}
+                  </select>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="boton primario"
+                    disabled={bloqueado||!m.puedeAsignar||!responsables[m.id]||!operadoresDisponibles.some(c=>c.idUsuario===responsables[m.id])}
+                    onClick={()=>asignarPendiente(m)}
+                  >
+                    Asignar
+                  </button>
+                  {!m.puedeAsignar&&<small style={{ display: 'block', color: '#64748B', marginTop: 4 }}>Configuración bloqueada</small>}
+                </td>
+              </tr>)}</tbody>
+            </table>
+          </div>
+          {!operadoresDisponibles.length&&<p style={{ marginTop: 12, color: '#B45309' }}>No hay operadores activos disponibles en esta institución. Créalos o asígnales el rol desde Operadores o Usuarios.</p>}
+        </section></>
       ) : (
         <div className="banner-alerta-publicacion banner-correcto">
           <div className="contenido-alerta-banner">
@@ -462,14 +544,15 @@ export default function ConteoInstitucion({
               {borradores.length} cargos en preparación · {abiertos.length} en recepción
             </span>
           </div>
-          <p className="nota-control-conteo">Los cargos finalizados conservan su estado.</p>
+          <p className="nota-control-conteo">Iniciar habilita la recepción; terminar conserva los resultados. Para repetir desde cero, prepara un nuevo conteo sin borrar el anterior.</p>
         </div>
 
         <div className="acciones-control-conteo">
           <button
             type="button"
             className="boton primario boton-iniciar-conteo-publicacion"
-            disabled={bloqueado || !borradores.length}
+            disabled={bloqueado || !borradores.length || finalizados.length>0 || asignaciones===null || !!errorAsignaciones || resumen.mesasSinOperador>0}
+            title={resumen.mesasSinOperador>0?'Completa las asignaciones pendientes indicadas arriba':undefined}
             onClick={() => {
               setAccion('iniciar');
               setConfirmado(false);
@@ -478,7 +561,7 @@ export default function ConteoInstitucion({
           >
             Iniciar conteo<span className="sr-only"> de la institución</span>
           </button>
-          <button
+          {abiertos.length>0&&<button
             type="button"
             className="boton secundario boton-terminar-conteo-publicacion"
             disabled={bloqueado || !abiertos.length}
@@ -489,7 +572,8 @@ export default function ConteoInstitucion({
             }}
           >
             Terminar conteo<span className="sr-only"> de la institución</span>
-          </button>
+          </button>}
+          {finalizados.length>0&&!abiertos.length&&<button type="button" className="boton secundario" disabled={bloqueado} onClick={()=>{setAccion('preparar');setConfirmado(false);setError('');}}>Preparar nuevo conteo de la institución</button>}
         </div>
       </div>
 
@@ -498,7 +582,8 @@ export default function ConteoInstitucion({
         <div className="confirmacion-estado">
           <p>
             {accion === 'iniciar'
-              ? 'Se bloqueará la configuración de todos los cargos en borrador. Si falta configurar alguno, no se iniciará ninguno.'
+              ? 'Se iniciarán todos los cargos preparados con sus nuevos contadores. La configuración quedará bloqueada. Si falta configurar alguno, no se iniciará ninguno.'
+              : accion === 'preparar' ? 'Se archivará el conteo finalizado y se copiará su configuración, candidatos, mesas, operadores y destacados a un nuevo borrador. Las actas y resultados anteriores se conservan en el historial y no se sumarán al nuevo conteo.'
               : 'Se detendrá la recepción de actas de todos los cargos abiertos de esta institución. Se conservarán sus datos y resultados.'}
           </p>
           <label>

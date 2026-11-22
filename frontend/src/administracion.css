@@ -941,6 +941,77 @@
   text-decoration: underline !important;
 }
 
+/* Sección de asignaciones pendientes */
+.administracion-tuvoto .pendientes-inicio-conteo {
+  background: #ffffff !important;
+  border: 1px solid #fde68a !important;
+  border-radius: 12px !important;
+  padding: 20px 22px !important;
+  margin-bottom: 24px !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08) !important;
+}
+.administracion-tuvoto .pendientes-inicio-conteo header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 14px !important;
+  flex-wrap: wrap !important;
+  margin-bottom: 6px !important;
+}
+.administracion-tuvoto .pendientes-inicio-conteo h3 {
+  margin: 0 !important;
+  font-size: 17px !important;
+  font-weight: 750 !important;
+  color: #0f172a !important;
+}
+.administracion-tuvoto .pendientes-inicio-conteo p {
+  color: #64748b !important;
+  font-size: 13px !important;
+  margin: 4px 0 14px 0 !important;
+}
+.administracion-tuvoto .tabla-pendientes-inicio-scroll {
+  overflow-x: auto !important;
+}
+.administracion-tuvoto .tabla-pendientes-inicio-scroll table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 13.5px !important;
+  min-width: 650px !important;
+}
+.administracion-tuvoto .tabla-pendientes-inicio-scroll th {
+  background: #fffbeb !important;
+  color: #78350f !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 10px 14px !important;
+  border-bottom: 1px solid #fde68a !important;
+  text-align: left !important;
+}
+.administracion-tuvoto .tabla-pendientes-inicio-scroll td {
+  padding: 12px 14px !important;
+  border-bottom: 1px solid #fef3c7 !important;
+  vertical-align: middle !important;
+}
+.administracion-tuvoto .pendientes-inicio-conteo select {
+  min-width: 190px !important;
+  max-width: 260px !important;
+  width: 100% !important;
+  min-height: 36px !important;
+  padding: 6px 10px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  background-color: #ffffff !important;
+  font-size: 13px !important;
+}
+.administracion-tuvoto .pendientes-inicio-conteo .boton {
+  white-space: nowrap !important;
+  min-height: 34px !important;
+  padding: 6px 14px !important;
+  font-size: 12.5px !important;
+}
+
 /* Panel Tabla Cargos */
 .administracion-tuvoto .panel-tabla-cargos-publicacion {
   background: #ffffff !important;

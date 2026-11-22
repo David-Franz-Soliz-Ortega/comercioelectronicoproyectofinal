@@ -12,3 +12,11 @@ test('el estado institucional suma todos los cargos sin duplicar mesas físicas 
 test('no presenta cero operadores mientras la consulta de asignaciones no esté disponible',()=>{
  const r=resumirInstitucion([]);assert.equal(r.operadores,null);assert.equal(r.mesasSinOperador,null);assert.equal(r.estado,'Sin cargos');
 });
+
+test('identifica las asignaciones pendientes por mesa y cargo sin confundir mesas compartidas ni históricos',()=>{
+ const procesos=[{id:'r',cargo:'Rector',estado:'borrador',candidatos:[],mesas:[{id:'mr',codigo:'A',idMesaFisica:'fisica',unidad:'Unidad',sector:'docentes'}]},{id:'v',cargo:'Vicerrector',estado:'borrador',mesas:[{id:'mv',codigo:'A',idMesaFisica:'fisica',unidad:'Unidad',sector:'docentes'}]},{id:'cerrado',cargo:'Director',estado:'cerrada',mesas:[{id:'mc',codigo:'C'}]},{id:'viejo',estado:'archivada',mesas:[{id:'historica',codigo:'H'}]}];
+ const copia=structuredClone(procesos),r=resumirInstitucion(procesos,[{idMesa:'mr',idUsuario:'persona'},{idMesa:'mr',idUsuario:'otra'}]);
+ assert.equal(r.mesasSinOperador,2);assert.deepEqual(r.pendientes.map(m=>m.id),['mv','mc']);
+ assert.equal(r.pendientes[0].cargo,'Vicerrector');assert.equal(r.pendientes[0].codigo,'A');assert.equal(r.pendientes[0].puedeAsignar,true);assert.equal(r.pendientes[1].puedeAsignar,false);
+ assert.equal(resumirInstitucion(procesos).pendientes,null);assert.deepEqual(procesos,copia);
+});
