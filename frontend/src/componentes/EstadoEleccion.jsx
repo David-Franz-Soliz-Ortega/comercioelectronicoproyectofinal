@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { solicitarRest } from '../api/clienteRest.js';
-export const nombresEstado={borrador:'Borrador',recepcion:'En recepción',cerrada:'Cerrada',archivada:'Archivada'};
+import {nombresEstado} from '../api/catalogos.js';
 export default function EstadoEleccion({proceso,ocupado,puedeAbrir,alCambiar,gestionInstitucional=false}){
  const [historial,setHistorial]=useState([]),[errorHistorial,setErrorHistorial]=useState('');
  useEffect(()=>{let vigente=true;solicitarRest(`/configuracion/procesos/${proceso.id}/historial`).then(r=>{if(vigente)setHistorial(r.elementos);}).catch(()=>{if(vigente)setErrorHistorial('No se pudo cargar el historial.');});return()=>{vigente=false;};},[proceso.id,proceso.estado]);

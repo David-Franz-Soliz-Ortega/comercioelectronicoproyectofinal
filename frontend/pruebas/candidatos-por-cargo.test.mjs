@@ -26,3 +26,9 @@ test('filtrar familia y facultad o carrera se combina sin alterar los totales de
   assert.equal(candidatosPorCargo(procesos, { familia: 'directores', busqueda: 'Medicina' }).cargosVisibles, 0);
   assert.equal(candidatosPorCargo([], {}).totalCandidatos, 0);
 });
+
+test('sin fotografía muestra únicamente pendientes sin alterar las cifras globales',()=>{
+ const copia=structuredClone(procesos),r=candidatosPorCargo(procesos,{sinFotografia:true});
+ assert.ok(r.grupos.every(g=>g.procesos.every(p=>p.candidatos.every(c=>!(c.foto||c.tieneFoto)))));
+ assert.equal(r.totalCandidatos,candidatosPorCargo(procesos).totalCandidatos);assert.deepEqual(procesos,copia);
+});

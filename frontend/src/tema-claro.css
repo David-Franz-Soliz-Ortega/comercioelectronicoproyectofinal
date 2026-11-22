@@ -1,0 +1,648 @@
+/* Base visual del personal: superficies claras, azul y tamaños consistentes. */
+.administracion-tuvoto{--azul-principal:#075bff;--azul-hover:#004cde;--azul-oscuro:#172b4d;--texto:#14213a;--secundario:#52647f;--borde:#dce5ef;--fondo:var(--azul-fondo);background:var(--fondo);font-size:14px}
+.administracion-tuvoto .zona-principal-privada{background:var(--fondo)}
+.administracion-tuvoto .barra-lateral-privada{width:250px;background:#fff;border-right:1px solid #dce5ef;color:#354763;box-shadow:none}
+.administracion-tuvoto .cabecera-lateral-marca{border-bottom:0;padding:24px 26px;min-height:78px}
+.administracion-tuvoto .cabecera-lateral-marca>span{font-size:26px!important;letter-spacing:-.5px!important;color:#263b59!important}
+.administracion-tuvoto .rotulo-navegacion{margin:12px 26px 10px;font-size:11px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:#52647f}
+.administracion-tuvoto .navegacion-lateral{padding:8px 10px;gap:5px}
+.administracion-tuvoto .item-menu-lateral{min-height:46px;border:0;border-left:4px solid transparent;border-radius:7px;padding:11px 17px;color:#344765;background:transparent;font-size:14px;font-weight:550;animation:none;transform:none}
+.administracion-tuvoto .item-menu-lateral:hover{background:#f0f5ff;color:#075bff;transform:none}
+.administracion-tuvoto .item-menu-lateral.activo{border:0;border-left:4px solid #075bff;background:#dfebff;color:#0054f0;box-shadow:none;animation:none;outline:none;font-weight:750}
+.administracion-tuvoto .pie-lateral-privado{border-top:1px solid #e3eaf3;background:white}.administracion-tuvoto .pie-lateral-privado a{color:#52647f!important}
+.administracion-tuvoto .cabecera-superior-privada{min-height:68px;padding:12px 28px;border-bottom:1px solid #e3eaf3;box-shadow:none;background:white}
+.administracion-tuvoto .titulo-seccion-privada{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.administracion-tuvoto .titulo-seccion-privada h1{margin:0;font-size:16px;letter-spacing:0}
+.administracion-tuvoto .miga-administracion{display:flex;align-items:center;gap:12px;margin:0;color:#52647f;font-size:14px}
+.administracion-tuvoto .panel-administrador .subtitulo-seccion-privada,.panel-administrador .subtitulo-seccion-privada{display:none}
+.administracion-tuvoto .contenido-seccion-privada{max-width:1600px;padding:24px 28px 40px}
+.administracion-tuvoto .panel-admin{background:#fff;border:1px solid #dce5ef;border-radius:12px;box-shadow:var(--sombra-panel)}
+.administracion-tuvoto .panel-admin:hover{box-shadow:var(--sombra-panel)}
+.administracion-tuvoto .boton{min-height:40px;border-radius:8px;font-size:13px;padding:9px 16px}
+.administracion-tuvoto .boton.primario{background:#075bff;border-color:#075bff}.administracion-tuvoto .boton.secundario{background:#fff;color:#254363;border-color:#bdcde2}
+.administracion-tuvoto :is(input,select,textarea){border-color:#c7d5e6;border-radius:8px;background:#fff;color:#243b5b}
+.administracion-tuvoto .contexto-modulo-admin{background:#f9fbff;border-color:#dce5ef;border-radius:10px;margin-bottom:20px}
+.administracion-tuvoto .contexto-modulo-admin .boton{font-size:12px;min-height:34px}
+
+/* Catálogo electoral inspirado en la referencia: indicadores, pestañas y filas agrupadas. */
+.administracion-tuvoto .catalogo-claro{min-width:0}
+.administracion-tuvoto .catalogo-claro .cabecera-lista-cargos{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:20px}
+.administracion-tuvoto .catalogo-claro .cabecera-lista-cargos h2{font-size:28px;font-weight:800;letter-spacing:-.8px;margin:0;color:#101c33}
+.administracion-tuvoto .catalogo-claro .cabecera-lista-cargos p{margin:2px 0 0;color:#52647f;font-size:14px}
+.acciones-lista-cargos{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.acciones-lista-cargos .entrada-importacion{margin:0}
+.metricas-familias-cargos{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
+.metricas-familias-cargos article{display:flex;align-items:center;gap:16px;padding:16px 20px;background:white;border:1px solid #d6e1ef;border-radius:11px;box-shadow:var(--sombra-panel)}
+.metricas-familias-cargos article>div{display:grid;gap:2px}.metricas-familias-cargos strong{font-size:27px;line-height:1.1;color:#101c33}.metricas-familias-cargos article>div>span{font-size:13px;font-weight:700}
+.icono-familia-cargo{display:grid;place-items:center;background:#e8f0ff;border-radius:10px;width:46px;height:46px;color:#075bff;flex-shrink:0}
+.administracion-tuvoto .directorio-cargos-claro{padding:0 18px 16px;overflow:visible}
+.pestanas-familias-cargos{display:flex;gap:14px;overflow-x:auto;border-bottom:1px solid #d6e1ef;margin-bottom:16px;scrollbar-width:thin}
+.pestanas-familias-cargos button{display:flex;align-items:center;gap:9px;padding:16px 14px 13px;color:#233651;white-space:nowrap;border-bottom:3px solid transparent;font-size:14px;font-weight:750}
+.pestanas-familias-cargos button[aria-pressed=true]{color:#075bff;border-bottom-color:#075bff}.pestanas-familias-cargos button span{padding:1px 9px;border-radius:20px;background:#e8eef6;font-size:12px}.pestanas-familias-cargos button[aria-pressed=true] span{background:#dbe8ff}
+.filtros-directorio-cargos{display:flex;align-items:center;gap:18px;margin-bottom:18px;flex-wrap:wrap}.filtros-directorio-cargos label{margin:0}.filtros-directorio-cargos .buscar-cargo{flex:1;min-width:210px;max-width:450px}
+.filtros-directorio-cargos input[type=search],.filtros-directorio-cargos select{width:100%;min-height:38px;padding:8px 12px;font-size:13px}
+.mostrar-archivados-cargos{display:flex!important;align-items:center;gap:9px;font-size:13px;white-space:nowrap}.mostrar-archivados-cargos input{width:17px;height:17px;min-height:0;accent-color:#075bff}
+.scroll-directorio-cargos{overflow-x:auto;scrollbar-width:thin}.columnas-directorio-cargos{display:grid;grid-template-columns:36% 12% 10% 10% 10% 22%;min-width:800px;padding:8px 12px;background:#eaf0f7;border-radius:7px;color:#415772;font-size:12px;font-weight:650;margin-bottom:10px}.columnas-directorio-cargos>span:nth-child(n+3){text-align:center}
+.administracion-tuvoto .catalogo-claro .grupos-cargos-institucion{display:block;min-width:800px;margin:0}
+.administracion-tuvoto .catalogo-claro .grupo-cargos-institucion{padding:0;border:0;background:transparent;border-radius:0;margin-bottom:12px;overflow:visible}
+.administracion-tuvoto .catalogo-claro .grupo-cargos-institucion>summary{display:flex;align-items:center;gap:12px;background:#eaf0f7;border:0;border-radius:7px;padding:7px 14px;min-height:36px;list-style:none;color:#172b4d}
+.administracion-tuvoto .catalogo-claro .grupo-cargos-institucion>summary::-webkit-details-marker{display:none}
+.administracion-tuvoto .catalogo-claro .nombre-grupo-cargos{font-size:15px;font-weight:800}.administracion-tuvoto .catalogo-claro .cantidad-grupo-cargos{display:inline-block;padding:1px 9px;border:0;border-radius:20px;background:#dce6f2;font-size:12px;font-weight:750;min-width:26px;text-align:center}
+.administracion-tuvoto .catalogo-claro .flecha-grupo-cargos{margin:0;font-size:23px;line-height:1;transform:rotate(0deg)}.administracion-tuvoto .catalogo-claro details[open]>.flecha-grupo-cargos,.administracion-tuvoto .catalogo-claro details[open]>summary>.flecha-grupo-cargos{transform:rotate(90deg)}
+.administracion-tuvoto .catalogo-claro .lista-cargos-institucion{display:table;width:100%;border-collapse:collapse;table-layout:fixed;padding:0;margin:0;background:white}
+.administracion-tuvoto .catalogo-claro .item-cargo-institucion{display:table-row;background:transparent;box-shadow:none;transform:none;position:static}
+.catalogo-claro .lista-cargos-institucion td{padding:12px;border-bottom:1px solid #d6e1ef;vertical-align:middle;font-size:13px;overflow-wrap:anywhere}.catalogo-claro .lista-cargos-institucion td:nth-child(n+3){text-align:center}.catalogo-claro .lista-cargos-institucion td:first-child{padding-left:30px}
+.alcance-fila-cargo{display:block;color:#52647f;font-size:12px;line-height:1.45;margin-top:2px}
+.administracion-tuvoto .catalogo-claro .insignia-estado{font-size:11px;padding:3px 8px;border-radius:7px;white-space:nowrap;min-height:0;background:#edf2f8;color:#52647f}
+.administracion-tuvoto .catalogo-claro .estado-borrador{background:#fff0c8;color:#9b5a00}.administracion-tuvoto .catalogo-claro .estado-recepcion{background:#e0f6ec;color:#167047}.administracion-tuvoto .catalogo-claro .estado-cerrada{background:#e3ecfa;color:#254b80}
+.vuelta-fila-cargo{display:inline-block;background:#edf2f8;padding:3px 7px;border-radius:7px;font-size:11px;white-space:nowrap}
+.acciones-fila-cargo{display:flex;align-items:center;justify-content:center;gap:12px}.ver-detalles-cargo{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border:1px solid #a3bfff;border-radius:6px;color:#075bff;font-size:12px;font-weight:650;white-space:nowrap;background:white}.ver-detalles-cargo[aria-pressed=true]{background:#f1f6ff}
+.menu-fila-cargo summary{font-size:22px;cursor:pointer;list-style:none;padding:0 4px}.menu-fila-cargo summary::-webkit-details-marker{display:none}.menu-fila-cargo>div{display:grid;gap:8px;padding-top:8px;text-align:left}.menu-fila-cargo>div>button{font-size:12px;color:#075bff}
+.administracion-tuvoto .catalogo-claro .total-cargos-agrupados{font-size:12px;color:#52647f;margin:16px 0 0;padding-top:12px;border-top:1px solid #e3eaf3}
+.solo-lectores-cargos{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@media(max-width:1050px){.administracion-tuvoto .barra-lateral-privada{width:220px}.administracion-tuvoto .contenido-seccion-privada{padding:22px}.administracion-tuvoto .catalogo-claro .cabecera-lista-cargos{flex-wrap:wrap}}
+@media(max-width:768px){.administracion-tuvoto .barra-lateral-privada{width:100%;height:auto}.administracion-tuvoto .cabecera-lateral-marca{padding:16px 20px;min-height:auto}.administracion-tuvoto .rotulo-navegacion{display:none}.administracion-tuvoto .navegacion-lateral{padding:8px 12px;flex-direction:row}.administracion-tuvoto .item-menu-lateral{min-height:42px;padding:9px 12px;white-space:nowrap;flex-shrink:0}.administracion-tuvoto .pie-lateral-privado{display:none}.administracion-tuvoto .cabecera-superior-privada{padding:14px 18px;flex-wrap:wrap}.administracion-tuvoto .contenido-seccion-privada{padding:18px 14px 30px}.administracion-tuvoto .catalogo-claro .cabecera-lista-cargos h2{font-size:25px}.administracion-tuvoto .directorio-cargos-claro{padding:0 12px 14px}.metricas-familias-cargos{grid-template-columns:repeat(2,minmax(0,1fr))}.metricas-familias-cargos article{padding:14px;gap:10px}.metricas-familias-cargos strong{font-size:25px}.metricas-familias-cargos article>div>span{font-size:11px}.icono-familia-cargo{width:38px;height:38px}.acciones-lista-cargos{width:100%}.acciones-lista-cargos>.boton,.acciones-lista-cargos>.entrada-importacion{flex:1}.acciones-lista-cargos .boton{width:100%}.filtros-directorio-cargos{gap:12px}.filtros-directorio-cargos .buscar-cargo{max-width:none;flex-basis:100%}.filtros-directorio-cargos select{min-width:170px}}
+@media(prefers-reduced-motion:reduce){.administracion-tuvoto *{animation:none!important;transition:none!important}}
+.administracion-tuvoto .catalogo-claro tr[hidden]{display:none!important}
+.ver-todos-grupo-cargos{display:block;width:100%;text-align:center;color:#075bff;padding:12px;font-size:13px;font-weight:650}
+.institucion-cabecera-clara{display:flex;align-items:center;gap:12px;margin-left:auto;border:1px solid #bdcde2;border-radius:8px;padding:8px 12px;background:white;color:#243b5b;font-weight:650;max-width:220px;font-size:12px}
+.institucion-cabecera-clara>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:768px){.institucion-cabecera-clara{margin-left:0;max-width:100%;order:3}}
+.acceso{background:#f3f7fc}
+/* Organización y cuenta siempre a la izquierda, sin selector superior duplicado. */
+.administracion-tuvoto .pie-administrador-claro{padding:12px 16px;flex-shrink:0}
+.institucion-lateral-clara{display:flex;width:100%;text-align:left;align-items:center;gap:12px;padding:12px 2px;color:#263b59;border-bottom:1px solid #e3eaf3}
+.institucion-lateral-clara>span{display:grid;gap:2px;min-width:0}.institucion-lateral-clara strong{font-size:12px;line-height:1.5;overflow-wrap:anywhere}.institucion-lateral-clara small{font-size:11px;color:#64748b}
+.perfil-lateral-sesion{margin:10px 0 4px}.perfil-lateral-sesion>summary{display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer;min-height:44px}.perfil-lateral-sesion>summary::-webkit-details-marker{display:none}.perfil-lateral-sesion>summary>span:nth-child(2){display:grid;gap:2px;min-width:0;flex:1}.perfil-lateral-sesion strong{font-size:12px}.perfil-lateral-sesion small{font-size:11px;color:#64748b;overflow-wrap:anywhere}
+.avatar-perfil-lateral{display:grid;place-items:center;width:34px;height:34px;flex-shrink:0;border-radius:50%;background:#e8eef8;color:#344765}.perfil-lateral-sesion>div{padding-top:10px}.perfil-lateral-sesion .boton-cerrar-sesion{width:100%;justify-content:center}
+.volver-publico-lateral{display:block;font-size:10px;text-align:center;margin-top:10px}
+/* Candidatos: indicadores y tarjetas con acciones propias. */
+.administracion-tuvoto .candidatos-flotantes{background:transparent;border:0;padding:0;box-shadow:none}
+.candidatos-flotantes .cabecera-candidatos-institucion{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:20px}.candidatos-flotantes .cabecera-candidatos-institucion h2{margin:0;font-size:28px;letter-spacing:-.7px;color:#101c33}.candidatos-flotantes .cabecera-candidatos-institucion p{margin:3px 0 0;font-size:14px;color:#52647f}
+.metricas-candidatos-flotantes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:22px}.metricas-candidatos-flotantes article{display:flex;justify-content:space-between;gap:12px;padding:22px;background:white;border:1px solid #dce5ef;border-radius:14px;box-shadow:var(--sombra-panel);min-width:0}.metricas-candidatos-flotantes article>div{display:grid;gap:3px}.metricas-candidatos-flotantes article>div>span{font-size:16px;font-weight:750;color:#14213a}.metricas-candidatos-flotantes strong{font-size:40px;line-height:1.2;color:#101c33}.icono-metrica-candidato{display:grid;place-items:center;background:#e6efff;border-radius:10px;width:44px;height:44px;color:#075bff;flex-shrink:0}.icono-metrica-candidato.pendiente{background:#fff0cf;color:#bd7608}
+.administracion-tuvoto .filtros-candidatos-flotantes{padding:0 18px;margin-bottom:18px}.filtros-candidatos-flotantes .pestanas-familias-cargos{margin-bottom:14px}.candidatos-flotantes .filtros-candidatos{display:flex;align-items:end;gap:18px;margin:0 0 14px}.candidatos-flotantes .filtros-candidatos>label{min-width:0;flex:1;font-size:12px}.candidatos-flotantes .filtros-candidatos .buscar-candidatos-flotantes{flex:1.5}.candidatos-flotantes .filtros-candidatos input[type=search],.candidatos-flotantes .filtros-candidatos select{min-height:40px;font-size:13px}.candidatos-flotantes .filtros-candidatos .filtro-candidatos-sin-foto{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding-bottom:10px}.filtro-candidatos-sin-foto input{width:17px;min-height:0;height:17px;accent-color:#075bff}
+.resumen-filtro-candidatos{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #e3eaf3;padding:12px 0;font-size:12px}.resumen-filtro-candidatos button{color:#075bff;font-weight:650}
+.administracion-tuvoto .candidatos-flotantes .grupos-candidatos{display:grid;gap:16px}.administracion-tuvoto .candidatos-flotantes .grupo-candidatos{border:1px solid #dce5ef;border-radius:14px;background:#fff;box-shadow:var(--sombra-panel);overflow:visible}.administracion-tuvoto .candidatos-flotantes .grupo-candidatos>summary{padding:10px 20px;background:#f2f6ff;border:0;border-radius:14px;min-height:40px;font-size:14px}.candidatos-flotantes .grupo-candidatos>summary strong{font-size:16px}.candidatos-flotantes .grupo-candidatos>summary span{font-size:12px}
+.administracion-tuvoto .candidatos-flotantes .cargos-con-candidatos{padding:0 18px 14px;gap:12px}.administracion-tuvoto .candidatos-flotantes .cargo-con-candidatos{padding:0 0 16px;border:0;border-bottom:1px solid var(--borde);background:transparent;box-shadow:none;min-width:0}.administracion-tuvoto .candidatos-flotantes .cargo-con-candidatos>header{padding:10px 2px;margin:0;display:flex;align-items:center;justify-content:space-between;gap:12px}.candidatos-flotantes .cargo-con-candidatos>header p{margin:0;font-size:12px}.candidatos-flotantes .etiqueta-estado{font-size:11px;padding:3px 9px;white-space:nowrap}
+.administracion-tuvoto .candidatos-flotantes .nombres-candidatos-cargo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0;padding:0;list-style:none}.administracion-tuvoto .candidatos-flotantes .nombres-candidatos-cargo>li{display:flex;align-items:center;gap:12px;padding:14px;background:#fff;border:1px solid #e0e7f1;border-radius:13px;box-shadow:var(--sombra-tarjeta);min-width:0;position:relative}
+.administracion-tuvoto .candidatos-flotantes .nombres-candidatos-cargo>li>img,.administracion-tuvoto .candidatos-flotantes .nombres-candidatos-cargo>li>.avatar-letra{width:58px;height:58px;flex:0 0 58px;border-radius:50%;object-fit:cover}.datos-candidato-flotante{flex:1;min-width:0}.datos-candidato-flotante strong{display:block;font-size:13px;line-height:1.5;overflow-wrap:anywhere}.datos-candidato-flotante small{display:flex;align-items:center;gap:7px;font-size:11px;margin-top:3px;color:#52647f}.datos-candidato-flotante small:before{content:'';width:7px;height:7px;border-radius:50%;background:#c89024;flex-shrink:0}.datos-candidato-flotante .foto-disponible:before{background:#21a853}
+.acciones-candidato-flotante{display:flex;align-items:center;gap:10px;flex-shrink:0}.administracion-tuvoto .acciones-candidato-flotante .boton{font-size:11px;min-height:32px;padding:6px 12px}.menu-candidato>summary{list-style:none;cursor:pointer;font-size:22px;padding:0 3px}.menu-candidato>summary::-webkit-details-marker{display:none}.menu-candidato[open]{position:static}.menu-candidato>div{position:absolute;z-index:3;right:10px;top:70px;background:white;padding:12px;border:1px solid #dce5ef;border-radius:9px;box-shadow:0 5px 15px #193d6920;max-width:calc(100% - 20px)}
+.vista-foto-edicion{display:flex;justify-content:center;grid-column:1/-1}.vista-foto-edicion img,.vista-foto-edicion .avatar-letra{width:100px;height:100px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:#e7effe;color:#075bff;font-size:28px}.formulario-editar-candidato{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:18px!important}.acciones-edicion-candidato{display:flex;flex-wrap:wrap;gap:12px}
+@media(max-width:1050px){.metricas-candidatos-flotantes article{padding:16px}.metricas-candidatos-flotantes article>div>span{font-size:13px}.icono-metrica-candidato{width:35px;height:35px}.administracion-tuvoto .candidatos-flotantes .nombres-candidatos-cargo{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:768px){.administracion-tuvoto .pie-administrador-claro{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px}.institucion-lateral-clara{flex:1;min-width:150px;width:auto;border:0;padding:4px}.perfil-lateral-sesion{flex:1;min-width:145px;margin:0}.volver-publico-lateral{flex-basis:100%;margin:0}.candidatos-flotantes .cabecera-candidatos-institucion{flex-wrap:wrap}.metricas-candidatos-flotantes{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.metricas-candidatos-flotantes strong{font-size:32px}.candidatos-flotantes .filtros-candidatos{flex-wrap:wrap}.candidatos-flotantes .filtros-candidatos .buscar-candidatos-flotantes{flex-basis:100%}.resumen-filtro-candidatos{flex-wrap:wrap}.candidatos-flotantes .nombres-candidatos-cargo>li{flex-wrap:wrap}.acciones-candidato-flotante{margin-left:auto}.candidatos-flotantes .grupo-candidatos>summary{flex-wrap:wrap;gap:8px}}
+/* Las tarjetas anteriores eran verticales: fijar la nueva composición horizontal. */
+.administracion-tuvoto .candidatos-flotantes .nombres-candidatos-cargo>li{flex-direction:row;text-align:left}
+.administracion-tuvoto .candidatos-flotantes .nombres-candidatos-cargo>li>.datos-candidato-flotante{display:block;text-align:left;align-self:center}
+.administracion-tuvoto .candidatos-flotantes .nombres-candidatos-cargo>li>.acciones-candidato-flotante{display:flex;flex-direction:row;align-items:center;justify-content:flex-end}
+.administracion-tuvoto .candidatos-flotantes .grupo-candidatos>summary::after{content:none}
+.administracion-tuvoto .candidatos-flotantes .grupo-candidatos>summary::before{content:'\203A';display:inline-block;font-size:22px;line-height:1;margin-right:10px;transform:rotate(0deg)}
+.administracion-tuvoto .candidatos-flotantes .grupo-candidatos[open]>summary::before{transform:rotate(90deg)}
+.administracion-tuvoto .candidatos-flotantes .filtros-candidatos .filtro-candidatos-sin-foto{flex-direction:row;white-space:nowrap}
+.candidatos-flotantes .acciones-lista-cargos .boton{display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:8px}
+.candidatos-flotantes .cabecera-candidatos-institucion>div:first-child{text-align:left}
+@media(max-width:768px){.perfil-lateral-sesion small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.candidatos-flotantes .cabecera-candidatos-institucion{align-items:flex-start;text-align:left}}
+.administracion-tuvoto .candidatos-flotantes .nombres-candidatos-cargo>li>.datos-candidato-flotante{width:auto;flex:1 1 0;min-width:0}
+.administracion-tuvoto .candidatos-flotantes .nombres-candidatos-cargo>li>.acciones-candidato-flotante{width:auto;max-width:120px;flex:0 0 auto}
+.administracion-tuvoto .candidatos-flotantes .acciones-candidato-flotante .editar-candidato{width:auto;min-width:0;margin:0}
+.acciones-candidato-flotante>.menu-candidato{width:auto;flex:0 0 auto}
+
+.campos-base-cargo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;border:0;padding:0;margin:0;min-width:0}
+.administracion-tuvoto :is(.indicadores-institucion article,.tarjeta-admin-metrica){box-shadow:var(--sombra-panel)}
+
+/* Mesas de recepción: navegación por unidad y detalle dentro del mismo panel. */
+.cabecera-mesas-clara{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:18px;padding:20px;background:white;border:1px solid var(--borde);border-radius:13px;box-shadow:var(--sombra-panel);flex-wrap:wrap}
+.administracion-tuvoto .cabecera-mesas-clara h2{font-size:27px;color:#102c60;margin:0;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cantidad-total-mesas{font-size:12px;background:#dce9ff;padding:5px 12px;border-radius:20px;white-space:nowrap}
+.cabecera-mesas-clara p{margin:4px 0 0;color:var(--secundario)}.cabecera-mesas-clara .nombre-institucion-mesas{font-weight:700;color:var(--texto)}
+.acciones-mesas-clara{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.acciones-mesas-clara .entrada-importacion{margin:0;order:-1}
+.administracion-tuvoto .filtros-mesas-recepcion{display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,28%);gap:20px;align-items:center;padding:14px 18px;margin-bottom:18px}
+.filtros-mesas-recepcion label,.facultades-mesas-recepcion label{display:block;min-width:0;margin:0}.filtros-mesas-recepcion :is(input,select),.facultades-mesas-recepcion input{width:100%;box-sizing:border-box;min-height:40px;padding:8px 12px;font:inherit}
+.distribucion-mesas-recepcion{display:grid;grid-template-columns:minmax(230px,30%) minmax(0,1fr);gap:18px;align-items:start}
+.administracion-tuvoto .facultades-mesas-recepcion{padding:16px 10px;margin:0}.facultades-mesas-recepcion h3{font-size:18px;color:#102c60;margin:0 8px 14px}.facultades-mesas-recepcion label{margin:0 8px 12px}
+.facultades-mesas-recepcion ul{list-style:none;margin:0;padding:0;max-height:560px;overflow-y:auto;scrollbar-width:thin}.facultades-mesas-recepcion li{margin:0;padding:0}
+.facultades-mesas-recepcion li button{display:grid;grid-template-columns:minmax(0,1fr) auto 12px;align-items:center;gap:10px;text-align:left;width:100%;padding:10px 9px;border-bottom:1px solid var(--borde);color:#20354f;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.facultades-mesas-recepcion li button[aria-pressed=true]{background:#e0ebff;color:#075bff;border-radius:7px;font-weight:700}.facultades-mesas-recepcion b{background:#e8effa;border-radius:20px;padding:1px 9px;font-size:11px}
+.administracion-tuvoto .detalle-unidad-mesas{padding:20px;margin:0;min-width:0;overflow:visible}.detalle-unidad-mesas>header h3{font-size:22px;line-height:1.3;color:#102c60;margin:0}.detalle-unidad-mesas>header p{margin:5px 0 18px;color:var(--secundario)}
+.tabla-mesas-recepcion-scroll{overflow-x:auto;border:1px solid var(--borde);border-radius:10px;min-width:0}.tabla-mesas-recepcion{border-collapse:collapse;width:100%;font-size:13px;text-align:left}.tabla-mesas-recepcion :is(th,td){padding:12px 14px;border-bottom:1px solid #e6edf5;vertical-align:middle}.tabla-mesas-recepcion th{background:#f0f5fc;color:#52647f;font-size:12px;font-weight:650;white-space:nowrap}.tabla-mesas-recepcion td:first-child{min-width:90px}.tabla-mesas-recepcion tr:last-child td{border:0}.tabla-mesas-recepcion .mesa-seleccionada{background:#e0ebff}
+.acciones-fila-mesa{display:flex;align-items:center;gap:14px;justify-content:space-between}.administracion-tuvoto .acciones-fila-mesa>.boton{white-space:nowrap;min-height:32px;padding:5px 12px;color:#075bff;font-size:12px}
+.menu-mesa-recepcion summary{list-style:none;font-size:23px;cursor:pointer;padding:0 4px}.menu-mesa-recepcion summary::-webkit-details-marker{display:none}.menu-mesa-recepcion>div{position:absolute;right:20px;z-index:4;max-width:min(340px,calc(100vw - 70px));padding:14px;background:white;box-shadow:var(--sombra-panel);border:1px solid var(--borde);border-radius:10px;display:grid;gap:10px}.detalle-unidad-mesas{position:relative}
+.detalle-cargos-mesa{margin-top:22px;border:1px solid #c6d7ed;border-radius:11px;overflow:hidden}.detalle-cargos-mesa>header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;background:#e8f0ff}.detalle-cargos-mesa h4{font-size:16px;color:#102c60;margin:0}.detalle-cargos-mesa>header button{font-size:24px;min-width:32px;min-height:32px}
+.datos-fisicos-mesa{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 16px 0;font-size:12px;color:var(--secundario)}.detalle-cargos-mesa ul{list-style:none;padding:14px 16px;margin:0;display:grid;gap:10px}.detalle-cargos-mesa li{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid var(--borde);border-radius:9px;padding:12px}.detalle-cargos-mesa li>div{display:grid;gap:3px;min-width:0;overflow-wrap:anywhere}.detalle-cargos-mesa li span,.detalle-cargos-mesa li small{font-size:12px;color:var(--secundario)}.detalle-cargos-mesa li>.boton{flex-shrink:0;font-size:12px}.detalle-unidad-mesas>footer{margin-top:28px;padding-top:14px;border-top:1px solid var(--borde);font-size:12px;color:var(--secundario)}
+@media(max-width:1100px){.distribucion-mesas-recepcion{grid-template-columns:minmax(200px,32%) minmax(0,1fr)}.administracion-tuvoto .detalle-unidad-mesas{padding:16px}.tabla-mesas-recepcion :is(th,td){padding:10px}}
+@media(max-width:900px){.distribucion-mesas-recepcion{grid-template-columns:minmax(0,1fr)}.facultades-mesas-recepcion ul{max-height:240px}.administracion-tuvoto .filtros-mesas-recepcion{grid-template-columns:minmax(0,1fr)}.cabecera-mesas-clara{padding:16px}.acciones-mesas-clara{width:100%}.acciones-mesas-clara>.boton,.acciones-mesas-clara>.entrada-importacion{flex:1}.detalle-cargos-mesa li{flex-wrap:wrap}.detalle-cargos-mesa li>.boton{margin-left:auto}}
+
+/* Operadores y asignaciones: filas compactas con detalle bajo demanda. */
+.cabecera-operadores-recepcion{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}.cabecera-operadores-recepcion h2{font-size:27px;color:#102c60;margin:0}.cabecera-operadores-recepcion p{font-weight:650;margin:4px 0 0}
+.acciones-cabecera-operadores{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.menu-importar-operadores{position:relative}.menu-importar-operadores>summary{display:flex;align-items:center;gap:14px;list-style:none;cursor:pointer}.menu-importar-operadores>summary::-webkit-details-marker{display:none}.menu-importar-operadores>div{position:absolute;top:100%;right:0;z-index:5;background:white;border:1px solid var(--borde);border-radius:10px;box-shadow:var(--sombra-panel);padding:10px;min-width:230px}.menu-importar-operadores .entrada-importacion{margin:0}.menu-importar-operadores .boton-importar-excel{width:100%;white-space:nowrap;justify-content:flex-start}
+.administracion-tuvoto .filtros-operadores-recepcion{display:grid;grid-template-columns:minmax(200px,1fr) minmax(180px,24%) auto;align-items:center;gap:18px;padding:16px 20px;margin-bottom:18px}.filtros-operadores-recepcion label{display:block;margin:0;min-width:0}.filtros-operadores-recepcion :is(input[type=search],select){width:100%;min-height:40px;padding:8px 12px;box-sizing:border-box;font:inherit}.filtros-operadores-recepcion .filtro-sin-mesa{display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:13px}.filtro-sin-mesa input{width:17px;height:17px;min-height:0;accent-color:var(--azul-principal)}
+.administracion-tuvoto .directorio-operadores-recepcion{padding:20px;overflow:visible;position:relative;margin-bottom:0}.directorio-operadores-recepcion h3{font-size:20px;color:#102c60;margin:0 0 18px}.tabla-operadores-scroll{overflow:auto;min-width:0}.tabla-operadores-recepcion{width:100%;border-collapse:collapse;text-align:left;font-size:13px;min-width:720px}.tabla-operadores-recepcion :is(th,td){padding:10px 14px;vertical-align:middle;border-bottom:1px solid #dce5ef}.tabla-operadores-recepcion th{background:#edf3fc;color:#52647f;font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.03em}.tabla-operadores-recepcion th:first-child{border-radius:7px 0 0 0}.tabla-operadores-recepcion th:last-child{border-radius:0 7px 0 0}.tabla-operadores-recepcion .operador-expandido{background:#e0ebff}.tabla-operadores-recepcion td:first-child{min-width:110px}.tabla-operadores-recepcion td:nth-child(3){white-space:nowrap}
+.resumen-mesas-operador{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.desplegar-mesas-operador{display:grid;place-items:center;padding:0;line-height:1;border:1px solid #c3d4ed;border-radius:6px;background:#f7faff;width:27px;height:26px;flex-shrink:0;font-size:18px}.codigo-mesa-operador{color:#075bff;background:#dbe8ff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px}.cantidad-mesas-operador{background:#f0f5fd;padding:3px 8px;border-radius:20px;font-size:11px;white-space:nowrap}
+.estado-operador-recepcion{display:inline-block;border-radius:20px;padding:4px 10px;font-weight:650;font-size:11px;white-space:nowrap}.estado-operador-recepcion.asignado{background:#d3fae5;color:#11663b}.estado-operador-recepcion.pendiente{background:#fff0c5;color:#8b5200}.estado-operador-recepcion.inactivo{background:#e9edf3;color:#52647f}
+.acciones-fila-operador{display:flex;align-items:center;justify-content:space-between;gap:12px}.administracion-tuvoto .acciones-fila-operador>.boton{white-space:nowrap;color:#075bff;font-size:12px;min-height:32px;padding:5px 12px;min-width:135px}.menu-operador-recepcion summary{cursor:pointer;border:1px solid #c3d4ed;border-radius:6px;min-width:30px;text-align:center;font-size:21px;line-height:26px;list-style:none}.menu-operador-recepcion summary::-webkit-details-marker{display:none}.menu-operador-recepcion>div{position:absolute;right:20px;z-index:4;background:white;border:1px solid var(--borde);box-shadow:var(--sombra-panel);border-radius:9px;padding:12px}
+.tabla-operadores-recepcion .detalle-fila-operador>td{padding:6px 10px 12px;background:#f5f8ff}.mesas-detalle-operador{display:grid;gap:10px}.mesas-detalle-operador>section{padding:12px 16px;border-radius:9px;background:#eaf1fd;min-width:0}.mesas-detalle-operador p{margin:3px 0;font-size:12px;color:var(--secundario)}.mesas-detalle-operador ul{display:grid;gap:6px;list-style:none;margin:8px 0 0;padding:0}.mesas-detalle-operador li{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-top:7px;border-top:1px solid #d6e1f1}.mesas-detalle-operador li>div{display:grid;gap:3px;min-width:0;overflow-wrap:anywhere}.mesas-detalle-operador li span{font-size:11px;color:var(--secundario)}.administracion-tuvoto .mesas-detalle-operador .boton{min-height:30px;font-size:11px;padding:5px 10px;white-space:nowrap}
+.paginacion-operadores{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:20px;font-size:12px}.paginacion-operadores label,.paginacion-operadores nav{white-space:nowrap;display:flex;align-items:center;gap:10px}.paginacion-operadores select{width:auto;padding:6px 10px;min-height:36px}.paginacion-operadores [aria-current=page]{background:#075bff;color:white;padding:9px 13px;border-radius:7px}.paginacion-operadores>span{color:var(--secundario)}.paginacion-operadores .boton{min-height:36px;font-size:12px}
+@media(max-width:1100px){.administracion-tuvoto .filtros-operadores-recepcion{grid-template-columns:minmax(0,1fr) minmax(180px,35%)}.filtro-sin-mesa{grid-column:1/-1}}
+@media(max-width:600px){.acciones-cabecera-operadores{width:100%}.acciones-cabecera-operadores>.boton,.acciones-cabecera-operadores>.menu-importar-operadores{flex:1}.menu-importar-operadores>summary{justify-content:center}.administracion-tuvoto .filtros-operadores-recepcion{grid-template-columns:minmax(0,1fr);padding:14px}.administracion-tuvoto .directorio-operadores-recepcion{padding:14px}.paginacion-operadores nav{width:100%;justify-content:space-between}.menu-importar-operadores>div{right:auto;left:0}}
+
+/* =========================================================================
+   NUEVO RESUMEN INSTITUCIONAL (Referencia Visual Dashboard)
+   ========================================================================= */
+.controles-superiores-derecha {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.selector-institucion-cabecera-caja {
+  position: relative;
+}
+.selector-institucion-cabecera {
+  appearance: none;
+  background: #ffffff url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat right 12px center;
+  background-size: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 36px 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  max-width: 320px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.selector-institucion-cabecera:hover {
+  border-color: #94a3b8;
+}
+.boton-nueva-institucion-cabecera {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+.boton-nueva-institucion-cabecera:hover {
+  text-decoration: underline;
+}
+
+.cabecera-resumen-institucion {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.titulo-resumen-grande {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.5px;
+}
+.subtitulo-institucion-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #475569;
+}
+.insignia-institucion-activa {
+  background: #dcfce7;
+  color: #166534;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+}
+.boton-ir-eleccion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #2563eb !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 9px 18px !important;
+  border: none !important;
+  cursor: pointer;
+}
+.boton-ir-eleccion:hover {
+  background: #1d4ed8 !important;
+}
+
+.grilla-metricas-resumen {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 16px !important;
+  margin-bottom: 8px;
+}
+.tarjeta-metrica-resumen {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.cabecera-tarjeta-metrica {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.cabecera-tarjeta-metrica span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+.icono-circulo-metrica {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: grid;
+  place-items: center;
+}
+.cifra-metrica-resumen {
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+.subtexto-metricas-resumen {
+  font-size: 12px;
+  color: #64748b;
+  margin: 4px 0 24px 0;
+}
+
+.fila-pendientes-estados-resumen {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+.tarjeta-resumen-seccion {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 22px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+.titulo-bloque-resumen {
+  font-size: 16px;
+  font-weight: 750;
+  color: #0f172a;
+  margin: 0 0 18px 0;
+}
+.lista-items-atencion {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+.item-atencion-resumen {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 0;
+}
+.icono-atencion-circulo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.atencion-fotos {
+  background: #ffedd5;
+  color: #ea580c;
+}
+.atencion-operadores {
+  background: #fef3c7;
+  color: #d97706;
+}
+.atencion-destacados {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+.texto-atencion-resumen {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.texto-atencion-resumen strong {
+  font-size: 13px;
+  color: #1e293b;
+}
+.texto-atencion-resumen small {
+  font-size: 12px;
+  color: #64748b;
+}
+.enlace-accion-atencion {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+.enlace-accion-atencion:hover {
+  text-decoration: underline;
+}
+
+.lista-estados-cargos-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+.fila-estado-cargo-resumen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+.insignia-estado-resumen {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 650;
+}
+.insignia-estado-resumen.estado-preparacion {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.insignia-estado-resumen.estado-recepcion {
+  background: #dcfce7;
+  color: #166534;
+}
+.insignia-estado-resumen.estado-finalizados {
+  background: #f1f5f9;
+  color: #475569;
+}
+.cifra-estado-cargo {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.pie-estados-cargos-resumen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.barra-accesos-rapidos-resumen {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+}
+.etiqueta-accesos-rapidos {
+  font-size: 14px;
+  font-weight: 750;
+  color: #0f172a;
+}
+.separador-accesos-rapidos {
+  color: #cbd5e1;
+  margin-left: 8px;
+}
+.boton-acceso-rapido {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 8px;
+  text-decoration: none;
+}
+.boton-acceso-rapido:hover {
+  text-decoration: underline;
+}
+
+.seccion-cargos-destacados {
+  position: relative;
+}
+.cabecera-portada-fila {
+  margin-bottom: 16px;
+}
+.titulo-destacados-resumen {
+  font-size: 18px;
+  font-weight: 750;
+  color: #0f172a;
+  margin: 0;
+}
+.posicion-boton-destacados {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 0;
+}
+.boton-agregar-destacado-estilizado {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #2563eb !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 7px 14px !important;
+  min-height: 36px !important;
+  cursor: pointer;
+}
+.boton-agregar-destacado-estilizado:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+.grilla-cargos-destacados {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 20px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  margin-bottom: 8px !important;
+}
+.tarjeta-cargo-destacado-cuadro {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+.cabecera-tarjeta-destacado-cuadro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.cabecera-tarjeta-destacado-cuadro h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 2px 0;
+}
+.cabecera-tarjeta-destacado-cuadro p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+.estado-menu-destacado-cuadro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.insignia-destacado-no-publicado {
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.insignia-destacado-publicado {
+  background: #dcfce7;
+  color: #166534;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.boton-puntos-destacado {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  color: #64748b !important;
+  cursor: pointer;
+  font-size: 0 !important;
+  overflow: hidden !important;
+  border-radius: 6px !important;
+}
+.boton-puntos-destacado svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.boton-puntos-destacado:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+.lista-candidatos-destacados-cuadro {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+.lista-candidatos-destacados-cuadro li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 0;
+}
+.lista-candidatos-destacados-cuadro img,
+.iniciales-candidato-destacado-circulo {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.iniciales-candidato-destacado-circulo {
+  display: grid;
+  place-items: center;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+}
+.nombre-candidato-destacado-cuadro strong {
+  font-size: 13px;
+  color: #1e293b;
+}
+.pie-destacado-cuadro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12px;
+}
+.enlace-accion-destacado {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+}
+.enlace-accion-destacado:hover {
+  text-decoration: underline;
+}
+.separador-pie-destacado {
+  color: #cbd5e1;
+}
+.subtexto-destacados-resumen {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 6px;
+  display: block;
+}
+@media (max-width: 1024px) {
+  .grilla-metricas-resumen {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .fila-pendientes-estados-resumen {
+    grid-template-columns: 1fr;
+  }
+  .grilla-cargos-destacados {
+    grid-template-columns: 1fr !important;
+  }
+}
+@media (max-width: 640px) {
+  .grilla-metricas-resumen {
+    grid-template-columns: 1fr !important;
+  }
+}

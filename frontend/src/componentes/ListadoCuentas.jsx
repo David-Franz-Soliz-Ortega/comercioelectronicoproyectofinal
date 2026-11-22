@@ -1,6 +1,6 @@
 import React from 'react';
 
-const nombresRol = { ADMINISTRADOR: 'Administrador', OPERADOR: 'Operador', AUDITOR: 'Auditor' };
+import {nombresRol} from '../api/catalogos.js';
 
 export default function ListadoCuentas({ cuentas, organizaciones, idActual, cargando, error, ocupado, alReintentar, alRevocar }) {
   const administradores=cuentas.filter(c=>c.roles?.some(r=>r.rol==='ADMINISTRADOR'));

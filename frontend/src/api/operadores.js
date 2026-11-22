@@ -35,3 +35,19 @@ export async function completarImportacionOperadores({operadores,procesos,organi
  }
  return resultados;
 }
+
+// Las cuentas ajenas no se incluyen; las asignaciones provienen del endpoint del ámbito.
+export function listarOperadoresInstitucion({cuentas,asignaciones,organizacion,busqueda='',idUsuario='',soloPendientes=false}) {
+ const porId=new Map(cuentas.filter(c=>c.roles?.some(r=>r.rol==='OPERADOR'&&r.idOrganizacion===organizacion)).map(c=>[c.idUsuario,c]));
+ const mesasPorUsuario=new Map();
+ for(const a of asignaciones){
+  if(!porId.has(a.idUsuario))porId.set(a.idUsuario,cuentas.find(c=>c.idUsuario===a.idUsuario)??{idUsuario:a.idUsuario,usuario:'Cuenta no disponible',activo:false});
+  if(!mesasPorUsuario.has(a.idUsuario))mesasPorUsuario.set(a.idUsuario,[]);
+  mesasPorUsuario.get(a.idUsuario).push(a);
+ }
+ const normalizar=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
+ const consulta=normalizar(busqueda.trim());
+ return [...porId.values()].filter(c=>!idUsuario||c.idUsuario===idUsuario).map(cuenta=>({cuenta,mesas:mesasPorUsuario.get(cuenta.idUsuario)??[]}))
+  .filter(g=>(!soloPendientes||!g.mesas.length)&&(!consulta||[g.cuenta.usuario,...g.mesas.flatMap(m=>[m.codigo,m.cargo,m.ambito,m.unidad,m.sector])].some(v=>normalizar(v).includes(consulta))))
+  .sort((a,b)=>Number(Boolean(a.mesas.length))-Number(Boolean(b.mesas.length))||a.cuenta.usuario.localeCompare(b.cuenta.usuario,'es',{numeric:true}));
+}

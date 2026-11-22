@@ -1,34 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ConfirmarEliminacion from './ConfirmarEliminacion.jsx';
 import ModalFormulario from './ModalFormulario.jsx';
-import TipoCargoUniversitario from './TipoCargoUniversitario.jsx';
-import OpcionesEleccion from './OpcionesEleccion.jsx';
-import { nombresEstado } from './EstadoEleccion.jsx';
-import { agruparCargos } from '../api/seleccionAdministracion.js';
-
-const datosEleccionVacia = () => ({
-  nombre: '',
-  cargo: '',
-  tipo: 'universidad',
-  unidad: 'Facultad',
-  ambito: '',
-  facultad: '',
-  grupoCarreras: '',
-  carreras: [],
-  vuelta: 1,
-  idPrimeraVuelta: null,
-  sectores: [],
-  ponderacion: false,
-  reglaSegundaVuelta: null
-});
-
-function procesoADatos(p) {
-  const d = datosEleccionVacia();
-  for (const k of Object.keys(d)) {
-    if (p[k] !== undefined) d[k] = p[k];
-  }
-  return d;
-}
+import CamposCargo from './CamposCargo.jsx';
+import { nombresEstado } from '../api/catalogos.js';
+import { IconoTuvoto, IconoEdificio, IconoUsuarios, IconoEngranaje } from './Iconos.jsx';
+import { agruparCargos, filtrarCargos, datosDeProceso } from '../api/seleccionAdministracion.js';
 
 export default function SeleccionAdministracion({
   organizacion,
@@ -41,10 +17,17 @@ export default function SeleccionAdministracion({
   alAgregar,
   alEliminar,
   alGuardarEdicion,
-  alReintentar
+  alReintentar,
+  nombreInstitucion,
+  acciones
 }) {
-  if (!organizacion) return null;
-  const grupos = agruparCargos(procesos);
+  const [expandidos,setExpandidos]=useState(new Set());
+  const [busqueda,setBusqueda]=useState(''),[estado,setEstado]=useState(''),[archivados,setArchivados]=useState(false),[familia,setFamilia]=useState('');
+  const catalogo=filtrarCargos(procesos,{archivados});
+  const grupos=agruparCargos(catalogo);
+  const coincidencias=agruparCargos(filtrarCargos(procesos,{busqueda,estado,archivados})).filter(g=>!familia||g.id===familia);
+  const total=coincidencias.reduce((s,g)=>s+g.cantidad,0);
+  useEffect(()=>{setBusqueda('');setEstado('');setArchivados(false);setFamilia('');setExpandidos(new Set());setCargoModal(null);},[organizacion]);
 
   const [cargoModal, setCargoModal] = useState(null);
   const [modoModal, setModoModal] = useState('detalle'); // 'detalle' | 'editar'
@@ -55,14 +38,14 @@ export default function SeleccionAdministracion({
   const abrirDetalle = (p) => {
     setCargoModal(p);
     setModoModal('detalle');
-    setDatosEdicion(procesoADatos(p));
+    setDatosEdicion(datosDeProceso(p));
     setErrorEdicion('');
   };
 
   const iniciarEdicion = (p) => {
     setCargoModal(p);
     setModoModal('editar');
-    setDatosEdicion(procesoADatos(p));
+    setDatosEdicion(datosDeProceso(p));
     setErrorEdicion('');
   };
 
@@ -91,103 +74,26 @@ export default function SeleccionAdministracion({
     }
   };
 
+  if (!organizacion) return null;
   return (
-    <section id="cargos-de-institucion" className="panel-admin seleccion-administracion" aria-labelledby="titulo-seleccion-administracion">
+    <section id="cargos-de-institucion" className="seleccion-administracion catalogo-claro" aria-labelledby="titulo-seleccion-administracion">
       <header className="cabecera-lista-cargos">
-        <div>
-          <p className="etiqueta-panel">INSTITUCIÓN SELECCIONADA</p>
-          <h2 id="titulo-seleccion-administracion">Elegir o crear un cargo</h2>
-          <p>Selecciona un cargo para ver sus detalles, editarlo o continuar su preparación.</p>
-        </div>
-        <button type="button" className="boton primario agregar-cargo" disabled={ocupado || !disponible} onClick={alAgregar}>
-          + Crear nuevo cargo
-        </button>
+        <div><h2 id="titulo-seleccion-administracion">Cargos electorales</h2><p>{nombreInstitucion||'Cargos de la organización'}</p></div>
+        <div className="acciones-lista-cargos">{acciones}<button type="button" className="boton primario agregar-cargo" disabled={ocupado||!disponible} onClick={alAgregar}>＋ Crear cargo</button></div>
       </header>
-
-      {cargando ? (
-        <p role="status">Cargando cargos…</p>
-      ) : !disponible ? (
-        <div>
-          <p role="alert">No se pudo cargar el listado de cargos.</p>
-          <button type="button" className="boton secundario" disabled={ocupado} onClick={alReintentar}>
-            Reintentar
-          </button>
-        </div>
-      ) : procesos.length ? (
-        <>
-          <h3 className="titulo-cargos-existentes">Cargos existentes</h3>
-          <p className="total-cargos-agrupados">
-            {procesos.length} {procesos.length === 1 ? 'cargo' : 'cargos'} · {grupos.length} {grupos.length === 1 ? 'grupo' : 'grupos'}. Se incluyen los cargos archivados.
-          </p>
-
-          <div className="grupos-cargos-institucion">
-            {grupos.map(g => (
-              <details key={organizacion + ':' + g.id} className="grupo-cargos-institucion" data-grupo-cargos={g.id} open>
-                <summary aria-label={`${g.nombre}: ${g.cantidad} ${g.cantidad === 1 ? 'cargo' : 'cargos'}`}>
-                  <span className="nombre-grupo-cargos">{g.nombre}</span>
-                  <span className="cantidad-grupo-cargos" data-cantidad={g.cantidad}>
-                    {g.cantidad}<small>{g.cantidad === 1 ? 'cargo' : 'cargos'}</small>
-                  </span>
-                  <span className="flecha-grupo-cargos" aria-hidden="true">⌄</span>
-                </summary>
-
-                <ul className="lista-cargos-institucion">
-                  {g.procesos.map(p => (
-                    <li key={p.id} className="item-cargo-institucion">
-                      <button
-                        type="button"
-                        className="cargo-institucion tarjeta-cargo-cuadrada"
-                        data-cargo={p.id}
-                        aria-pressed={p.id === idProceso}
-                        disabled={ocupado}
-                        onClick={() => abrirDetalle(p)}
-                      >
-                        <div className="cabecera-tarjeta-cargo">
-                          <span className={`insignia-estado estado-${p.estado}`}>
-                            {nombresEstado[p.estado] ?? p.estado}
-                          </span>
-                          <span className="insignia-vuelta-tarjeta">
-                            {p.vuelta === 2 ? '2ª Vuelta' : '1ª Vuelta'}
-                          </span>
-                        </div>
-
-                        <div className="cuerpo-tarjeta-cargo">
-                          <strong className="nombre-cargo-tarjeta">{p.cargo}</strong>
-                          <span className="ambito-cargo-tarjeta">{p.facultad || p.ambito || 'Toda la institución'}</span>
-                          <small className="evento-cargo-tarjeta">{p.nombre}</small>
-                        </div>
-
-                        <div className="pie-tarjeta-cargo">
-                          <span className="stats-cargo-tarjeta">
-                            {p.candidatos.length} cand. · {p.mesas.length} mesas
-                          </span>
-                          <span className="enlace-abrir-tarjeta">Ver detalles →</span>
-                        </div>
-                      </button>
-
-                      {p.estado === 'borrador' && alEliminar && (
-                        <div className="acciones-rapidas-cargo-card">
-                          <ConfirmarEliminacion
-                            nombre={p.cargo + ' · ' + (p.ambito || p.nombre)}
-                            ocupado={ocupado}
-                            descripcion="Se retirará este cargo con su catálogo del panel. Los registros se conservan; no se eliminan resultados publicados."
-                            alConfirmar={() => alEliminar(p)}
-                          />
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="sin-cargos-institucion">
-          <h3>Todavía no has agregado cargos</h3>
-          <p>Pulsa «Crear nuevo cargo» para registrar Rector, Vicerrector, Decano u otro cargo.</p>
-        </div>
-      )}
+      {cargando?<p role="status">Cargando cargos…</p>:!disponible?<div className="panel-admin"><p role="alert">No se pudo cargar el listado de cargos.</p><button type="button" className="boton secundario" disabled={ocupado} onClick={alReintentar}>Reintentar</button></div>:<>
+      {!!grupos.length&&<div className="metricas-familias-cargos">{grupos.map(g=>{const Icono=g.id==='rectorado'?IconoEngranaje:g.id==='vicerrectorado'?IconoTuvoto:g.id==='decanos'?IconoEdificio:IconoUsuarios;return <article key={g.id}><span className="icono-familia-cargo"><Icono tamano={27}/></span><div><span>{g.nombre}</span><strong>{g.cantidad}</strong></div></article>;})}</div>}
+      <div className="panel-admin directorio-cargos-claro">
+       <nav className="pestanas-familias-cargos" aria-label="Filtrar grupo de cargos"><button type="button" aria-pressed={!familia} onClick={()=>setFamilia('')}>Todos <span>{catalogo.length}</span></button>{grupos.map(g=><button type="button" key={g.id} aria-pressed={familia===g.id} onClick={()=>setFamilia(g.id)}>{g.nombre}<span>{g.cantidad}</span></button>)}</nav>
+       <div className="filtros-directorio-cargos"><label className="buscar-cargo"><span className="solo-lectores-cargos">Buscar cargo o facultad</span><input type="search" aria-label="Buscar cargo o facultad" placeholder="Buscar cargo o facultad…" value={busqueda} onChange={e=>setBusqueda(e.target.value)}/></label><label><span className="solo-lectores-cargos">Estado de los cargos</span><select aria-label="Estado de los cargos" value={estado} onChange={e=>setEstado(e.target.value)}><option value="">Todos los estados</option>{Object.entries(nombresEstado).map(([id,nombre])=><option key={id} value={id}>{nombre}</option>)}</select></label><label className="mostrar-archivados-cargos"><input type="checkbox" checked={archivados} onChange={e=>{setArchivados(e.target.checked);setFamilia('');}}/>Mostrar archivados</label></div>
+       <div className="scroll-directorio-cargos"><div className="columnas-directorio-cargos" aria-hidden="true"><span>Cargo y alcance</span><span>Estado</span><span>Vuelta</span><span>Candidatos</span><span>Mesas</span><span>Acciones</span></div>
+       <div className="grupos-cargos-institucion">{coincidencias.map(g=><details key={organizacion+':'+g.id} className="grupo-cargos-institucion" data-grupo-cargos={g.id} open={g.id!=='directores'||!!busqueda||familia===g.id}>
+        <summary aria-label={g.nombre+': '+g.cantidad+' cargos'}><span className="flecha-grupo-cargos" aria-hidden="true">›</span><span className="nombre-grupo-cargos">{g.nombre}</span><span className="cantidad-grupo-cargos" data-cantidad={g.cantidad}>{g.cantidad}</span></summary>
+        <table className="lista-cargos-institucion"><colgroup><col style={{width:'36%'}}/><col style={{width:'12%'}}/><col style={{width:'10%'}}/><col style={{width:'10%'}}/><col style={{width:'10%'}}/><col style={{width:'22%'}}/></colgroup><thead className="solo-lectores-cargos"><tr>{['Cargo y alcance','Estado','Vuelta','Candidatos','Mesas','Acciones'].map(t=><th key={t}>{t}</th>)}</tr></thead><tbody>{g.procesos.map((p,indice)=><tr hidden={!busqueda&&!familia&&!expandidos.has(g.id)&&indice>=3} key={p.id} className="item-cargo-institucion"><td><strong>{p.cargo}</strong><span className="alcance-fila-cargo">{p.ambito||p.facultad||'Toda la institución'}</span></td><td><span className={'insignia-estado estado-'+p.estado}>{nombresEstado[p.estado]??p.estado}</span></td><td><span className="vuelta-fila-cargo">{p.vuelta===2?'2.ª vuelta':'1.ª vuelta'}</span></td><td>{p.candidatos?.length??'—'}</td><td>{p.mesas?.length??'—'}</td><td><div className="acciones-fila-cargo"><button type="button" className="ver-detalles-cargo" data-cargo={p.id} aria-pressed={p.id===idProceso} disabled={ocupado} onClick={()=>abrirDetalle(p)}>Ver detalles <span aria-hidden="true">→</span></button><details className="menu-fila-cargo"><summary aria-label={'Opciones de '+p.cargo}>⋮</summary><div><button type="button" disabled={ocupado} onClick={()=>{alProceso(p.id);}}>Gestionar cargo</button>{p.estado==='borrador'&&<button type="button" disabled={ocupado||!alGuardarEdicion} onClick={()=>iniciarEdicion(p)}>Editar cargo</button>}{p.estado==='borrador'&&alEliminar&&<ConfirmarEliminacion nombre={p.cargo+' · '+(p.ambito||p.nombre)} ocupado={ocupado} descripcion="Se retirará el cargo del panel conservando sus registros." alConfirmar={()=>alEliminar(p)}/>}</div></details></div></td></tr>)}</tbody></table>{g.cantidad>3&&!busqueda&&!familia&&<button type="button" className="ver-todos-grupo-cargos" onClick={()=>setExpandidos(prev=>{const siguiente=new Set(prev);if(siguiente.has(g.id))siguiente.delete(g.id);else siguiente.add(g.id);return siguiente;})}>{expandidos.has(g.id)?'Mostrar menos':'Ver los '+g.cantidad+' cargos →'}</button>}
+       </details>)}</div></div>
+       {!total&&<div className="sin-cargos-institucion"><h3>{procesos.length?'No hay coincidencias':'Todavía no hay cargos'}</h3><p>{procesos.length?'Prueba otro filtro o muestra los archivados.':'Crea el primer cargo para comenzar.'}</p></div>}
+       <footer className="total-cargos-agrupados">{total} cargos en {coincidencias.length} grupos</footer>
+      </div></>}
 
       {/* Modal superpuesto del cargo (Detalle y Edición en el mismo modal) */}
       {cargoModal && (
@@ -305,71 +211,7 @@ export default function SeleccionAdministracion({
 
               {errorEdicion && <div className="aviso" role="alert">{errorEdicion}</div>}
 
-              {datosEdicion && (
-                <>
-                  {datosEdicion.tipo === 'universidad' ? (
-                    <TipoCargoUniversitario
-                      key={`modal-tipo-${cargoModal.id}`}
-                      cargo={datosEdicion.cargo}
-                      procesos={procesos}
-                      bloqueado={ocupado || guardandoEdicion}
-                      alEscribir={cargo => setDatosEdicion({ ...datosEdicion, cargo })}
-                      alSeleccionar={cargo => setDatosEdicion({
-                        ...datosEdicion,
-                        cargo,
-                        unidad: ['Decano', 'Director'].includes(cargo) ? 'Carrera' : 'Facultad',
-                        facultad: '',
-                        grupoCarreras: '',
-                        carreras: [],
-                        ambito: ['Rector', 'Vicerrector'].includes(cargo) ? 'Toda la universidad' : ''
-                      })}
-                    />
-                  ) : (
-                    <label>
-                      Tipo de cargo
-                      <input
-                        required
-                        maxLength="100"
-                        value={datosEdicion.cargo}
-                        disabled={ocupado || guardandoEdicion}
-                        onChange={e => setDatosEdicion({ ...datosEdicion, cargo: e.target.value })}
-                      />
-                    </label>
-                  )}
-
-                  <label>
-                    Tipo de organización
-                    <select
-                      value={datosEdicion.tipo}
-                      disabled={ocupado || guardandoEdicion}
-                      onChange={e => setDatosEdicion({ ...datosEdicion, tipo: e.target.value, cargo: '', facultad: '', grupoCarreras: '', carreras: [] })}
-                    >
-                      <option value="universidad">Universidad</option>
-                      <option value="municipio">Municipio</option>
-                      <option value="otra">Otra organización</option>
-                    </select>
-                  </label>
-
-                  <label>
-                    ¿Cómo se agrupan las mesas? (Facultad, Comunidad, Carrera…)
-                    <input
-                      required
-                      maxLength="80"
-                      value={datosEdicion.unidad}
-                      disabled={ocupado || guardandoEdicion}
-                      onChange={e => setDatosEdicion({ ...datosEdicion, unidad: e.target.value })}
-                    />
-                  </label>
-
-                  <OpcionesEleccion
-                    datos={datosEdicion}
-                    cambiar={setDatosEdicion}
-                    procesos={procesos}
-                    bloqueado={ocupado || guardandoEdicion}
-                    identidadFija={false}
-                  />
-                </>
-              )}
+              {datosEdicion&&<CamposCargo datos={datosEdicion} cambiar={setDatosEdicion} procesos={procesos} bloqueado={ocupado||guardandoEdicion} identidadFija/>}
 
               <div className="pie-acciones-modal-cargo">
                 <div style={{ display: 'flex', gap: 10 }}>

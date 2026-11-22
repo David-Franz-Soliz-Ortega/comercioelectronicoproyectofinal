@@ -22,7 +22,7 @@ try{
  const evaluar=async expression=>{const r=await comando('script.evaluate',{expression,target:{context},awaitPromise:true});if(r.type==='exception')throw Error('Error JavaScript en la página');return r.result?.value;};
  const hasta=async expresion=>{for(let i=0;i<60;i++){if(await evaluar(expresion)){await evaluar("(()=>{document.querySelector('.modal-confirmacion-global[open] button')?.click();return true;})()");return;}await esperar(250);}throw Error('No apareció el estado esperado de la interfaz');};
  const abrirCargoEnGrupo=async id=>{
-  assert.equal(await evaluar(`(()=>{const b=Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(id)});const grupo=b?.closest('[data-grupo-cargos]');if(!grupo)return false;if(!grupo.open)grupo.querySelector('summary').click();return grupo.open&&b.getBoundingClientRect().height>0;})()`),true,'El cargo se abre desde su grupo visible');
+  assert.equal(await evaluar(`(()=>{const b=Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(id)});const grupo=b?.closest('[data-grupo-cargos]');if(!grupo)return false;if(!grupo.open)grupo.querySelector('summary').click();if(b.getBoundingClientRect().height===0)grupo.querySelector('.ver-todos-grupo-cargos')?.click();return grupo.open&&b.getBoundingClientRect().height>0;})()`),true,'El cargo se abre desde su grupo visible');
  };
 
  await comando('browsingContext.setViewport',{context,viewport:{width:1440,height:1000}});
@@ -55,7 +55,7 @@ try{
  await evaluar("document.querySelector('.cancelar-cargo').click();true");
  await hasta("!!document.querySelector('.sin-cargos-institucion')");
  assert.equal(await evaluar("!document.querySelector('.opciones-eleccion')"),true,'Cancelar vuelve a la lista sin crear un cargo');
- await evaluar("document.querySelector('.contexto-modulo-admin button').click();true");
+ await evaluar("document.querySelector('.institucion-lateral-clara').click();true");
  await hasta("!!document.querySelector('.ficha-institucion button') && !document.querySelector('.ficha-institucion button').disabled");
 
  await evaluar("Array.from(document.querySelectorAll('.ficha-institucion button')).find(b=>b.textContent.includes('Volver a elegir')).click();true");
@@ -84,10 +84,10 @@ try{
 
  await hasta("document.querySelectorAll('[data-cargo]').length>0 && !document.querySelector('.agregar-cargo').disabled");
  assert.equal(await evaluar("!document.getElementById('evento-administrado')&&!document.getElementById('cargo-administrado')&&!document.querySelector('.formulario-simple')&&!document.querySelector('.preparacion-eleccion')"),true,'La entrada muestra solo los cargos y el botón de agregar');
- assert.equal(await evaluar("(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const lista=await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json());const ids=Array.from(document.querySelectorAll('[data-cargo]'),b=>b.dataset.cargo);return ids.length===lista.elementos.length && lista.elementos.every(p=>ids.includes(p.id));})()"),true,'El listado incluye todos los cargos e históricos sin filtrarlos por nombre');
+ assert.equal(await evaluar("(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const lista=await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json());const ids=Array.from(document.querySelectorAll('[data-cargo]'),b=>b.dataset.cargo);return ids.length===lista.elementos.length && lista.elementos.every(p=>ids.includes(p.id));})()"),true,'El listado incluye todos los cargos e históricos sin filtrarlos por nombre');
 
  assert.equal(await evaluar("Array.from(document.querySelectorAll('[data-grupo-cargos]')).every(g=>!g.open)"),true,'Los grupos empiezan cerrados para elegir qué consultar');
- assert.equal(await evaluar("(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const ps=(await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json())).elementos;const familias={rectorado:'Rector',vicerrectorado:'Vicerrector',decanos:'Decano',directores:'Director'};let total=0;for(const g of document.querySelectorAll('[data-grupo-cargos]')){const ids=Array.from(g.querySelectorAll('[data-cargo]'),b=>b.dataset.cargo),n=Number(g.querySelector('[data-cantidad]').dataset.cantidad);if(ids.length!==n)return false;total+=n;const cargo=familias[g.dataset.grupoCargos];if(cargo&&(ps.filter(p=>p.cargo===cargo).length!==n||ids.some(id=>ps.find(p=>p.id===id)?.cargo!==cargo)))return false;}return total===ps.length;})()"),true,'Cada cantidad y grupo corresponde a sus cargos reales de la API');
+ assert.equal(await evaluar("(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const ps=(await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json())).elementos;const familias={rectorado:'Rector',vicerrectorado:'Vicerrector',decanos:'Decano',directores:'Director'};let total=0;for(const g of document.querySelectorAll('[data-grupo-cargos]')){const ids=Array.from(g.querySelectorAll('[data-cargo]'),b=>b.dataset.cargo),n=Number(g.querySelector('[data-cantidad]').dataset.cantidad);if(ids.length!==n)return false;total+=n;const cargo=familias[g.dataset.grupoCargos];if(cargo&&(ps.filter(p=>p.cargo===cargo).length!==n||ids.some(id=>ps.find(p=>p.id===id)?.cargo!==cargo)))return false;}return total===ps.length;})()"),true,'Cada cantidad y grupo corresponde a sus cargos reales de la API');
  const cantidadGrupos=await evaluar("document.querySelectorAll('[data-grupo-cargos]').length");
  for(let i=0;i<cantidadGrupos;i++){
   await evaluar(`document.querySelectorAll('[data-grupo-cargos]')[${i}].querySelector('summary').click();true`);
@@ -103,7 +103,7 @@ try{
   await abrirCargoEnGrupo(cargoAlternativo);
   await evaluar(`Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(cargoAlternativo)}).click();true`);
   await hasta("!!document.querySelector('.detalle-configuracion-eleccion')");
-  assert.equal(await evaluar("document.querySelector('.contexto-modulo-admin').dataset.contextoProceso"),cargoAlternativo);
+  assert.equal(await evaluar("document.querySelector('[data-contexto-institucion]').dataset.contextoProceso"),cargoAlternativo);
   await evaluar("document.querySelector('.volver-cargos').click();true");
   await hasta("!!document.querySelector('.lista-cargos-institucion')");
  }
@@ -115,12 +115,12 @@ try{
   if(modulo==='Usuarios'){await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Usuarios y organizaciones'");assert.equal(await evaluar("!document.querySelector('.contexto-modulo-admin')"),true);continue;}
   await hasta("!!document.querySelector('.contexto-modulo-admin')");
   assert.equal(await evaluar("!document.querySelector('.espacio-instituciones')&&!document.querySelector('.seleccion-administracion')"),true);
-  assert.equal(await evaluar("document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion"),institucionActiva);
-  assert.equal(await evaluar("document.querySelector('.contexto-modulo-admin').dataset.contextoProceso"),cargoActivo);
-  assert.equal(await evaluar("document.querySelectorAll('.acciones-contexto-cargo button').length===1 && document.querySelector('.acciones-contexto-cargo button').textContent==='Cambiar institución'"),true,'La barra ofrece solo Cambiar institución');
+  assert.equal(await evaluar("document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion"),institucionActiva);
+  assert.equal(await evaluar("document.querySelector('[data-contexto-institucion]').dataset.contextoProceso"),cargoActivo);
+  assert.equal(await evaluar("document.querySelectorAll('.institucion-lateral-clara').length===1 && !document.querySelector('.institucion-cabecera-clara')"),true,'La barra ofrece solo Cambiar institución');
  }
  // Crear desde Candidatos no edita el seleccionado ni guarda datos al cambiar de vista.
- const catalogoAntesElegir=await evaluar("(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;return JSON.stringify((await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json())).elementos.sort((a,b)=>a.id.localeCompare(b.id)));})()");
+ const catalogoAntesElegir=await evaluar("(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;return JSON.stringify((await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json())).elementos.sort((a,b)=>a.id.localeCompare(b.id)));})()");
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Elección').click();true");
  await hasta("!!document.querySelector('.agregar-cargo') && !document.querySelector('.agregar-cargo').disabled");
  await evaluar("document.querySelector('.agregar-cargo').click();true");
@@ -132,22 +132,22 @@ try{
  await abrirCargoEnGrupo(cargoParaElegir);
  await evaluar(`Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(cargoParaElegir)}).click();true`);
  await hasta("!!document.querySelector('.detalle-configuracion-eleccion') && !!document.querySelector('.volver-cargos')");
- assert.equal(await evaluar("document.querySelector('.contexto-modulo-admin').dataset.contextoProceso"),cargoParaElegir);
- assert.equal(await evaluar("document.querySelectorAll('.acciones-contexto-cargo button').length"),1,'El detalle no agrega acciones variables a la barra');
+ assert.equal(await evaluar("document.querySelector('[data-contexto-institucion]').dataset.contextoProceso"),cargoParaElegir);
+ assert.equal(await evaluar("document.querySelectorAll('.institucion-lateral-clara').length"),1,'El detalle no agrega acciones variables a la barra');
  for(const ancho of [390,768,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Acciones de cargo desbordadas a '+ancho+'px');}
  await evaluar("document.querySelector('.volver-cargos').click();true");
  await hasta("!!document.querySelector('[data-grupo-cargos]')");
  await abrirCargoEnGrupo(cargoActivo);
  await evaluar(`Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(cargoActivo)}).click();true`);
  await hasta("!!document.querySelector('.detalle-configuracion-eleccion')");
- assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const ps=(await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json())).elementos.sort((a,b)=>a.id.localeCompare(b.id));return JSON.stringify(ps)===${JSON.stringify(catalogoAntesElegir)};})()`),true,'Crear/cancelar/elegir no modifica los cargos persistidos');
- await evaluar("document.querySelector('.contexto-modulo-admin button').click();true");
+ assert.equal(await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const ps=(await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json())).elementos.sort((a,b)=>a.id.localeCompare(b.id));return JSON.stringify(ps)===${JSON.stringify(catalogoAntesElegir)};})()`),true,'Crear/cancelar/elegir no modifica los cargos persistidos');
+ await evaluar("document.querySelector('.institucion-lateral-clara').click();true");
  await hasta("!!document.querySelector('.indicadores-institucion')");
  assert.equal(await evaluar("!document.querySelector('.accesos-resumen')"),true,'Resumen no repite accesos del menú');
  await evaluar("document.querySelector('.cabecera-resumen-institucion button').click();true");
  await hasta("!!document.querySelector('.lista-cargos-institucion')");
  assert.equal(await evaluar("document.querySelector('[data-cargo][aria-pressed=true]').dataset.cargo"),cargoActivo);
- await evaluar("document.querySelector('.contexto-modulo-admin button').click();true");
+ await evaluar("document.querySelector('.institucion-lateral-clara').click();true");
  await hasta("!!document.querySelector('.indicadores-institucion')");
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Candidatos').click();true");
  await hasta("!!document.querySelector('.contexto-modulo-admin')");
@@ -159,7 +159,7 @@ try{
  await evaluar("Array.from(document.querySelectorAll('.conteo-institucion button')).find(b=>b.textContent==='Terminar conteo de la institución').click();true");
  assert.equal(await evaluar("document.querySelector('.confirmacion-estado .primario').disabled"),true);
  await evaluar("Array.from(document.querySelectorAll('.confirmacion-estado button')).find(b=>b.textContent==='Cancelar').click();true");
- await evaluar("document.querySelector('.contexto-modulo-admin button').click();true");
+ await evaluar("document.querySelector('.institucion-lateral-clara').click();true");
  await hasta("!!document.querySelector('.indicadores-institucion')");
  await evaluar("document.querySelector('.cabecera-resumen-institucion button').click();true");
  await hasta("!!document.querySelector('.seleccion-administracion')");
@@ -193,8 +193,8 @@ try{
  await evaluar("document.querySelector('.opciones-eleccion').closest('form').querySelector('button.primario').scrollIntoView({block:'center'});true");
  await evaluar("document.querySelector('.opciones-eleccion').closest('form').querySelector('button.primario').click();true");
  await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Candidatos' && !!document.querySelector('.totales-candidatos') && !Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Mesas')?.disabled");
- const procesoCreado=await evaluar("document.querySelector('.contexto-modulo-admin').dataset.contextoProceso");
- assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoCreado)},{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.nombre===${JSON.stringify(nombreInstitucion.slice(0,120))}&&p.cargo===${JSON.stringify(cargoEleccion)}&&p.estado==='borrador';})()`),true,'La API persistió el nombre automático de la institución');
+ const procesoCreado=await evaluar("document.querySelector('[data-contexto-institucion]').dataset.contextoProceso");
+ assert.equal(await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoCreado)},{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.nombre===${JSON.stringify(nombreInstitucion.slice(0,120))}&&p.cargo===${JSON.stringify(cargoEleccion)}&&p.estado==='borrador';})()`),true,'La API persistió el nombre automático de la institución');
  for(const ancho of [390,768,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Formulario desbordado a '+ancho+'px');}
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Elección').click();true");
  await hasta("!!document.querySelector('.lista-cargos-institucion') && !document.querySelector('.item-menu-lateral').disabled");
@@ -207,7 +207,7 @@ try{
  await evaluar("(()=>{const el=document.querySelector('[aria-label=\"Facultad del cargo\"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,'Ámbito sintético editado');el.dispatchEvent(new Event('input',{bubbles:true}));return true;})()");
  await evaluar("document.querySelector('.opciones-eleccion').closest('form').querySelector('button.primario').click();true");
  await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Candidatos' && !document.querySelector('.item-menu-lateral').disabled");
- assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoCreado)},{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.nombre===${JSON.stringify(nombreInstitucion.slice(0,120))}&&p.facultad==='Ámbito sintético editado';})()`),true,'Editar conserva el nombre y guarda las opciones');
+ assert.equal(await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoCreado)},{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.nombre===${JSON.stringify(nombreInstitucion.slice(0,120))}&&p.facultad==='Ámbito sintético editado';})()`),true,'Editar conserva el nombre y guarda las opciones');
 
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Asignar operadores').click();true");
  await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Asignar operadores'");
@@ -220,13 +220,13 @@ try{
   await abrirCargoEnGrupo(procesoCreado);
  await evaluar(`Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(procesoCreado)}).click();true`);
  await hasta("!!document.querySelector('.detalle-configuracion-eleccion')");
- const procesoExcel=await evaluar("document.querySelector('.contexto-modulo-admin').dataset.contextoProceso");
+ const procesoExcel=await evaluar("document.querySelector('[data-contexto-institucion]').dataset.contextoProceso");
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Mesas').click();true");
  await hasta("!!document.querySelector('[data-importacion=mesas] [data-abrir-importacion]')");
  await evaluar("document.querySelector('[data-importacion=mesas] [data-abrir-importacion]').click();true");
  const cargarExcel=createRequire(new URL('../../microservicios/elecciones/package.json',import.meta.url));const ExcelJS=cargarExcel('exceljs');
- const plantillaMesas=await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/mesas-compartidas/importacion/plantilla',{headers:{'X-Organizacion':org}});if(!r.ok)throw Error('Plantilla no disponible');const a=new Uint8Array(await r.arrayBuffer());return btoa(String.fromCharCode(...a));})()`);
- const cargoImportacion=JSON.parse(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoExcel)},{headers:{'X-Organizacion':org}});return JSON.stringify(await r.json());})()`));
+ const plantillaMesas=await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/mesas-compartidas/importacion/plantilla',{headers:{'X-Organizacion':org}});if(!r.ok)throw Error('Plantilla no disponible');const a=new Uint8Array(await r.arrayBuffer());return btoa(String.fromCharCode(...a));})()`);
+ const cargoImportacion=JSON.parse(await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoExcel)},{headers:{'X-Organizacion':org}});return JSON.stringify(await r.json());})()`));
  const libro=new ExcelJS.Workbook();await libro.xlsx.load(Buffer.from(plantillaMesas,'base64'));const hoja=libro.worksheets[0];
  for(const [codigo,unidad,sector] of [['TEC-UI-001','Facultad sintética de Tecnología','docentes'],['SAL-UI-001','Facultad sintética de Salud','estudiantes']])hoja.addRow([codigo,unidad,sector,'','','',cargoImportacion.cargo,cargoImportacion.ambito??'',cargoImportacion.vuelta??1,'']);
  const archivoMesas=Buffer.from(await libro.xlsx.writeBuffer()).toString('base64');
@@ -237,7 +237,7 @@ try{
  await evaluar("document.querySelector('[data-importacion=mesas] input[type=checkbox]').click();true");
  await evaluar("Array.from(document.querySelectorAll('[data-importacion=mesas] button')).find(b=>b.textContent==='Confirmar importación').click();true");
  await hasta("Array.from(document.querySelectorAll('[data-mesa-listado]>summary')).some(s=>s.textContent.includes('TEC-UI-001')) && Array.from(document.querySelectorAll('[data-mesa-listado]>summary')).some(s=>s.textContent.includes('SAL-UI-001'))");
- assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoExcel)},{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.estado==='borrador'&&p.mesas.length===2&&p.mesas.some(m=>m.codigo==='TEC-UI-001'&&m.unidad==='Facultad sintética de Tecnología'&&m.sector==='docentes')&&p.mesas.some(m=>m.codigo==='SAL-UI-001'&&m.unidad==='Facultad sintética de Salud'&&m.sector==='estudiantes');})()`),true);
+ assert.equal(await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoExcel)},{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.estado==='borrador'&&p.mesas.length===2&&p.mesas.some(m=>m.codigo==='TEC-UI-001'&&m.unidad==='Facultad sintética de Tecnología'&&m.sector==='docentes')&&p.mesas.some(m=>m.codigo==='SAL-UI-001'&&m.unidad==='Facultad sintética de Salud'&&m.sector==='estudiantes');})()`),true);
  // Asignar desde el formulario antes de registrar candidatos; completar el catálogo después.
  await hasta("!document.querySelector('.item-menu-lateral').disabled");
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Asignar operadores').click();true");
@@ -247,15 +247,15 @@ try{
  await evaluar("document.querySelector('.opciones-mesas-operador input:not(:disabled)').click();true");
  await evaluar("document.querySelector('.formulario-operador button.primario').click();true");
  await hasta("!document.querySelector('.formulario-operador') && !document.querySelector('.item-menu-lateral').disabled");
- assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoCreado)},{headers:{'X-Organizacion':org}}).then(r=>r.json());const a=await fetch('/api/v1/configuracion/procesos/'+p.id+'/asignaciones',{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.candidatos.length===0&&p.estado==='borrador'&&a.elementos.length===1;})()`),true,'Formulario de asignación persistió sin candidatos');
+ assert.equal(await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoCreado)},{headers:{'X-Organizacion':org}}).then(r=>r.json());const a=await fetch('/api/v1/configuracion/procesos/'+p.id+'/asignaciones',{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.candidatos.length===0&&p.estado==='borrador'&&a.elementos.length===1;})()`),true,'Formulario de asignación persistió sin candidatos');
  await hasta("document.querySelectorAll('.mesas-por-operador [data-operador]').length>0");
- assert.equal(await evaluar("(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/asignaciones',{headers:{'X-Organizacion':org}}).then(r=>r.json());return r.elementos.every(a=>{const el=Array.from(document.querySelectorAll('.mesas-por-operador [data-operador]')).find(e=>e.dataset.operador===a.idUsuario);return el&&el.textContent.includes(a.codigo)&&el.textContent.includes(a.cargo);});})()"),true,'Cada operador muestra sus mesas y cargos reales');
+ assert.equal(await evaluar("(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/asignaciones',{headers:{'X-Organizacion':org}}).then(r=>r.json());return r.elementos.every(a=>{const el=Array.from(document.querySelectorAll('.mesas-por-operador [data-operador]')).find(e=>e.dataset.operador===a.idUsuario);return el&&el.textContent.includes(a.codigo)&&el.textContent.includes(a.cargo);});})()"),true,'Cada operador muestra sus mesas y cargos reales');
  for(const ancho of [390,768,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Asignaciones por operador desbordadas a '+ancho+'px');}
 
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Candidatos').click();true");
  await hasta("!!document.querySelector('.candidatos-administracion .gestionar-candidatos') && !document.querySelector('.gestionar-candidatos').disabled");
  await evaluar("document.querySelector('.gestionar-candidatos').click();true");
- await hasta("!!document.querySelector('.grid-candidatos-fotos')");
+ await hasta("!!document.querySelector('dialog[open] .editor-candidatos form')");
  await evaluar("(()=>{const el=document.querySelector('.formulario-simple input:not([type=file])');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,'Candidatura sintética del flujo');el.dispatchEvent(new Event('input',{bubbles:true}));return true;})()");
  await evaluar("document.querySelector('.formulario-simple button[value=continuar]').click();true");
  await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Mesas de recepción' && !document.querySelector('.item-menu-lateral').disabled");
@@ -268,7 +268,7 @@ try{
  await evaluar("document.querySelector('.cabecera-resumen-institucion button').click();true");
  await hasta("!!document.querySelector('[data-importacion=cargos] [data-abrir-importacion]')");
  await evaluar("document.querySelector('[data-importacion=cargos] [data-abrir-importacion]').click();true");
- const plantillaCargos=await evaluar("(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/importaciones/cargos/plantilla',{headers:{'X-Organizacion':org}});if(!r.ok)throw Error('Plantilla cargos no disponible');return btoa(String.fromCharCode(...new Uint8Array(await r.arrayBuffer())));})()");
+ const plantillaCargos=await evaluar("(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/importaciones/cargos/plantilla',{headers:{'X-Organizacion':org}});if(!r.ok)throw Error('Plantilla cargos no disponible');return btoa(String.fromCharCode(...new Uint8Array(await r.arrayBuffer())));})()");
  // Reproducir 34 filas con 20 errores: la tabla válida no habilita un lote incompleto.
  const libroIncompleto=new ExcelJS.Workbook();await libroIncompleto.xlsx.load(Buffer.from(plantillaCargos,'base64'));
  for(let i=1;i<=14;i++)libroIncompleto.worksheets[0].addRow(['Decano','Facultad de revisión sintética '+Date.now()+' '+i,'','']);
@@ -303,9 +303,9 @@ try{
  await evaluar("document.querySelector('[data-importacion=cargos] input[type=checkbox]').click();true");
  await evaluar("Array.from(document.querySelectorAll('[data-importacion=cargos] button')).find(b=>b.textContent==='Confirmar importación').click();true");
  await hasta("document.querySelectorAll('[data-cargo]').length==="+(antesCargos+2));
- assert.equal(await evaluar("(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json());return r.elementos.filter(p=>p.cargo==='Director'&&p.facultad?.startsWith('Facultad UI')).length>=2;})()"),true,'Excel de cargos persistido desde React');
+ assert.equal(await evaluar("(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json());return r.elementos.filter(p=>p.cargo==='Director'&&p.facultad?.startsWith('Facultad UI')).length>=2;})()"),true,'Excel de cargos persistido desde React');
  // Un solo archivo de candidatos para dos cargos, con revisión explícita de una etiqueta distinta.
- const directoresUi=JSON.parse(await evaluar("(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json());return JSON.stringify(r.elementos.filter(p=>p.cargo==='Director'&&p.facultad?.startsWith('Facultad UI')).slice(0,2));})()"));
+ const directoresUi=JSON.parse(await evaluar("(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json());return JSON.stringify(r.elementos.filter(p=>p.cargo==='Director'&&p.facultad?.startsWith('Facultad UI')).slice(0,2));})()"));
  assert.equal(directoresUi.length,2);
   await abrirCargoEnGrupo(directoresUi[0].id);
  await evaluar(`Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(directoresUi[0].id)}).click();true`);
@@ -335,10 +335,10 @@ try{
  await evaluar("document.querySelector('[data-importacion=candidatos-general] input[type=checkbox]').click();true");
  await evaluar("Array.from(document.querySelectorAll('[data-importacion=candidatos-general] button')).find(b=>b.textContent==='Confirmar importación').click();true");
  await hasta("document.querySelector('.contenido-seccion-privada [role=status]')?.textContent.includes('Archivo completo importado') && !document.querySelector('.item-menu-lateral').disabled");
- assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const ids=${JSON.stringify(directoresUi.map(p=>p.id))};const ps=await Promise.all(ids.map(id=>fetch('/api/v1/configuracion/procesos/'+id,{headers:{'X-Organizacion':org}}).then(r=>r.json())));return ps[0].candidatos.length===1&&ps[0].candidatos[0].nombre==='Postulante UI global A'&&ps[1].candidatos.length===1&&ps[1].candidatos[0].nombre==='Postulante UI global B';})()`),true,'Archivo conjunto separó y persistió ambos cargos');
+ assert.equal(await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const ids=${JSON.stringify(directoresUi.map(p=>p.id))};const ps=await Promise.all(ids.map(id=>fetch('/api/v1/configuracion/procesos/'+id,{headers:{'X-Organizacion':org}}).then(r=>r.json())));return ps[0].candidatos.length===1&&ps[0].candidatos[0].nombre==='Postulante UI global A'&&ps[1].candidatos.length===1&&ps[1].candidatos[0].nombre==='Postulante UI global B';})()`),true,'Archivo conjunto separó y persistió ambos cargos');
  // Todos los candidatos y sus cargos provienen del catálogo autorizado, sin deduplicar personas por nombre.
  await hasta("!!document.querySelector('.totales-candidatos') && document.querySelectorAll('[data-candidato-listado]').length>0");
- assert.equal(await evaluar("(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const ps=(await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json())).elementos;const cargos=Array.from(document.querySelectorAll('[data-candidatos-cargo]'));return cargos.length===ps.length&&Number(document.querySelector('[data-total-candidatos]').textContent)===ps.reduce((n,p)=>n+p.candidatos.length,0)&&Number(document.querySelector('[data-total-cargos]').textContent)===ps.length&&Number(document.querySelector('[data-cargos-sin-candidatos]').textContent)===ps.filter(p=>!p.candidatos.length).length&&ps.every(p=>{const c=cargos.find(e=>e.dataset.candidatosCargo===p.id),n=Array.from(c.querySelectorAll('[data-candidato-listado]'));return n.length===p.candidatos.length&&p.candidatos.every(v=>n.some(e=>e.dataset.candidatoListado===v.id&&e.textContent.includes(v.nombre)));});})()"),true,'La lista y todos sus totales coinciden con los cargos/candidatos reales de la institución');
+ assert.equal(await evaluar("(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const ps=(await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json())).elementos;const cargos=Array.from(document.querySelectorAll('[data-candidatos-cargo]'));return cargos.length===ps.length&&Number(document.querySelector('[data-total-candidatos]').textContent)===ps.reduce((n,p)=>n+p.candidatos.length,0)&&Number(document.querySelector('[data-total-cargos]').textContent)===ps.length&&Number(document.querySelector('[data-cargos-sin-candidatos]').textContent)===ps.filter(p=>!p.candidatos.length).length&&ps.every(p=>{const c=cargos.find(e=>e.dataset.candidatosCargo===p.id),n=Array.from(c.querySelectorAll('[data-candidato-listado]'));return n.length===p.candidatos.length&&p.candidatos.every(v=>n.some(e=>e.dataset.candidatoListado===v.id&&e.textContent.includes(v.nombre)));});})()"),true,'La lista y todos sus totales coinciden con los cargos/candidatos reales de la institución');
  await evaluar("(()=>{const e=document.querySelector('[aria-label=\"Buscar candidatos o cargos\"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,'Postulante UI global B');e.dispatchEvent(new Event('input',{bubbles:true}));return true;})()");
  await hasta("Array.from(document.querySelectorAll('[data-candidatos-cargo]')).length>0&&Array.from(document.querySelectorAll('[data-candidatos-cargo]')).every(e=>e.textContent.includes('Postulante UI global B'))");
  assert.equal(await evaluar(`Array.from(document.querySelectorAll('[data-candidatos-cargo]')).some(e=>e.dataset.candidatosCargo===${JSON.stringify(directoresUi[1].id)})`),true,'Buscar un candidato conserva el UUID de su cargo');
@@ -346,29 +346,22 @@ try{
  await evaluar("(()=>{const e=document.querySelector('[aria-label=\"Filtrar candidatos por tipo de cargo\"]');e.value='directores';e.dispatchEvent(new Event('change',{bubbles:true}));return true;})()");
  assert.equal(await evaluar("document.querySelectorAll('[data-grupo-candidatos]').length===1&&document.querySelector('[data-grupo-candidatos]').dataset.grupoCandidatos==='directores'"),true,'Filtro por familia sin mezclar Rector, Vicerrector ni Decanos');
  for(const ancho of [390,768,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Lista de candidatos desbordada a '+ancho+'px');const c=await comando('browsingContext.captureScreenshot',{context});await writeFile('/tmp/tuvoto-candidatos-lista-'+ancho+'.png',Buffer.from(c.data,'base64'));}
- await evaluar(`Array.from(document.querySelectorAll('[data-candidatos-cargo]')).find(e=>e.dataset.candidatosCargo===${JSON.stringify(directoresUi[0].id)}).querySelector('.gestionar-cargo-candidatos').click();true`);
- await hasta("!!document.querySelector('[aria-label=\"Cargo para gestionar candidatos\"]') && !!document.querySelector('.grid-candidatos-fotos')");
- assert.equal(await evaluar(`document.querySelector('[data-editor-candidatos]').dataset.editorCandidatos===${JSON.stringify(directoresUi[0].id)}`),true,'Gestionar un grupo abre la edición del cargo exacto sin salir del módulo');
- await evaluar(`(()=>{const e=document.querySelector('[aria-label="Cargo para gestionar candidatos"]');e.value=${JSON.stringify(directoresUi[1].id)};e.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
- await hasta(`document.querySelector('[data-editor-candidatos]')?.dataset.editorCandidatos===${JSON.stringify(directoresUi[1].id)}`);
+ await evaluar(`Array.from(document.querySelectorAll('[data-candidatos-cargo]')).find(e=>e.dataset.candidatosCargo===${JSON.stringify(directoresUi[1].id)}).querySelector('.editar-candidato').click();true`);
+ await hasta("!!document.querySelector('.formulario-editar-candidato input[type=file]')");
  const pngPrueba='iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAeklEQVR4nO3PUQkAIBTAwFfGZMa3hCH8OITBAtxm7fN1wwUNaEEDWtCAFjSgBQ1oQQNa0IAWNKAFDWhBA1rQgBY0oAUNaEEDWtCAFjSgBQ1oQQNa0IAWNKAFDWhBA1rQgBY0oAUNaEEDWtCAFjSgBQ1oQQNa0IAWPHYBmGYxWlLxJbIAAAAASUVORK5CYII=';
- await evaluar(`(()=>{const d=new DataTransfer();d.items.add(new File([Uint8Array.from(atob(${JSON.stringify(pngPrueba)}),c=>c.charCodeAt(0))],'foto-sintetica.png',{type:'image/png'}));const e=document.querySelector('[data-candidato-foto] input[type=file]');e.files=d.files;e.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
- await hasta("document.querySelector('.modal-confirmacion-global .confirmacion')?.textContent.includes('Fotografía guardada') && !!document.querySelector('[data-candidato-foto] small') && !document.querySelector('.gestionar-candidatos').disabled");
- assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const ps=await Promise.all(${JSON.stringify(directoresUi.map(p=>p.id))}.map(id=>fetch('/api/v1/configuracion/procesos/'+id,{headers:{'X-Organizacion':org}}).then(r=>r.json())));return !ps[0].candidatos[0].tieneFoto&&ps[1].candidatos[0].tieneFoto&&ps[1].candidatos.length===1&&(await fetch(ps[1].candidatos[0].foto)).status===404;})()`),true,'Fotografía persistida solo en el cargo elegido; el borrador no se expone al público');
- await hasta("document.querySelector('[data-candidato-foto] img')?.naturalWidth>0");
- assert.equal(await evaluar("document.querySelector('[data-candidato-foto] small').textContent==='Fotografía cargada'&&document.querySelector('[data-candidato-foto] img').src.startsWith('blob:')&&document.querySelector('.nota-fotos-candidatos').textContent.includes('Se mostrarán en Resultados')"),true,'Los borradores muestran la fotografía mediante lectura privada, sin exponerla al público');
- for(const ancho of [390,768,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Editor de candidatos desbordado a '+ancho+'px');const c=await comando('browsingContext.captureScreenshot',{context});await writeFile('/tmp/tuvoto-candidatos-editor-'+ancho+'.png',Buffer.from(c.data,'base64'));}
- await evaluar("document.querySelector('.ver-todos-candidatos').click();true");
- await hasta("!!document.querySelector('[data-grupo-candidatos]') && !document.querySelector('[data-editor-candidatos]')");
- assert.equal(await evaluar("document.querySelector('[aria-label=\"Filtrar candidatos por tipo de cargo\"]').value"),'directores','Volver a todos conserva la búsqueda y el filtro');
+ await evaluar(`(()=>{const d=new DataTransfer();d.items.add(new File([Uint8Array.from(atob(${JSON.stringify(pngPrueba)}),c=>c.charCodeAt(0))],'foto-sintetica.png',{type:'image/png'}));const e=document.querySelector('.formulario-editar-candidato input[type=file]');e.files=d.files;e.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
+ await hasta("!document.querySelector('.formulario-editar-candidato button.primario').disabled");
+ await evaluar("document.querySelector('.formulario-editar-candidato button.primario').click();true");
+ await hasta("!document.querySelector('.formulario-editar-candidato') && document.querySelector('.modal-confirmacion-global .confirmacion')?.textContent.includes('Candidato actualizado')");
+ assert.equal(await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const ps=await Promise.all(${JSON.stringify(directoresUi.map(p=>p.id))}.map(id=>fetch('/api/v1/configuracion/procesos/'+id,{headers:{'X-Organizacion':org}}).then(r=>r.json())));return !ps[0].candidatos[0].tieneFoto&&ps[1].candidatos[0].tieneFoto&&ps[1].candidatos.length===1&&(await fetch(ps[1].candidatos[0].foto)).status===404;})()`),true,'Foto persistida solo en el cargo elegido; el borrador sigue siendo privado');
+ await hasta(`Array.from(document.querySelectorAll('[data-candidatos-cargo]')).find(e=>e.dataset.candidatosCargo===${JSON.stringify(directoresUi[1].id)}).querySelector('img')?.naturalWidth>0`);
+ assert.equal(await evaluar("document.querySelector('[aria-label=\"Filtrar candidatos por tipo de cargo\"]').value"),'directores');
  await evaluar("(()=>{const e=document.querySelector('[aria-label=\"Filtrar candidatos por tipo de cargo\"]');e.value='';e.dispatchEvent(new Event('change',{bubbles:true}));return true;})()");
  const cerrado=await evaluar("Array.from(document.querySelectorAll('[data-candidatos-cargo]')).find(c=>!c.querySelector('.etiqueta-estado').classList.contains('estado-borrador'))?.dataset.candidatosCargo");
- assert.ok(cerrado,'La prueba requiere un cargo sintético que ya haya salido de borrador');
- await evaluar(`Array.from(document.querySelectorAll('[data-candidatos-cargo]')).find(e=>e.dataset.candidatosCargo===${JSON.stringify(cerrado)}).querySelector('.gestionar-cargo-candidatos').click();true`);
- await hasta(`document.querySelector('[data-editor-candidatos]')?.dataset.editorCandidatos===${JSON.stringify(cerrado)}`);
- assert.equal(await evaluar("!document.querySelector('.editor-candidatos form')&&!document.querySelector('.editor-candidatos input[type=file]')&&document.querySelector('.editor-candidatos').textContent.includes('bloqueados')"),true,'No se habilitan escrituras de candidatos ni fotos después de iniciar el conteo');
+ assert.ok(cerrado,'La prueba requiere un cargo sintético fuera de borrador');
+ assert.equal(await evaluar(`!Array.from(document.querySelectorAll('[data-candidatos-cargo]')).find(e=>e.dataset.candidatosCargo===${JSON.stringify(cerrado)}).querySelector('.editar-candidato,.menu-candidato')`),true,'No ofrece edición ni retirada de cargos iniciados');
  // Reimportar cargos: mantener por defecto y reemplazar uno tras una nueva revisión explícita.
- const antesReimportar=JSON.parse(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const ps=await Promise.all(${JSON.stringify(directoresUi.map(p=>p.id))}.map(id=>fetch('/api/v1/configuracion/procesos/'+id,{headers:{'X-Organizacion':org}}).then(r=>r.json())));return JSON.stringify(ps);})()`));
+ const antesReimportar=JSON.parse(await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const ps=await Promise.all(${JSON.stringify(directoresUi.map(p=>p.id))}.map(id=>fetch('/api/v1/configuracion/procesos/'+id,{headers:{'X-Organizacion':org}}).then(r=>r.json())));return JSON.stringify(ps);})()`));
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Elección').click();true");
  await hasta("!!document.querySelector('[data-importacion=cargos] [data-abrir-importacion]')");
  await evaluar("document.querySelector('[data-importacion=cargos] [data-abrir-importacion]').click();true");
@@ -385,7 +378,7 @@ try{
  await evaluar("document.querySelector('[data-importacion=cargos] input[type=checkbox]').click();true");
  await evaluar("Array.from(document.querySelectorAll('[data-importacion=cargos] button')).find(b=>b.textContent==='Confirmar importación').click();true");
  await hasta("document.querySelector('.contenido-seccion-privada [role=status]')?.textContent.includes('Archivo de cargos procesado') && !document.querySelector('.item-menu-lateral').disabled && !document.querySelector('[data-conflictos-cargos]')");
- assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const antes=${JSON.stringify(antesReimportar)};for(const p of antes){const actual=await fetch('/api/v1/configuracion/procesos/'+p.id,{headers:{'X-Organizacion':org}}).then(r=>r.json());if(JSON.stringify(actual)!==JSON.stringify(p))return false;}return true;})()`),true,'Mantener no cambia carreras ni relaciones existentes');
+ assert.equal(await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const antes=${JSON.stringify(antesReimportar)};for(const p of antes){const actual=await fetch('/api/v1/configuracion/procesos/'+p.id,{headers:{'X-Organizacion':org}}).then(r=>r.json());if(JSON.stringify(actual)!==JSON.stringify(p))return false;}return true;})()`),true,'Mantener no cambia carreras ni relaciones existentes');
  await cargarRepetidos();
  await evaluar("(()=>{const s=document.querySelector('[data-conflictos-cargos] select');s.value='reemplazar';s.dispatchEvent(new Event('change',{bubbles:true}));return true;})()");
  await hasta("document.querySelector('[data-conflictos-cargos] [role=status]')?.textContent.includes('Revisar archivo')");
@@ -396,7 +389,7 @@ try{
  await evaluar("document.querySelector('[data-importacion=cargos] input[type=checkbox]').click();true");
  await evaluar("Array.from(document.querySelectorAll('[data-importacion=cargos] button')).find(b=>b.textContent==='Confirmar importación').click();true");
  await hasta("!document.querySelector('[data-conflictos-cargos]') && !document.querySelector('.item-menu-lateral').disabled");
- assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const antes=${JSON.stringify(antesReimportar)};let actualizados=0;for(const p of antes){const actual=await fetch('/api/v1/configuracion/procesos/'+p.id,{headers:{'X-Organizacion':org}}).then(r=>r.json());if(actual.carreras.includes('Nueva carrera UI'))actualizados++;for(const campo of ['id','nombre','cargo','ambito','estado','candidatos','mesas','sectores','ponderacion'])if(JSON.stringify(actual[campo])!==JSON.stringify(p[campo]))return false;}return actualizados===1;})()`),true,'Reemplazo selectivo persiste sin cambiar IDs, candidatos o mesas');
+ assert.equal(await evaluar(`(async()=>{const org=document.querySelector('[data-contexto-institucion]').dataset.contextoInstitucion;const antes=${JSON.stringify(antesReimportar)};let actualizados=0;for(const p of antes){const actual=await fetch('/api/v1/configuracion/procesos/'+p.id,{headers:{'X-Organizacion':org}}).then(r=>r.json());if(actual.carreras.includes('Nueva carrera UI'))actualizados++;for(const campo of ['id','nombre','cargo','ambito','estado','candidatos','mesas','sectores','ponderacion'])if(JSON.stringify(actual[campo])!==JSON.stringify(p[campo]))return false;}return actualizados===1;})()`),true,'Reemplazo selectivo persiste sin cambiar IDs, candidatos o mesas');
  // Nuevo tipo de cargo dentro del mismo formulario; no navega ni borra las demás opciones.
  await hasta("!!document.querySelector('.agregar-cargo') && !document.querySelector('.agregar-cargo').disabled");
  await evaluar("document.querySelector('.agregar-cargo').click();true");

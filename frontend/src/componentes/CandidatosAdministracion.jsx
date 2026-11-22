@@ -1,50 +1,34 @@
 import EditarNombreCandidato from './EditarNombreCandidato.jsx';
-import React, { useRef, useState } from 'react';
+import React,{useState} from 'react';
 import { agruparCargos } from '../api/seleccionAdministracion.js';
 import { candidatosPorCargo } from '../api/candidatosPorCargo.js';
-import { nombresEstado } from './EstadoEleccion.jsx';
+import { nombresEstado } from '../api/catalogos.js';
 import ConfirmarEliminacion from './ConfirmarEliminacion.jsx';
 import FotoCandidatoAdministracion from './FotoCandidatoAdministracion.jsx';
+import ModalFormulario from './ModalFormulario.jsx';
+import {IconoUsuarios,IconoTuvoto,IconoFoto} from './Iconos.jsx';
 
-export default function CandidatosAdministracion({ organizacion, procesos, idProceso, ocupado, cargando, disponible, alProceso, alAgregarCargo, alEliminar, alReintentar, alActualizar, revision, children }) {
-  const [editando, setEditando] = useState(false);
-  const [busqueda, setBusqueda] = useState('');
-  const [familia, setFamilia] = useState('');
-  const titulo = useRef(null);
-  const grupos = agruparCargos(procesos);
-  const resumen = candidatosPorCargo(procesos, { busqueda, familia });
-  function gestionar(id) {
-    alProceso(id);
-    setEditando(true);
-    titulo.current?.scrollIntoView({ block: 'start' });
-    titulo.current?.focus({ preventScroll: true });
-  }
-  return <section className="panel-admin candidatos-administracion" aria-labelledby="titulo-candidatos-institucion">
-    <header className="cabecera-candidatos-institucion">
-      <div><p className="etiqueta-panel">INSTITUCIÓN SELECCIONADA</p><h2 id="titulo-candidatos-institucion" ref={titulo} tabIndex={-1}>{editando ? 'Agregar candidatos y gestionar fotografías' : 'Todos los candidatos por cargo'}</h2><p>{editando ? 'Elige el cargo que quieres gestionar. Los cambios se guardan únicamente en ese cargo.' : 'Consulta los nombres de cada cargo, su facultad o grupo y su vuelta electoral.'}</p></div>
-      <div className="vistas-candidatos" role="group" aria-label="Vista de candidatos">
-        <button type="button" className="boton secundario ver-todos-candidatos" aria-pressed={!editando} disabled={ocupado} onClick={() => setEditando(false)}>Ver todos</button>
-        <button type="button" className="boton secundario gestionar-candidatos" aria-pressed={editando} disabled={ocupado || !disponible || !procesos.length} onClick={() => gestionar(idProceso || procesos[0].id)}>Agregar y fotografías</button>
-      </div>
-    </header>
-    {cargando ? <p role="status">Actualizando candidatos…</p> : !disponible ? <div><p role="alert">No se pudo cargar el listado de candidatos.</p><button type="button" className="boton secundario" disabled={ocupado} onClick={alReintentar}>Reintentar</button></div> : <>
-      <dl className="totales-candidatos"><div><dt>Candidatos registrados</dt><dd data-total-candidatos>{resumen.totalCandidatos}</dd></div><div><dt>Cargos guardados</dt><dd data-total-cargos>{resumen.totalCargos}</dd></div><div><dt>Cargos sin candidatos</dt><dd data-cargos-sin-candidatos>{resumen.sinCandidatos}</dd></div></dl>
-      <p className="estado-fotografias-candidatos">Fotografías: <strong data-candidatos-con-foto>{resumen.conFotografia}</strong> cargadas · <strong data-candidatos-sin-foto>{resumen.sinFotografia}</strong> pendientes.</p>
-      {!procesos.length ? <div className="vacio-candidatos"><h3>Todavía no hay cargos creados</h3><p>Primero crea un cargo. Después podrás agregar sus candidatos o importarlos desde Excel.</p><button type="button" className="boton primario" disabled={ocupado} onClick={alAgregarCargo}>Crear un cargo</button></div> : editando ? <>
-        <label className="selector-cargo-candidatos">Cargo que vas a gestionar<select aria-label="Cargo para gestionar candidatos" disabled={ocupado} value={idProceso} onChange={e => alProceso(e.target.value)}><option value="" disabled>Selecciona un cargo</option>{grupos.map(g => <optgroup key={g.id} label={g.nombre}>{g.procesos.map(p => <option key={p.id} value={p.id}>{p.cargo} · {p.ambito || p.facultad || 'Toda la institución'} · {p.vuelta === 2 ? 'Segunda' : 'Primera'} vuelta · {p.candidatos.length} candidatos · {nombresEstado[p.estado] ?? p.estado}</option>)}</optgroup>)}</select></label>
-        {children}
-      </> : <>
-        <div className="filtros-candidatos"><label>Buscar<input type="search" aria-label="Buscar candidatos o cargos" placeholder="Nombre, facultad, grupo o cargo…" value={busqueda} onChange={e => setBusqueda(e.target.value)} /></label><label>Tipo de cargo<select aria-label="Filtrar candidatos por tipo de cargo" value={familia} onChange={e => setFamilia(e.target.value)}><option value="">Todos los tipos</option>{grupos.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}</select></label></div>
-        <p className="resultado-filtro-candidatos" role="status">{resumen.cargosVisibles} de {resumen.totalCargos} cargos. Cada coincidencia muestra todos sus candidatos. Se incluyen los cargos archivados.</p>
-        {resumen.grupos.length ? <div className="grupos-candidatos">{resumen.grupos.map(g => <details key={g.id} className="grupo-candidatos" data-grupo-candidatos={g.id} open>
-          <summary><strong>{g.nombre}</strong><span>{g.procesos.length} cargos · {g.procesos.reduce((s, p) => s + p.candidatos.length, 0)} candidatos</span></summary>
-          <div className="cargos-con-candidatos">{g.procesos.map(p => <article key={p.id} className="cargo-con-candidatos" data-candidatos-cargo={p.id}>
-            <header><div><h3>{p.cargo}</h3><p>{p.ambito || p.facultad || 'Toda la institución'}</p><small>{p.vuelta === 2 ? 'Segunda' : 'Primera'} vuelta · {p.candidatos.length} {p.candidatos.length === 1 ? 'candidato' : 'candidatos'}</small></div><span className={`etiqueta-estado estado-${p.estado}`}>{nombresEstado[p.estado] ?? 'Estado no disponible'}</span></header>
-            {p.candidatos.length ? <ul className="nombres-candidatos-cargo">{p.candidatos.map(c => <li key={c.id} data-candidato-listado={c.id}><FotoCandidatoAdministracion candidato={c} organizacion={organizacion} revision={revision} /><div><strong>{c.nombre}</strong><small>{c.tieneFoto || c.foto ? 'Fotografía cargada' : 'Sin fotografía'}</small></div>{p.estado==='borrador'&&!p.actual&&!p.publicado&&alActualizar&&<EditarNombreCandidato candidato={c} organizacion={organizacion} ocupado={ocupado} alGuardar={alActualizar}/>} {p.estado==='borrador'&&alEliminar&&<ConfirmarEliminacion nombre={c.nombre+' · '+p.cargo} ocupado={ocupado} alConfirmar={()=>alEliminar(c)}/>}</li>)}</ul> : <p className="vacio-candidatos-cargo">Este cargo todavía no tiene candidatos registrados.</p>}
-            <button type="button" className="boton secundario gestionar-cargo-candidatos" disabled={ocupado} onClick={() => gestionar(p.id)}>{p.estado === 'borrador' ? 'Agregar o cambiar fotografías' : 'Ver candidatos del cargo'}</button>
-          </article>)}</div>
-        </details>)}</div> : <div className="vacio-candidatos"><p>No hay coincidencias con esta búsqueda.</p><button type="button" className="boton secundario" onClick={() => { setBusqueda(''); setFamilia(''); }}>Mostrar todos</button></div>}
-      </>}
-    </>}
-  </section>;
+export default function CandidatosAdministracion({organizacion,nombreInstitucion,acciones,procesos,idProceso,ocupado,cargando,disponible,alProceso,alAgregarCargo,alEliminar,alReintentar,alActualizar,revision,children}){
+ const [creando,setCreando]=useState(false),[busqueda,setBusqueda]=useState(''),[familia,setFamilia]=useState(''),[sinFoto,setSinFoto]=useState(false),[expandir,setExpandir]=useState(false);
+ const grupos=agruparCargos(procesos),resumen=candidatosPorCargo(procesos,{busqueda,familia,sinFotografia:sinFoto});
+ const editables=procesos.filter(p=>p.estado==='borrador'&&!p.actual&&!p.publicado);
+ const gruposEditables=agruparCargos(editables);
+ const visibles=resumen.grupos.reduce((s,g)=>s+g.procesos.reduce((n,p)=>n+p.candidatos.length,0),0);
+ function crear(){if(!editables.length)return;if(!editables.some(p=>p.id===idProceso))alProceso(editables[0].id);setCreando(true);}
+ return <section className="candidatos-administracion candidatos-flotantes" aria-labelledby="titulo-candidatos-institucion">
+ <header className="cabecera-candidatos-institucion"><div><h2 id="titulo-candidatos-institucion">Candidatos</h2><p>{nombreInstitucion||'Candidatos de la organización'}</p></div><div className="acciones-lista-cargos">{acciones}<button type="button" className="boton primario gestionar-candidatos" disabled={ocupado||!disponible||!editables.length} onClick={crear}>＋ Agregar candidato</button></div></header>
+ {cargando?<p role="status">Actualizando candidatos…</p>:!disponible?<div role="alert"><p>No se pudo cargar el listado de candidatos.</p><button type="button" className="boton secundario" onClick={alReintentar}>Reintentar</button></div>:<>
+ <div className="metricas-candidatos-flotantes">{[[resumen.totalCandidatos,'Candidatos',IconoUsuarios,'data-total-candidatos'],[resumen.totalCargos,'Cargos',IconoTuvoto,'data-total-cargos'],[resumen.conFotografia,'Fotos cargadas',IconoFoto,'data-candidatos-con-foto'],[resumen.sinFotografia,'Fotos pendientes',IconoFoto,'data-candidatos-sin-foto']].map(([valor,etiqueta,Icono,atributo])=><article key={etiqueta}><div><span>{etiqueta}</span><strong {...{[atributo]:true}}>{valor}</strong></div><span className={'icono-metrica-candidato '+(etiqueta==='Fotos pendientes'?'pendiente':'')}><Icono tamano={25}/></span></article>)}</div>
+ {!procesos.length?<div className="panel-admin vacio-candidatos"><p>Todavía no hay cargos creados.</p><button type="button" className="boton primario" disabled={ocupado} onClick={alAgregarCargo}>Crear un cargo</button></div>:<>
+ <div className="panel-admin filtros-candidatos-flotantes"><nav className="pestanas-familias-cargos" aria-label="Grupos de candidatos"><button type="button" aria-pressed={!familia} onClick={()=>setFamilia('')}>Todos</button>{grupos.map(g=><button key={g.id} type="button" aria-pressed={familia===g.id} onClick={()=>setFamilia(g.id)}>{g.nombre}</button>)}</nav>
+ <div className="filtros-candidatos"><label className="buscar-candidatos-flotantes"><span className="solo-lectores-cargos">Buscar candidatos o cargos</span><input type="search" aria-label="Buscar candidatos o cargos" placeholder="Buscar nombre, facultad o cargo…" value={busqueda} onChange={e=>setBusqueda(e.target.value)}/></label><label>Tipo de cargo<select aria-label="Filtrar candidatos por tipo de cargo" value={familia} onChange={e=>setFamilia(e.target.value)}><option value="">Todos los tipos</option>{grupos.map(g=><option key={g.id} value={g.id}>{g.nombre}</option>)}</select></label><label className="filtro-candidatos-sin-foto"><input type="checkbox" checked={sinFoto} onChange={e=>setSinFoto(e.target.checked)}/>Sin fotografía</label></div>
+ <footer className="resumen-filtro-candidatos"><strong role="status">{visibles} candidatos en {resumen.cargosVisibles} cargos</strong><button type="button" onClick={()=>setExpandir(v=>!v)}>{expandir?'Vista compacta':'Expandir todos'} <span aria-hidden="true">⌄</span></button></footer></div>
+ {resumen.grupos.length?<div className="grupos-candidatos">{resumen.grupos.map(g=><details key={g.id} className="grupo-candidatos" data-grupo-candidatos={g.id} open={expandir||!!familia||!!busqueda||sinFoto||['rectorado','vicerrectorado'].includes(g.id)}><summary><strong>{g.nombre}</strong><span>{g.procesos.length} cargos · {g.procesos.reduce((s,p)=>s+p.candidatos.length,0)} candidatos</span></summary>
+ <div className="cargos-con-candidatos">{g.procesos.map(p=><article key={p.id} className="cargo-con-candidatos" data-candidatos-cargo={p.id}><header><p><strong>{p.cargo}</strong> · {p.ambito||p.facultad||'Toda la institución'} · {p.vuelta===2?'2.ª':'1.ª'} vuelta</p><span className={'etiqueta-estado estado-'+p.estado}>{nombresEstado[p.estado]??'Estado no disponible'}</span></header>
+ {p.candidatos.length?<ul className="nombres-candidatos-cargo">{p.candidatos.map(c=><li key={c.id} data-candidato-listado={c.id}><FotoCandidatoAdministracion candidato={c} organizacion={organizacion} revision={revision}/><div className="datos-candidato-flotante"><strong>{c.nombre}</strong><small className={c.tieneFoto||c.foto?'foto-disponible':'foto-pendiente'}>{c.tieneFoto||c.foto?'Fotografía cargada':'Sin fotografía'}</small></div>{p.estado==='borrador'&&!p.actual&&!p.publicado&&<div className="acciones-candidato-flotante">{alActualizar&&<EditarNombreCandidato candidato={c} organizacion={organizacion} ocupado={ocupado} revision={revision} alGuardar={alActualizar}/>} {alEliminar&&<details className="menu-candidato"><summary aria-label={'Opciones de '+c.nombre}>⋮</summary><ConfirmarEliminacion nombre={c.nombre+' · '+p.cargo} ocupado={ocupado} alConfirmar={()=>alEliminar(c)}/></details>}</div>}</li>)}</ul>:<p className="vacio-candidatos-cargo">Sin candidatos registrados.</p>}
+ </article>)}</div></details>)}</div>:<div className="panel-admin vacio-candidatos"><p>No hay coincidencias.</p><button type="button" className="boton secundario" onClick={()=>{setBusqueda('');setFamilia('');setSinFoto(false);}}>Mostrar todos</button></div>}
+ </>}
+ </>}
+ <ModalFormulario abierto={creando} titulo="Agregar candidato" ocupado={ocupado} alCerrar={()=>setCreando(false)}><label className="selector-cargo-candidatos">Cargo<select aria-label="Cargo para gestionar candidatos" disabled={ocupado} value={idProceso} onChange={e=>alProceso(e.target.value)}><option value="" disabled>Selecciona un cargo</option>{gruposEditables.map(g=><optgroup key={g.id} label={g.nombre}>{g.procesos.map(p=><option key={p.id} value={p.id}>{p.cargo} · {p.ambito||p.facultad||'Toda la institución'} · {nombresEstado[p.estado]??p.estado}</option>)}</optgroup>)}</select></label>{children}</ModalFormulario>
+ </section>;
 }

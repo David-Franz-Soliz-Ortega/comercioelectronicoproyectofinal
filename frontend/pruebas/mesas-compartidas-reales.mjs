@@ -54,11 +54,10 @@ try{
  await hasta(`!!Array.from(document.querySelectorAll('[data-institucion]')).find(e=>e.dataset.institucion===${JSON.stringify(datos.organizacion)}&&!e.disabled)`);
  await evaluar(`Array.from(document.querySelectorAll('[data-institucion]')).find(e=>e.dataset.institucion===${JSON.stringify(datos.organizacion)}).click();true`);
  await hasta("!!document.querySelector('.indicadores-institucion')");await ir('Candidatos');
- await hasta(`!!document.querySelector('[data-candidatos-cargo="${datos.idsProcesos[0]}"] .gestionar-cargo-candidatos')`);
- await evaluar(`document.querySelector('[data-candidatos-cargo="${datos.idsProcesos[0]}"] .gestionar-cargo-candidatos').click();true`);
- await hasta(`!!document.querySelector('[data-candidato-foto="${datos.candidatoEliminar}"]')`);
- await retirar(`document.querySelector('[data-candidato-foto="${datos.candidatoEliminar}"]')`);
- await hasta(`!!document.querySelector('.totales-candidatos')&&!document.querySelector('[data-candidato-foto="${datos.candidatoEliminar}"]')`);
+ await hasta(`!!document.querySelector('[data-candidato-listado="${datos.candidatoEliminar}"]')`);
+ await evaluar(`(()=>{const e=document.querySelector('[data-candidato-listado="${datos.candidatoEliminar}"]');e.closest('details[data-grupo-candidatos]').open=true;e.querySelector('.menu-candidato summary').click();return true;})()`);
+ await retirar(`document.querySelector('[data-candidato-listado="${datos.candidatoEliminar}"]')`);
+ await hasta(`!!document.querySelector('.metricas-candidatos-flotantes')&&!document.querySelector('[data-candidato-listado="${datos.candidatoEliminar}"]')`);
  let p=JSON.parse(await publico('/configuracion/procesos/'+datos.idsProcesos[0]));assert.equal(p.candidatos.length,2);
  await ir('Mesas');
  await hasta(`!!document.querySelector('[data-mesa-cargo="${datos.mesaEliminar}"]')`);

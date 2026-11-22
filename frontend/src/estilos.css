@@ -6,7 +6,9 @@
   --azul-principal: #2563EB;
   --azul-hover: #1D4ED8;
   --azul-claro: #DBEAFE;
-  --azul-fondo: #F0F6FF;
+  --azul-fondo: #EDF2F8;
+  --sombra-panel: 0 8px 24px #193d6914, 0 2px 5px #193d6908;
+  --sombra-tarjeta: 0 4px 12px #193d6912;
   --blanco: #FFFFFF;
   --borgona: #881337;
   --borgona-claro: #9F1239;
@@ -15,7 +17,7 @@
   --secundario: #64748B;
   --borde: #E2E8F0;
   --borde-suave: #EDF2F7;
-  --fondo: #F8FAFC;
+  --fondo: var(--azul-fondo);
   --exito: #059669;
   --exito-fondo: #ECFDF5;
   --alerta: #D97706;
@@ -43,3 +45,8 @@ svg { flex-shrink: 0; }
 .modal-confirmacion-global button{border:0;border-radius:12px;background:#2563EB;color:#fff;padding:13px 28px;font:inherit;font-weight:700;cursor:pointer}
 .modal-confirmacion-global button:focus-visible{outline:3px solid #93c5fd;outline-offset:4px}
 .modal-confirmacion-global small{display:block;margin-top:16px;font-size:12px;color:#64748b}
+
+/* Fondo compartido por acceso, gestión y consulta pública. */
+:root{--azul-principal:#075bff;--azul-hover:#004cde}
+.acceso{background:#f3f7fc}
+.observatorio-publico{--fondo-publico:var(--azul-fondo);--acento-publico:#075bff;--borde-publico:#dce5ef}

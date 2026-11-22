@@ -4,7 +4,7 @@ import { notificarExito } from '../api/confirmaciones.js';
 import React, { useId, useRef, useState } from 'react';
 import { solicitarRest } from '../api/clienteRest.js';
 import { cargosParaReferencia, columnasImportacion, mensajeImportacion, motivoBloqueoImportacion, presentacionImportacion } from '../api/importacionGeneral.js';
-export default function ImportarExcel({ ruta, organizacion, titulo, alImportar, operadores = false, deshabilitado = false, abierto = false, datosAdicionales = {}, general = false, cargos = [], gestionarExistentes = false }) {
+export default function ImportarExcel({ ruta, organizacion, titulo, alImportar, operadores = false, deshabilitado = false, abierto = false, datosAdicionales = {}, general = false, cargos = [], gestionarExistentes = false, textoBoton }) {
  const [modal,setModal]=useState(false),[resultadoOperadores,setResultadoOperadores]=useState(null);
  const [archivo,setArchivo]=useState(''),[vista,setVista]=useState(null),[ocupado,setOcupado]=useState(false),[confirmar,setConfirmar]=useState(false),[error,setError]=useState('');
  const [asociaciones,setAsociaciones]=useState({}),[revisar,setRevisar]=useState(false);
@@ -44,7 +44,7 @@ export default function ImportarExcel({ ruta, organizacion, titulo, alImportar, 
  if(deshabilitado)return abierto?<section className="panel-importacion" data-importacion={titulo}><h3>Importar {titulo} desde Excel</h3><p className="aviso">Importación bloqueada: este cargo ya salió de borrador. Para cargar mesas, prepara un cargo en borrador desde Elección. No se modifican las mesas de un cargo abierto o cerrado.</p></section>:<p className="aviso">Importación bloqueada: la elección ya salió de borrador.</p>;
  function cerrarImportacion(){if(ocupado)return;setModal(false);setResultadoOperadores(null);setArchivo('');setVista(null);setConfirmar(false);setError('');setAsociaciones({});setResoluciones({});setRevisar(false);}
  return <div ref={raizImportacion} className="entrada-importacion" data-importacion={general?titulo+'-general':titulo}>
-  <button type="button" className="boton secundario boton-importar-excel" data-abrir-importacion onClick={()=>setModal(true)}><IconoHojaExcel/>{presentacion.encabezado}</button>
+  <button type="button" className="boton secundario boton-importar-excel" data-abrir-importacion onClick={()=>setModal(true)}><IconoHojaExcel/>{textoBoton||presentacion.encabezado}</button>
   <ModalFormulario abierto={modal} titulo={presentacion.encabezado} ocupado={ocupado} alCerrar={cerrarImportacion}>
   {resultadoOperadores!==null?<div className="resultado-importacion-operadores"><h3>Operadores creados</h3>{error&&<p className="aviso" role="alert">{error}</p>}<div className="tabla-preparacion-scroll"><table className="tabla-admin"><thead><tr><th>Usuario</th><th>Mesa indicada</th><th>Cargos asignados</th><th>Estado</th></tr></thead><tbody>{resultadoOperadores.map((r,i)=><tr key={i}><td>{r.usuario}</td><td>{r.mesa}</td><td>{r.asignadas}</td><td>{r.estado}</td></tr>)}</tbody></table></div><button type="button" className="boton primario" onClick={cerrarImportacion}>Ver operadores</button></div>:<div className="panel-importacion"><header className="cabecera-importacion"><IconoHojaExcel/><p>XLSX · Hasta {maxFilas} filas · 2 MB</p></header>
   <section className="columnas-importacion" aria-label="Columnas del Excel"><h3>Columnas</h3><ul>{columnas.map(columna=><li key={columna.nombre}>{columna.nombre}</li>)}</ul></section>

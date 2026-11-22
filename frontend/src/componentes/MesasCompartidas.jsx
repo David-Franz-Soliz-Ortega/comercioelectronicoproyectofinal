@@ -1,4 +1,5 @@
 import ModalFormulario from './ModalFormulario.jsx';
+import {listarMesasInstitucion} from '../api/mesasCompartidas.js';
 import { opcionesCreacionMesa } from '../api/creacionMesa.js';
 import React, { useEffect, useMemo, useState } from 'react';
 import { solicitarRest } from '../api/clienteRest.js';
@@ -6,7 +7,7 @@ import ImportarExcel from './ImportarExcel.jsx';
 import ListadoMesas from './ListadoMesas.jsx';
 
 const vacia = () => ({ codigo: '', unidad: '', sector: 'general', recinto: '', apellidoDesde: '', apellidoHasta: '', usuario: '' });
-export default function MesasCompartidas({ organizacion, procesos, cuentas, idProceso, version, ocupado, guardar, alCargo, alImportar }) {
+export default function MesasCompartidas({ organizacion, nombreInstitucion, procesos, cuentas, idProceso, version, ocupado, guardar, alCargo, alImportar }) {
   const [creando,setCreando]=useState(false),[errorMesa,setErrorMesa]=useState('');
   const [datos, setDatos] = useState(vacia), [seleccion, setSeleccion] = useState(() => procesos.some(p => p.id === idProceso && p.estado === 'borrador' && !p.actual && !p.publicado) ? [idProceso] : []);
   const opciones = useMemo(() => opcionesCreacionMesa(procesos,seleccion), [procesos,seleccion]);
@@ -20,10 +21,13 @@ export default function MesasCompartidas({ organizacion, procesos, cuentas, idPr
   }); }, [opciones]);
   const sectores = new Map([['general', 'General'], ...procesos.flatMap(p => (p.sectores ?? []).map(s => [s.codigo, s.nombre]))]);
   const operadores = cuentas.filter(c => c.activo && c.roles?.some(r => r.rol === 'OPERADOR' && r.idOrganizacion === organizacion) && !c.roles.some(r => r.rol === 'ADMINISTRADOR' && (r.idOrganizacion === null || r.idOrganizacion === organizacion)));
-  return <section className="panel-admin mesas-compartidas">
-    <header><h2>Mesas de la institución</h2></header>
-    <ListadoMesas procesos={procesos} sectores={sectores} ocupado={ocupado} alCargo={alCargo} alQuitar={idMesa=>guardar(()=>solicitarRest(`/configuracion/mesas/${idMesa}`,{metodo:'DELETE',organizacion,datos:{confirmar:true}}),'Mesa retirada de este cargo.')} />
+  return <section className="mesas-compartidas">
+    <header className="cabecera-mesas-clara"><div><h2>Mesas de recepción <span className="cantidad-total-mesas">{listarMesasInstitucion(procesos).length} mesas</span></h2>{nombreInstitucion&&<p className="nombre-institucion-mesas">{nombreInstitucion}</p>}<p>Mesas de toda la institución</p></div><div className="acciones-mesas-clara">
+
     <button type="button" className="boton primario crear-mesa-compartida" disabled={ocupado} onClick={()=>{setErrorMesa('');setCreando(true);}}>Crear mesa</button>
+    <ImportarExcel ruta="/configuracion/mesas-compartidas/importacion" organizacion={organizacion} titulo="mesas" textoBoton="Importar Excel" alImportar={alImportar} />
+    </div></header>
+    <ListadoMesas procesos={procesos} sectores={sectores} ocupado={ocupado} alCargo={alCargo} alQuitar={idMesa=>guardar(()=>solicitarRest(`/configuracion/mesas/${idMesa}`,{metodo:'DELETE',organizacion,datos:{confirmar:true}}),'Mesa retirada de este cargo.')} />
     <ModalFormulario abierto={creando} titulo="Crear mesa" ocupado={ocupado} alCerrar={()=>{setCreando(false);setDatos(vacia());}}>
       <p>Marca un cargo para una mesa individual o varios para compartirla. Solo se registran juntos si admiten la misma unidad y sector.</p>
       <form className="formulario-mesa-compartida" onSubmit={e => { e.preventDefault(); if(!puedeGuardar || ocupado)return; guardar(async () => { setErrorMesa('');try{await solicitarRest('/configuracion/mesas-compartidas', { metodo: 'POST', organizacion, datos: { ...datos, idProcesos: opciones.seleccionados.map(p=>p.id) } });}catch(e){setErrorMesa(e.message);throw e;} setDatos({...vacia(),sector:datos.sector});setCreando(false); }, 'Mesa guardada correctamente.'); }}>
@@ -40,13 +44,6 @@ export default function MesasCompartidas({ organizacion, procesos, cuentas, idPr
         <button type="submit" className="boton primario" disabled={ocupado || !puedeGuardar}>Guardar mesa</button>
       </form>
     </ModalFormulario>
-    <ImportarExcel ruta="/configuracion/mesas-compartidas/importacion" organizacion={organizacion} titulo="mesas" alImportar={alImportar} ayuda={<>
-      <p>Una plantilla para cualquier tipo de elección. Usa una fila por mesa y cargo; repite el código y los datos físicos cuando la misma mesa atienda varios cargos.</p>
-      <p>En <strong>unidad</strong> indica la facultad, grupo, distrito o comunidad que corresponda al cargo. Si no separas sectores, deja <strong>sector</strong> vacío; si los configuraste, usa su código exacto. {borradores.some(p=>p.tipo==='universidad') && 'Docentes y estudiantes usan mesas con códigos diferentes.'}</p>
-      <details className="referencias-plantilla-mesas"><summary>Cargos y sectores de esta institución ({borradores.length})</summary>
-        {borradores.length ? <ul>{borradores.map(p=><li key={p.id}><strong>{p.cargo}</strong><span>Ámbito: {p.ambito || 'vacío'} · Vuelta: {p.vuelta ?? 1}</span><span>Unidad: {p.facultad && p.grupoCarreras ? p.facultad+' · '+p.grupoCarreras : (p.carreras?.join('; ') || p.unidad)}</span><span>Sectores: {p.sectores?.length ? p.sectores.map(s=>s.codigo+' ('+s.nombre+')').join(', ') : 'General (deja la celda vacía)'}</span></li>)}</ul> : <p>Crea primero un cargo en borrador desde Elección.</p>}
-      </details>
-    </>} />
 
   </section>;
 }

@@ -1,17 +1,3 @@
-// El catálogo administrativo recibido ya está limitado a la institución autorizada.
-export function eventosDeProcesos(procesos) {
- const eventos=new Map();
- for(const proceso of procesos){
-  if(!eventos.has(proceso.nombre))eventos.set(proceso.nombre,{nombre:proceso.nombre,procesos:[]});
-  eventos.get(proceso.nombre).procesos.push(proceso);
- }
- return [...eventos.values()];
-}
-export function procesoInicialDeEvento(procesos,nombre) {
- const cargos=procesos.filter(p=>p.nombre===nombre);
- return cargos.find(p=>p.actual)?.id??cargos[0]?.id??'';
-}
-
 // Mantiene el contrato REST sin pedir otro nombre al administrador.
 // Los nombres existentes se conservan al editar o añadir un cargo.
 export function completarNombreEleccion(datos, institucion) {
@@ -57,4 +43,16 @@ export function agruparCargos(procesos){
  }
  const orden=id=>{const n=familiasCargo.findIndex(f=>f.id===id);return n<0?familiasCargo.length:n;};
  return [...grupos.values()].sort((a,b)=>orden(a.id)-orden(b.id)||a.nombre.localeCompare(b.nombre,'es')).map(g=>({...g,cantidad:g.procesos.length}));
+}
+
+export function filtrarCargos(procesos,{busqueda='',estado='',archivados=false}={}){
+ const normalizar=v=>String(v??'').normalize('NFKD').replace(/\p{M}/gu,'').toLocaleLowerCase('es');
+ const consulta=normalizar(busqueda).trim();
+ return procesos.filter(p=>(archivados||p.estado!=='archivada')&&(!estado||p.estado===estado)&&(!consulta||normalizar([p.cargo,p.facultad,p.ambito,p.grupoCarreras,...(p.carreras??[])].join(' ')).includes(consulta)));
+}
+
+
+export const datosEleccionVacia=()=>({nombre:'',cargo:'',tipo:'universidad',unidad:'Facultad',ambito:'',facultad:'',grupoCarreras:'',carreras:[],vuelta:1,idPrimeraVuelta:null,sectores:[],ponderacion:false,reglaSegundaVuelta:null});
+export function datosDeProceso(proceso){
+ const datos=datosEleccionVacia();for(const clave of Object.keys(datos))if(proceso[clave]!==undefined)datos[clave]=structuredClone(proceso[clave]);return datos;
 }

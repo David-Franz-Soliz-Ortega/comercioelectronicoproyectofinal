@@ -3,11 +3,11 @@ import { agruparCargos } from './seleccionAdministracion.js';
 const normalizar = valor => String(valor ?? '').normalize('NFKD').replace(/\p{M}/gu, '').toLocaleLowerCase('es').trim();
 
 // Los UUID mantienen separados los ámbitos y las vueltas, aunque se repitan nombres.
-export function candidatosPorCargo(procesos, { busqueda = '', familia = '' } = {}) {
+export function candidatosPorCargo(procesos, { busqueda = '', familia = '', sinFotografia = false } = {}) {
   const termino = normalizar(busqueda);
   const grupos = agruparCargos(procesos).filter(g => !familia || g.id === familia).map(g => ({
     ...g,
-    procesos: g.procesos.filter(p => !termino || [p.cargo, p.nombre, p.ambito, p.facultad, p.grupoCarreras, ...(p.carreras ?? []), ...p.candidatos.map(c => c.nombre)].some(t => normalizar(t).includes(termino))),
+    procesos: g.procesos.filter(p => !termino || [p.cargo, p.nombre, p.ambito, p.facultad, p.grupoCarreras, ...(p.carreras ?? []), ...p.candidatos.map(c => c.nombre)].some(t => normalizar(t).includes(termino))).map(p=>sinFotografia?{...p,candidatos:p.candidatos.filter(c=>!(c.tieneFoto||c.foto))}:p).filter(p=>!sinFotografia||p.candidatos.length),
   })).filter(g => g.procesos.length);
   const conFotografia = procesos.reduce((s, p) => s + p.candidatos.filter(c => c.tieneFoto || c.foto).length, 0);
   return {

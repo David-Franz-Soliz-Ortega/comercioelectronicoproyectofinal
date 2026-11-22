@@ -2,7 +2,7 @@ import ResumenResultadosCargos from '../componentes/ResumenResultadosCargos.jsx'
 import CargosDestacados from '../componentes/CargosDestacados.jsx';
 import { procesoDesdeEnlace } from '../api/enlacesResultados.js';
 import ResultadosSectores from '../componentes/ResultadosSectores.jsx';
-import { nombresEstado } from '../componentes/EstadoEleccion.jsx';
+import { nombresEstado } from '../api/catalogos.js';
 import { puntuacionCandidatura, ordenarCandidaturas } from '../api/presentacionResultados.js';
 import React, { useEffect, useRef, useState } from 'react';
 import UrnaAnimada from '../componentes/UrnaAnimada.jsx';

@@ -79,7 +79,7 @@
 .actualizacion-conteo { display: flex; align-items: center; gap: 8px; color: var(--suave-publico); font-size: .8125rem; }
 .actualizacion-conteo button { display: grid; place-items: center; font-size: 1.375rem; width: 44px; height: 44px; border: 1px solid var(--borde-control); border-radius: 8px; background: white; }
 .tarjetas-candidaturas { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; }
-.tarjeta-candidatura { display: flex; flex-direction: column; border: 1px solid var(--borde-publico); border-radius: 22px; padding: 24px 24px 0; background: white; box-shadow: 0 8px 28px #10244008; animation: aparecer-observatorio .4s ease-out; min-width: 0; }
+.tarjeta-candidatura { display: flex; flex-direction: column; border: 1px solid var(--borde-publico); border-radius: 22px; padding: 24px 24px 0; background: white; box-shadow: var(--sombra-panel); animation: aparecer-observatorio .4s ease-out; min-width: 0; }
 .candidatura-lider { border-color: var(--acento-publico); box-shadow: 0 0 0 1px var(--acento-publico),0 10px 30px #174bd110; }
 .cabecera-candidatura { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
 .cargo-candidatura { max-width: 100%; overflow-wrap: anywhere; font-size: .8125rem; font-weight: 700; line-height: 1.4; color: var(--suave-publico); }

@@ -6,6 +6,10 @@ Registrar solo casos demostrados. Cada entrada identifica la decisión que convi
 
 Una modificación local de React puede no estar en la imagen servida. Antes de atribuirlo a CSS o caché del navegador, comparar el recurso servido por NGINX con la compilación y revisar el [Dockerfile](../../frontend/Dockerfile). Comprobar después los recursos efectivamente servidos. La compilación, la salud y el despliegue son comprobaciones diferentes. En Node/TypeScript, comparar la imagen con los módulos de fuentes vigentes o con una compilación temporal limpia: `dist` puede conservar archivos retirados que `tsc` no elimina. El verificador de [operadores y mesas](entregas/importacion-operadores-mesa.md) detectó ese caso; no borrar cambios locales para resolver una comparación.
 
+## Capturas que representan el HTML real
+
+Los fixtures de navegador deben declarar UTF-8 igual que `frontend/index.html`. Sin esa declaración, una captura de prueba puede mostrar iconos Unicode de CSS corruptos aunque el recurso real sea correcto. Se comprobó en el [rediseño de candidatos](entregas/candidatos-flotantes-perfil-lateral.md); se ajustaron los HTML de prueba y se repitió la verificación.
+
 ## Fotografías de candidatos
 
 Los borradores necesitan lectura privada con sesión y organización. Ver [cliente de fotografías](../../frontend/src/api/fotografiasCandidatos.js) y [componente administrativo](../../frontend/src/componentes/FotoCandidatoAdministracion.jsx). Una foto cargada debe decodificarse en el navegador; un HTTP 200 por sí solo no lo demuestra. Las iniciales identifican ausencia de foto y el error de carga debe distinguirse de esa ausencia.
@@ -35,3 +39,9 @@ El cargo abierto para gestionar no equivale a los cargos que el administrador de
 ## Confirmaciones que sobreviven al formulario
 
 Emitir el éxito después de la respuesta de la API y mostrarlo en un componente global evita perder el aviso cuando se cierra o recarga el formulario. No convertir las confirmaciones previas, errores o estados de carga en éxitos. Al desmontar un diálogo, restaurar explícitamente el foco si el control anterior aún existe: la prueba real de Firefox detectó que cerrar un diálogo ya retirado no lo restauraba automáticamente. Ver [ConfirmacionGlobal.jsx](../../frontend/src/componentes/ConfirmacionGlobal.jsx) y [modal-interfaz.mjs](../../frontend/pruebas/modal-interfaz.mjs), probada a tres tamaños con datos sintéticos y sin escrituras en servicios.
+
+## Cuadrículas anidadas y código aparentemente huérfano
+
+Una fila exterior con varios cargos de 300 px y dos candidatos interiores comprimía los nombres hasta una letra por línea. Comprobar solo el desbordamiento global o los grupos Rector/Vicerrector no detectaba el defecto: la regresión abre Decanos con varios candidatos por cargo y verifica sus dimensiones entre 390 y 2560 px. Cada cargo ocupa ahora el ancho completo. Antes de retirar módulos, recorrer referencias desde la entrada, incluidas cargas diferidas: ocho de los nueve módulos API denunciados como huérfanos sí tenían uso operativo. Ver [entrega](entregas/limpieza-paneles.md) y [regresión de importaciones](../../frontend/pruebas/importaciones.test.mjs).
+
+En `ModalFormulario`, asegurar `abierto = true` por defecto previene que un modal montado condicionalmente retorne `null` si quien lo invoca no suministra explícitamente el atributo `abierto`. Asimismo, para botones con acciones de descarte o desvinculación transformados en botones compactos (como el de 3 puntos en cargos destacados), filtrar selectores heredados mediante `:not(.boton-puntos-destacado)` impide que clases globales de peligro o secundarias alteren su estilo sutil y redondeado.

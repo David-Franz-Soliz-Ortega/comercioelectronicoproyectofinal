@@ -46,3 +46,19 @@ test('los fallos parciales no deshacen cuentas creadas ni se presentan como asig
  const resultados=await completarImportacionOperadores({operadores:[{idUsuario:'u',usuario:'uno',mesa:'A01'}],procesos:catalogo,organizacion:'org',pedir:async(r)=>{if(r.includes('/m2/'))throw Error('Fallo sintético');}});
  assert.equal(resultados[0].asignadas,1);assert.match(resultados[0].estado,/Parcial/);
 });
+
+test('el listado institucional conserva pendientes, varias mesas y cuentas históricas sin incluir roles de otro ámbito',async()=>{
+ const {listarOperadoresInstitucion}=await import('../src/api/operadores.js');
+ const cuenta=(id,org='org')=>({idUsuario:id,usuario:id,activo:true,roles:[{rol:'OPERADOR',idOrganizacion:org}]});
+ const cuentas=[cuenta('operador10'),cuenta('operador2'),cuenta('pendiente'),cuenta('ajeno','otra')];
+ const asignaciones=[{idUsuario:'operador2',idMesa:'r',codigo:'DOC-01',cargo:'Rector',unidad:'Tecnología'},{idUsuario:'operador2',idMesa:'v',codigo:'DOC-01',cargo:'Vicerrector',unidad:'Tecnología'},{idUsuario:'historico',idMesa:'h',codigo:'H-01'}];
+ const copia=structuredClone({cuentas,asignaciones});
+ const listar=op=>listarOperadoresInstitucion({cuentas,asignaciones,organizacion:'org',...op});
+ assert.equal(listar().some(g=>g.cuenta.idUsuario==='ajeno'),false);
+ assert.deepEqual(listar({soloPendientes:true}).map(g=>g.cuenta.idUsuario),['operador10','pendiente']);
+ assert.equal(listar({busqueda:'tecnologia'})[0].mesas.length,2);
+ assert.equal(listar({idUsuario:'operador2'})[0].cuenta.usuario,'operador2');
+ assert.equal(listar().find(g=>g.cuenta.idUsuario==='historico').cuenta.activo,false);
+ assert.equal(listar({busqueda:'inexistente'}).length,0);
+ assert.deepEqual({cuentas,asignaciones},copia);
+});

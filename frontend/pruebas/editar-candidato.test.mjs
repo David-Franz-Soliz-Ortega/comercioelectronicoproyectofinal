@@ -21,3 +21,19 @@ test('Editar se ofrece en candidatos de borradores; cargos iniciados solo permit
   }
  } finally {await vite.close();}
 });
+
+const {guardarEdicionCandidato}=await import('../src/api/editarCandidato.js');
+test('edición conjunta reutiliza las APIs reales y reintenta solo la foto tras un fallo parcial',async()=>{
+ const llamadas=[];let confirmado='Anterior',fallar=true;
+ const pedir=async(r,op)=>{llamadas.push({r,op});if(r.endsWith('/foto')&&fallar){fallar=false;throw Error('Fallo sintético');}};
+ const datos={id:'c',organizacion:'org',nombreActual:confirmado,nombre:' Nuevo ',foto:'data:image/png;base64,SINTETICO',pedir,alNombreGuardado:n=>{confirmado=n;}};
+ await assert.rejects(guardarEdicionCandidato(datos),/Fallo sintético/);assert.equal(confirmado,'Nuevo');
+ await guardarEdicionCandidato({...datos,nombreActual:confirmado});
+ assert.deepEqual(llamadas.map(l=>l.r),['/configuracion/candidatos/c','/configuracion/candidatos/c/foto','/configuracion/candidatos/c/foto']);
+ assert.ok(llamadas.every(l=>l.op.organizacion==='org'));assert.deepEqual(llamadas[0].op.datos,{nombre:'Nuevo'});
+});
+test('un rechazo del nombre impide enviar la fotografía y conserva el avance sin confirmar',async()=>{
+ let llamadas=0,confirmado=false;
+ await assert.rejects(guardarEdicionCandidato({id:'c',organizacion:'org',nombreActual:'A',nombre:'B',foto:'foto',pedir:async()=>{llamadas++;throw Error('Sin permiso');},alNombreGuardado:()=>{confirmado=true;}}),/Sin permiso/);
+ assert.equal(llamadas,1);assert.equal(confirmado,false);
+});

@@ -1,3 +1,4 @@
+import {nombresRol} from '../api/catalogos.js';
 import { notificarExito } from '../api/confirmaciones.js';
 import React, { useState } from 'react';
 import { solicitarRest } from '../api/clienteRest.js';
@@ -5,7 +6,7 @@ import { IconoUsuario } from './Iconos.jsx';
 
 const rolesAsignables = ['ADMINISTRADOR', 'OPERADOR', 'AUDITOR'];
 
-export default function AdministrarCuentas({ organizaciones, cuentas, idActual, alGuardar, esGlobal = true, organizacionInicial = '', accionInicial, rolInicial = 'OPERADOR', rolesPermitidos, alCrearOrganizacion, titulo, descripcion, ocultarOrganizacion = false }) {
+export default function AdministrarCuentas({ organizaciones, cuentas, idActual, alGuardar, esGlobal = true, organizacionInicial = '', accionInicial, rolInicial = 'OPERADOR', rolesPermitidos, alCrearOrganizacion, titulo, descripcion, ocultarOrganizacion = false, alOcupado }) {
   const [accion, cambiarAccion] = useState(accionInicial ?? (organizacionInicial ? 'usuario' : (esGlobal && !ocultarOrganizacion) ? 'organizacion' : 'usuario'));
   const [nombre, cambiarNombre] = useState('');
   const [organizacion, cambiarOrganizacion] = useState(organizacionInicial || organizaciones?.[0]?.idOrganizacion || '');
@@ -21,7 +22,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
   async function guardar(evento) {
     evento.preventDefault();
     if (ocupado) return;
-    cambiarOcupado(true);
+    cambiarOcupado(true);alOcupado?.(true);
     cambiarError('');
 
     const contrasena = clave;
@@ -45,7 +46,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
     } catch (fallo) {
       cambiarError(fallo.message);
     } finally {
-      cambiarOcupado(false);
+      cambiarOcupado(false);alOcupado?.(false);
     }
   }
 
@@ -231,7 +232,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
                   .filter(r => esGlobal || r !== 'ADMINISTRADOR' || rolesPermitidos?.includes('ADMINISTRADOR'))
                   .map(r => (
                     <option key={r} value={r}>
-                      {{ ADMINISTRADOR: 'Administrador', OPERADOR: 'Operador de actas', AUDITOR: 'Auditor' }[r]}
+                      {nombresRol[r]}
                     </option>
                   ))}
               </select>

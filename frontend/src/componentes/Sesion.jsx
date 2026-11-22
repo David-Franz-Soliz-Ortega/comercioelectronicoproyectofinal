@@ -128,7 +128,8 @@ export default function Sesion({ children }) {
   });
 }
 
-export function ControlesSesion({ sesion, ocupado, salir, seleccionar, subtituloRol }) {
+export function ControlesSesion({ sesion, ocupado, salir, seleccionar, subtituloRol, lateral=false }) {
+  if(lateral)return <details className="perfil-lateral-sesion"><summary><span className="avatar-perfil-lateral"><IconoUsuario tamano={20}/></span><span><strong>{subtituloRol||'Cuenta'}</strong><small>{sesion.usuario}</small></span><span aria-hidden="true">⌄</span></summary><div><button className="boton-cerrar-sesion" disabled={ocupado} onClick={salir}><IconoSalir tamano={14}/><span>Cerrar sesión</span></button></div></details>;
   const organizaciones = [...new Set(sesion.roles.map(r => r.idOrganizacion).filter(Boolean))];
   return (
     <div className="perfil-usuario-privado">

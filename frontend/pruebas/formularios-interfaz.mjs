@@ -11,7 +11,7 @@ const frontend=fileURLToPath(new URL('..',import.meta.url));
 const carpeta=resolve(frontend,'dist');
 await build({entryPoints:[resolve(frontend,'pruebas/fixtures/formularios.jsx')],bundle:true,outfile:'/tmp/tuvoto-formularios-fixture.js',define:{'process.env.NODE_ENV':'"production"'}});
 const css=(await readdir(resolve(carpeta,'assets'))).filter(s=>s.endsWith('.css')).map(s=>'<link rel="stylesheet" href="/assets/'+s+'">').join('');
-await writeFile('/tmp/tuvoto-formularios-fixture.html','<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">'+css+'<div id="root"></div><script src="/formularios-fixture.js"></script>');
+await writeFile('/tmp/tuvoto-formularios-fixture.html','<!doctype html><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+css+'<div id="root"></div><script src="/formularios-fixture.js"></script>');
 const servidor=http.createServer(async(req,res)=>{
  if(req.url==='/'){res.setHeader('Content-Type','text/html');res.end(await readFile('/tmp/tuvoto-formularios-fixture.html'));return;}
  if(req.url==='/formularios-fixture.js'){res.setHeader('Content-Type','application/javascript');res.end(await readFile('/tmp/tuvoto-formularios-fixture.js'));return;}

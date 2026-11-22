@@ -1,14 +1,18 @@
 import React, { useEffect, useId, useRef } from 'react';
 
-export default function ModalFormulario({ abierto, titulo, ocupado = false, alCerrar, children }) {
+export default function ModalFormulario({ abierto = true, titulo, ocupado = false, alCerrar, children }) {
  const dialogo = useRef(null), id = useId(), cerrar = useRef(alCerrar);
  cerrar.current = alCerrar;
  useEffect(() => {
   if (!abierto) return;
   const elemento = dialogo.current, foco = document.activeElement;
-  elemento.showModal();
+  if (elemento && !elemento.open) {
+   try { elemento.showModal(); } catch (_) {}
+  }
   return () => {
-   elemento.close();
+   if (elemento?.open) {
+    try { elemento.close(); } catch (_) {}
+   }
    if (foco?.isConnected) foco.focus({ preventScroll: true });
   };
  }, [abierto]);

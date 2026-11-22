@@ -1,11 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {eventosDeProcesos,procesoInicialDeEvento,completarNombreEleccion,agruparCargos,tiposCargoUniversitarios} from '../src/api/seleccionAdministracion.js';
-const procesos=[{id:'rector',nombre:'Universitarias 2027',cargo:'Rector',estado:'cerrada',actual:true},{id:'vice',nombre:'Universitarias 2027',cargo:'Vicerrector',estado:'borrador'},{id:'alcalde',nombre:'Municipales 2028',cargo:'Alcalde',estado:'recepcion'}];
-test('institución cargada: agrupa cargos por nombre exacto de evento sin mezclarlos',()=>{
- const eventos=eventosDeProcesos(procesos);assert.equal(eventos.length,2);assert.deepEqual(eventos[0].procesos.map(p=>p.id),['rector','vice']);assert.deepEqual(eventos[1].procesos.map(p=>p.id),['alcalde']);assert.equal(procesos[0].estado,'cerrada');
-});
-
+import {completarNombreEleccion,agruparCargos,tiposCargoUniversitarios} from '../src/api/seleccionAdministracion.js';
 test('el selector reutiliza los tipos universitarios guardados sin repetirlos ni traer cargos de otros tipos de organización',()=>{
  const procesos=[{tipo:'universidad',cargo:'Centro de Estudiantes sintético'},{tipo:'universidad',cargo:' CENTRO DE ESTUDIANTES SINTÉTICO '},{tipo:'universidad',cargo:'Rector'},{tipo:'municipio',cargo:'Alcalde'}];
  const copia=structuredClone(procesos),tipos=tiposCargoUniversitarios(procesos,'Cargo histórico');
@@ -36,10 +31,6 @@ test('reconoce variantes de cargo y mantiene los cargos ajenos a las cuatro fami
  assert.equal(g.find(g=>g.id==='otro:rector y vicerrector').cantidad,1);
  assert.deepEqual(agruparCargos([]),[]);
 });
-test('cambiar evento selecciona un cargo suyo y no reutiliza el ID de otro evento',()=>{
- assert.equal(procesoInicialDeEvento(procesos,'Municipales 2028'),'alcalde');assert.equal(procesoInicialDeEvento([...procesos].reverse(),'Universitarias 2027'),'rector');assert.equal(procesoInicialDeEvento(procesos,'Desconocido'),'');assert.deepEqual(eventosDeProcesos([]),[]);
-});
-
 test('crear sin nombre manual usa la institución respetando el límite REST',()=>{
  const datos={nombre:'',cargo:'Rector',tipo:'universidad'};
  assert.deepEqual(completarNombreEleccion(datos,{nombre:'  USFX  '}),{...datos,nombre:'USFX'});
@@ -50,4 +41,26 @@ test('crear sin nombre manual usa la institución respetando el límite REST',()
 test('editar o añadir cargos preserva la agrupación histórica aunque cambie la institución',()=>{
  const datos={nombre:'Elecciones universitarias 2026',cargo:'Vicerrector',vuelta:1};
  assert.deepEqual(completarNombreEleccion(datos,{nombre:'USFX actualizada'}),datos);
+});
+
+test('filtros de cargos conservan IDs, buscan sin tildes y permiten recuperar archivados',async()=>{
+ const {filtrarCargos}=await import('../src/api/seleccionAdministracion.js');
+ const lista=[{id:'d',cargo:'Director',facultad:'Tecnología',estado:'borrador',carreras:['Diseño']},{id:'r',cargo:'Rector',estado:'recepcion'},{id:'a',cargo:'Decano',estado:'archivada'}];
+ const copia=structuredClone(lista);
+ assert.deepEqual(filtrarCargos(lista).map(p=>p.id),['d','r']);
+ assert.deepEqual(filtrarCargos(lista,{busqueda:'tecnologia'}).map(p=>p.id),['d']);
+ assert.deepEqual(filtrarCargos(lista,{busqueda:'diseno'}).map(p=>p.id),['d']);
+ assert.deepEqual(filtrarCargos(lista,{estado:'recepcion'}).map(p=>p.id),['r']);
+ assert.deepEqual(filtrarCargos(lista,{estado:'archivada',archivados:true}).map(p=>p.id),['a']);
+ assert.deepEqual(lista,copia);
+});
+
+test('alta y edición comparten valores iniciales sin mutar otros cargos ni cambiar su vuelta',async()=>{
+ const {datosEleccionVacia,datosDeProceso}=await import('../src/api/seleccionAdministracion.js');
+ const uno=datosEleccionVacia(),dos=datosEleccionVacia();
+ uno.carreras.push('Carrera sintética');assert.deepEqual(dos.carreras,[]);
+ const proceso={...dos,cargo:'Director',vuelta:2,sectores:[{nombre:'Prueba',pesoBps:10000}],id:'se-conserva-en-formulario'};
+ const edicion=datosDeProceso(proceso);edicion.sectores[0].pesoBps=5000;
+ assert.equal(proceso.sectores[0].pesoBps,10000);assert.equal(edicion.vuelta,2);
+ assert.equal(edicion.id,undefined);
 });

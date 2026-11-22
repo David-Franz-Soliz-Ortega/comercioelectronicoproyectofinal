@@ -1,8 +1,24 @@
 # Estado de trabajo entre agentes
 
-Actualizado: 2026-11-21. Responsable: Codex. Siguiente responsable: por asignar.
+Actualizado: 2026-11-22. Responsable: Antigravity. Siguiente responsable: por asignar.
 
 ## Entregas simultáneas recientes
+
+- [Estado y publicación: referencia visual exacta](entregas/estado-publicacion-referencia-exacta.md) — replicada la interfaz de referencia: 5 tarjetas KPI (Cargos, Candidaturas, Mesas físicas, Actas esperadas, Operadores asignados), banner de alerta de actas sin operador con enlace a asignaciones, panel de tabla con pestañas (Todos, En preparación, En recepción, Finalizados), buscador, selector de alcance, tabla con píldoras de estado y paginador por 7 filas, y barra inferior "Control del conteo" con botones Iniciar/Terminar conteo y confirmación. 68 pruebas unitarias exitosas, compilación y despliegue local en contenedor `tuvoto-frontend-1` verificado.
+
+- [Resumen y portada institucional: referencia exacta y creación de institución](entregas/resumen-referencia-exacta.md) — replicada la interfaz visual de referencia: 4 tarjetas KPI en fila, 2 columnas centrales (Pendientes y Estado de los cargos), barra horizontal de Accesos rápidos con iconos azules y texto gris/slate, grilla de Cargos destacados en 2 columnas con listas verticales de candidatos y avatares redondeados de 36px. Corregido el modal de "+ Nueva institución" garantizando su apertura y funcionamiento al enviar. 68 pruebas unitarias exitosas, compilación y despliegue en contenedor `tuvoto-frontend-1` verificado.
+
+- [Operadores: referencia visual](entregas/operadores-referencia.md) — tabla compacta, mesas desplegables, filtros/paginación y acciones arriba; 68 pruebas, compilación y Firefox sintético a cuatro tamaños. Frontend actualizado con autorización; 13 saludables, otros 12 contenedores y montajes conservados.
+
+- [Mesas: referencia corregida](entregas/mesas-referencia.md) — sustituye los acordeones por facultades laterales, tabla y detalle. 67 pruebas, compilación y Firefox sintético a cuatro tamaños; frontend actualizado, 13 saludables y montajes conservados.
+
+- [Mesas: panel compacto](entregas/mesas-panel-compacto.md) — acciones arriba, contadores reales, búsqueda/sector y grupos compactos; 67 pruebas, compilación y Firefox sintético a cuatro tamaños. Frontend actualizado con autorización; 13 saludables, otros 12 contenedores y montajes conservados.
+
+- [Limpieza y paneles flotantes](entregas/limpieza-paneles.md) — corregida cuadrícula anidada, formularios compartidos y modales; tres módulos sin uso retirados, ocho API activos conservados. 67 pruebas, compilación y Firefox sintético OK; frontend actualizado con autorización, 13 saludables y otros 12 contenedores/montajes conservados.
+
+- [Candidatos y cuenta lateral](entregas/candidatos-flotantes-perfil-lateral.md) — organización/perfil a la izquierda, tarjetas y edición de nombre/foto en un modal; 68 pruebas y Firefox sintético OK. Solo frontend actualizado; 13 saludables, datos intactos.
+
+- [Diseño claro y catálogo electoral](entregas/diseno-claro-elecciones.md) — referencia visual aplicada, fondo común, grupos, filtros y filas compactas; 65 pruebas y navegador con datos sintéticos. Solo frontend actualizado; 13 saludables y datos conservados.
 
 - [Estado de toda la organización](entregas/estado-toda-organizacion.md) — publicación muestra totales y estados de todos los cargos, sin el resumen individual duplicado. 64 pruebas y frontend actualizado; 13 saludables, sin cambios de datos.
 
