@@ -10,7 +10,7 @@ test('el gateway compone cargos publicados y separa su caché por proceso y unid
  const llamadas=[];
  const doble=http.createServer((req,res)=>{
   llamadas.push(req.url);res.setHeader('Content-Type','application/json');
-  if(req.url==='/api/v1/publico/eventos') return res.end(JSON.stringify({elementos:[{id:'evento',nombre:'Evento sintético',tipo:'universidad',destacado:true,procesos:[{id:idA,nombre:'Evento sintético',cargo:'Rectorado'},{id:idB,nombre:'Evento sintético',cargo:'Vicerrectorado'}]}]}));
+  if(req.url==='/api/v1/publico/eventos') return res.end(JSON.stringify({elementos:[{id:'evento',nombre:'Evento sintético',tipo:'universidad',destacado:true,procesos:[{id:idA,nombre:'Evento sintético',cargo:'Rectorado',destacadoPortada:true,candidatos:[{id:'c-prueba',nombre:'Candidatura sintética',foto:null}]},{id:idB,nombre:'Evento sintético',cargo:'Vicerrectorado',destacadoPortada:false,candidatos:[]}]}]}));
   if(req.url==='/api/v1/publico/actual'||req.url.startsWith('/api/v1/publico/procesos/')) {
    const id=req.url.endsWith('actual')?idA:req.url.split('/').at(-1);
    if(![idA,idB].includes(id)){res.statusCode=404;return res.end('{}');}
@@ -29,8 +29,11 @@ test('el gateway compone cargos publicados y separa su caché por proceso y unid
  try {
   let listo=false;for(let i=0;i<60;i++){try{await pedir('{ __typename }');listo=true;break;}catch{await new Promise(r=>setTimeout(r,50));}}
   assert.ok(listo,'Arranque del gateway');
-  const catalogo=await pedir('{ eventos { id nombre destacado procesos { id cargo } } }');
+  const catalogo=await pedir('{ eventos { id nombre destacado procesos { id cargo destacadoPortada candidatos {id nombre foto} } } }');
   assert.equal(catalogo.data.eventos[0].procesos.length,2);
+  assert.equal(catalogo.data.eventos[0].procesos[0].destacadoPortada,true);
+  assert.equal(catalogo.data.eventos[0].procesos[0].candidatos[0].nombre,'Candidatura sintética');
+  assert.deepEqual(catalogo.data.eventos[0].procesos[1].candidatos,[]);
   const consulta='query($id:ID,$unidad:String){portal(idProceso:$id,unidad:$unidad){proceso{id cargo unidades}resultados{total}recepcion{versiones}}}';
   const a=await pedir(consulta,{id:idA}),b=await pedir(consulta,{id:idB});
   assert.equal(a.data.portal.resultados.total,11);assert.equal(b.data.portal.resultados.total,22);

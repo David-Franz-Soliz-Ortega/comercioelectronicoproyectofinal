@@ -177,3 +177,23 @@ export function IconoSalir({ tamano = 18, color = "currentColor" }) {
     </svg>
   );
 }
+
+export function IconoOjo({ tamano = 20, color = "currentColor" }) {
+  return (
+    <svg width={tamano} height={tamano} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export function IconoOjoOculto({ tamano = 20, color = "currentColor" }) {
+  return (
+    <svg width={tamano} height={tamano} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 3l18 18" />
+      <path d="M10.6 5.2A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-2.1 3.2" />
+      <path d="M6.6 6.6C3.7 8.7 2 12 2 12s3.5 7 10 7a9.8 9.8 0 0 0 4-.8" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </svg>
+  );
+}

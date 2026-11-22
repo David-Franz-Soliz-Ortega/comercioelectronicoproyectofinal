@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
+import ConfirmacionGlobal from './componentes/ConfirmacionGlobal.jsx';
 import PortalPublico from './paginas/PortalPublico.jsx';
 const AccesoPrivado = lazy(() => import('./paginas/PanelPrivado.jsx'));
 
@@ -9,5 +10,5 @@ export default function Aplicacion() {
     window.addEventListener('hashchange', escuchar);
     return () => window.removeEventListener('hashchange', escuchar);
   }, []);
-  return panel ? <Suspense fallback={<main className="acceso" role="status">Cargando acceso del personal…</main>}><AccesoPrivado /></Suspense> : <PortalPublico />;
+  return <><ConfirmacionGlobal />{panel ? <Suspense fallback={<main className="acceso" role="status">Cargando acceso del personal…</main>}><AccesoPrivado /></Suspense> : <PortalPublico />}</>;
 }

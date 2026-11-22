@@ -1444,7 +1444,8 @@
           "422": {
             "description": "Archivo, campos o reglas inválidos"
           }
-        }
+        },
+        "description": "Los cargos incluyen destacadoPortada y candidatos (id, nombre y URL pública de foto o null) solo para los destacados publicados. No incluye borradores, imágenes de actas ni operadores."
       }
     },
     "/configuracion/procesos/{id}/reiniciar": {
@@ -2008,6 +2009,84 @@
             "description": "Confirmación o UUID inválido"
           }
         }
+      },
+      "put": {
+        "summary": "Editar el nombre de un candidato propio en borrador",
+        "description": "Conserva UUID, fotografía y cargo. Registra el nombre anterior en historial. Rechaza cargos publicados, iniciados, registros en curso y referencias de otra vuelta. Requiere ADMINISTRADOR, sesión, organización y CSRF.",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nombre"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Nombre actualizado"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Acceso no autorizado"
+          },
+          "404": {
+            "description": "Candidato no disponible"
+          },
+          "409": {
+            "description": "Nombre duplicado o cargo bloqueado"
+          },
+          "422": {
+            "description": "Nombre o UUID inválido"
+          }
+        }
       }
     },
     "/configuracion/mesas/{id}": {
@@ -2396,6 +2475,236 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/configuracion/portada": {
+      "put": {
+        "summary": "Guardar los cargos destacados de la portada de una institución",
+        "description": "Selección editorial persistente e independiente del cargo activo. No publica borradores, inicia conteos ni cambia resultados. Requiere ADMINISTRADOR, sesión, CSRF y X-Organizacion. Solo admite cargos vigentes propios; una lista vacía elimina los destacados.",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Organizacion",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "idProcesos",
+                  "confirmar"
+                ],
+                "properties": {
+                  "idProcesos": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "confirmar": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Selección guardada de forma atómica",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "idProcesos"
+                  ],
+                  "properties": {
+                    "idProcesos": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Permiso, CSRF o institución denegados"
+          },
+          "422": {
+            "description": "Identificadores inválidos, repetidos, ajenos o archivados"
+          }
+        }
+      }
+    },
+    "/configuracion/institucion/iniciar": {
+      "post": {
+        "summary": "Iniciar el conteo de todos los cargos de la institución autorizada",
+        "description": "Operación atómica con auditoría. No cambia actual ni destacado_portada, no elimina datos ni reabre cargos cerrados. Iniciar exige candidatos, mesas, cobertura de sectores y asignaciones en todos los borradores. Terminar bloquea si hay actas en curso. Repetir no duplica transiciones.",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organizacion",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "confirmar"
+                ],
+                "properties": {
+                  "confirmar": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Acción y número de cargos actualizados"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Sin permiso en la institución o CSRF inválido"
+          },
+          "409": {
+            "description": "Hay actas en curso"
+          },
+          "422": {
+            "description": "Confirmación inválida o cargos incompletos; no cambia ningún estado"
+          }
+        }
+      }
+    },
+    "/configuracion/institucion/terminar": {
+      "post": {
+        "summary": "Terminar el conteo de todos los cargos de la institución autorizada",
+        "description": "Operación atómica con auditoría. No cambia actual ni destacado_portada, no elimina datos ni reabre cargos cerrados. Iniciar exige candidatos, mesas, cobertura de sectores y asignaciones en todos los borradores. Terminar bloquea si hay actas en curso. Repetir no duplica transiciones.",
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organizacion",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "confirmar"
+                ],
+                "properties": {
+                  "confirmar": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Acción y número de cargos actualizados"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Sin permiso en la institución o CSRF inválido"
+          },
+          "409": {
+            "description": "Hay actas en curso"
+          },
+          "422": {
+            "description": "Confirmación inválida o cargos incompletos; no cambia ningún estado"
           }
         }
       }

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { obtenerSesion, iniciarSesion, finalizarSesion, seleccionarOrganizacion, establecerOrganizacion } from '../api/clienteSesion.js';
-import { IconoTuvoto, IconoUsuario, IconoSalir } from './Iconos.jsx';
+import { IconoTuvoto, IconoUsuario, IconoSalir, IconoOjo, IconoOjoOculto, IconoAlerta } from './Iconos.jsx';
 
 export default function Sesion({ children }) {
   const revision = useRef(0);
@@ -12,6 +12,7 @@ export default function Sesion({ children }) {
   const [usuario, cambiarUsuario] = useState('');
   const [contrasena, cambiarContrasena] = useState('');
   const [mostrarContrasena, cambiarMostrarContrasena] = useState(false);
+  const [temblando, cambiarTemblando] = useState(false);
 
   function aceptar(datos) {
     establecerOrganizacion(datos?.idOrganizacion);
@@ -52,6 +53,19 @@ export default function Sesion({ children }) {
     finally { operando.current = false; cambiarOcupado(false); }
   }
 
+  useEffect(() => {
+    if (!error) { cambiarTemblando(false); return; }
+    cambiarTemblando(false);
+    const cuadro = window.requestAnimationFrame(() => {
+      cambiarTemblando(true);
+    });
+    const temporizador = window.setTimeout(() => cambiarTemblando(false), 520);
+    return () => {
+      window.cancelAnimationFrame(cuadro);
+      window.clearTimeout(temporizador);
+    };
+  }, [error]);
+
   if (cargando) {
     return (
       <main className="acceso" role="status">
@@ -65,7 +79,7 @@ export default function Sesion({ children }) {
   if (!sesion) {
     return (
       <main className="acceso">
-        <form className="formulario-acceso-tuvoto" onSubmit={evento => {
+        <form className={`formulario-acceso-tuvoto${temblando ? ' acceso-con-error' : ''}`} onSubmit={evento => {
           evento.preventDefault(); const clave = contrasena; cambiarContrasena(''); cambiarMostrarContrasena(false);
           ejecutar(() => iniciarSesion(usuario, clave));
         }}>
@@ -80,22 +94,22 @@ export default function Sesion({ children }) {
           <div className="formulario-simple">
             <label htmlFor="usuario">
               Usuario
-              <input id="usuario" autoComplete="username" value={usuario} onChange={e => cambiarUsuario(e.target.value)} required disabled={ocupado} />
+              <input id="usuario" autoComplete="username" value={usuario} onChange={e => { cambiarUsuario(e.target.value); if (error) cambiarError(''); }} required disabled={ocupado} />
             </label>
             <div className="campo-clave-admin">
               <label htmlFor="contrasena">Contraseña</label>
               <div className="entrada-clave-admin">
-                <input id="contrasena" type={mostrarContrasena ? 'text' : 'password'} autoComplete="current-password" value={contrasena} onChange={e => cambiarContrasena(e.target.value)} required disabled={ocupado} />
+                <input id="contrasena" type={mostrarContrasena ? 'text' : 'password'} autoComplete="current-password" value={contrasena} onChange={e => { cambiarContrasena(e.target.value); if (error) cambiarError(''); }} required disabled={ocupado} />
                 <button type="button" className="boton secundario" disabled={ocupado}
                   aria-label={mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   aria-controls="contrasena" aria-pressed={mostrarContrasena}
                   onClick={() => cambiarMostrarContrasena(anterior => !anterior)}>
-                  {mostrarContrasena ? 'Ocultar' : 'Mostrar'}
+                  {mostrarContrasena ? <IconoOjoOculto /> : <IconoOjo />}
                 </button>
               </div>
             </div>
           </div>
-          {error && <p className="aviso" role="alert">{error}</p>}
+          {error && <p className="aviso" role="alert"><IconoAlerta /> {error}</p>}
           <button className="boton primario" disabled={ocupado} style={{ width: '100%', marginTop: 8 }}>
             {ocupado ? 'Verificando…' : 'Entrar al sistema'}
           </button>

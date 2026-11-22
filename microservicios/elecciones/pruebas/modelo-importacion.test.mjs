@@ -58,3 +58,94 @@ test('estados: configuración únicamente en borrador; sin reapertura ni saltos'
  for(const [a,b] of [['borrador','recepcion'],['recepcion','cerrada'],['cerrada','archivada']])validarTransicion(a,b);
  for(const [a,b] of [['cerrada','recepcion'],['archivada','borrador'],['borrador','archivada']])assert.throws(()=>validarTransicion(a,b));
 });
+
+test('portada persistente: selección múltiple, ámbito propio, reemplazo atómico y concurrencia', {skip:process.env.TUVOTO_PRUEBA_MODELO!=='SOLO_DATOS_EFIMEROS'}, async t=>{
+ const puerto=Number(process.env.TUVOTO_PRUEBA_PG_PUERTO);assert.ok(puerto>1024&&puerto!==5432);
+ const db=new Pool({host:'127.0.0.1',port:puerto,user:'postgres',database:'tuvoto_modelo_pruebas'});t.after(()=>db.end());
+ assert.equal((await db.query('SELECT current_database() AS nombre')).rows[0].nombre,'tuvoto_modelo_pruebas');
+ const {guardarPortada,esquemaPortada}=await import(pathToFileURL(resolve(carpeta,'portada.js')));
+ const {randomUUID}=await import('node:crypto');
+ const org=randomUUID(),otra=randomUUID(),ids=Array.from({length:5},()=>randomUUID());
+ for(let i=0;i<ids.length;i++)await db.query("INSERT INTO tuvoto_procesos(id,id_organizacion,nombre,cargo,tipo,unidad,estado,archivado) VALUES($1,$2,'Prueba sintética',$3,'otra','Unidad',$4,$5)",[ids[i],i===3?otra:org,'Cargo '+i,i===4?'archivada':'borrador',i===4]);
+ const lectura=async()=> (await db.query('SELECT id FROM tuvoto_procesos WHERE id_organizacion=$1 AND destacado_portada ORDER BY id',[org])).rows.map(p=>p.id).sort();
+ const originales=(await db.query('SELECT id,estado,publicado,actual,configuracion FROM tuvoto_procesos WHERE id=ANY($1::uuid[]) ORDER BY id',[ids])).rows;
+ assert.deepEqual(await lectura(),[]);
+ assert.equal(esquemaPortada.safeParse({idProcesos:[ids[0]],confirmar:false}).success,false);
+ assert.equal(esquemaPortada.safeParse({idProcesos:[ids[0],ids[0]],confirmar:true}).success,false);
+ await guardarPortada(db,org,[ids[0],ids[1]]);assert.deepEqual(await lectura(),ids.slice(0,2).sort());
+ for(const ajeno of [ids[3],ids[4],randomUUID()]){
+  await assert.rejects(guardarPortada(db,org,[ids[2],ajeno]),e=>e.estado===422);
+  assert.deepEqual(await lectura(),ids.slice(0,2).sort(),'Un lote inválido no cambia parcialmente la portada');
+ }
+ await guardarPortada(db,otra,[ids[3]]);
+ await Promise.all([guardarPortada(db,org,[ids[0],ids[1]]),guardarPortada(db,org,[ids[2]])]);
+ const concurrentes=await lectura();assert.ok(JSON.stringify(concurrentes)===JSON.stringify(ids.slice(0,2).sort())||JSON.stringify(concurrentes)===JSON.stringify([ids[2]]),'Persistir una selección completa, sin mezclar dos solicitudes');
+ await guardarPortada(db,org,[]);assert.deepEqual(await lectura(),[]);
+ assert.equal((await db.query('SELECT destacado_portada FROM tuvoto_procesos WHERE id=$1',[ids[3]])).rows[0].destacado_portada,true);
+ assert.deepEqual((await db.query('SELECT id,estado,publicado,actual,configuracion FROM tuvoto_procesos WHERE id=ANY($1::uuid[]) ORDER BY id',[ids])).rows,originales,'La selección no publica ni inicia cargos');
+});
+
+test('editar candidato conserva foto e ID, audita y rechaza duplicados, otro ámbito y cargos bloqueados', {skip:process.env.TUVOTO_PRUEBA_MODELO!=='SOLO_DATOS_EFIMEROS'}, async t=>{
+ const puerto=Number(process.env.TUVOTO_PRUEBA_PG_PUERTO);assert.ok(puerto>1024&&puerto!==5432);
+ const db=new Pool({host:'127.0.0.1',port:puerto,user:'postgres',database:'tuvoto_modelo_pruebas'});t.after(()=>db.end());
+ assert.equal((await db.query('SELECT current_database() AS nombre')).rows[0].nombre,'tuvoto_modelo_pruebas');
+ const {editarNombreCandidato,esquemaNombreCandidato}=await import(pathToFileURL(resolve(carpeta,'candidatos.js')));
+ const {randomUUID}=await import('node:crypto');
+ const org=randomUUID(),actor=randomUUID(),proceso=randomUUID(),id=randomUUID(),otro=randomUUID();
+ for(const entrada of [{nombre:''},{nombre:'   '},{nombre:'a'.repeat(121)},{nombre:'Válido',foto:'no-permitida'}])assert.equal(esquemaNombreCandidato.safeParse(entrada).success,false);
+ await db.query("INSERT INTO tuvoto_procesos(id,id_organizacion,nombre,cargo,tipo,unidad) VALUES($1,$2,'Proceso sintético','Rector','universidad','Facultad')",[proceso,org]);
+ await db.query("INSERT INTO tuvoto_candidatos(id,id_proceso,nombre,foto,mime) VALUES($1,$2,'Nombre anterior',$3,'image/png'),($4,$2,'Nombre ocupado',null,null)",[id,proceso,Buffer.from('imagen-sintética'),otro]);
+ const leer=async()=> (await db.query('SELECT id,id_proceso,nombre,foto,mime,orden FROM tuvoto_candidatos WHERE id=$1',[id])).rows[0];
+ const anterior=await leer();
+ await editarNombreCandidato(db,id,org,actor,esquemaNombreCandidato.parse({nombre:'  Nombre corregido  '}).nombre);
+ assert.deepEqual(await leer(),{...anterior,nombre:'Nombre corregido'});
+ assert.deepEqual((await db.query("SELECT anterior FROM historial_catalogo WHERE id_recurso=$1 AND accion='nombre_editado'",[id])).rows,[{anterior:{nombre:'Nombre anterior'}}]);
+ await assert.rejects(editarNombreCandidato(db,id,randomUUID(),actor,'Ajeno'),e=>e.estado===404);
+ await assert.rejects(editarNombreCandidato(db,id,org,actor,'Nombre ocupado'),e=>e.code==='23505');
+ assert.equal((await leer()).nombre,'Nombre corregido');
+ for(const estado of ['recepcion','cerrada','archivada']){
+  await db.query('UPDATE tuvoto_procesos SET estado=$2 WHERE id=$1',[proceso,estado]);
+  await assert.rejects(editarNombreCandidato(db,id,org,actor,'Bloqueado'),e=>e.estado===409);
+ }
+ await db.query("UPDATE tuvoto_procesos SET estado='borrador',publicado=true WHERE id=$1",[proceso]);
+ await assert.rejects(editarNombreCandidato(db,id,org,actor,'Publicado'),e=>e.estado===409);
+ await db.query('UPDATE tuvoto_procesos SET publicado=false WHERE id=$1',[proceso]);
+ const registro=randomUUID();await db.query('INSERT INTO registros_en_curso(id,id_proceso,id_usuario) VALUES($1,$2,$3)',[registro,proceso,actor]);
+ await assert.rejects(editarNombreCandidato(db,id,org,actor,'En curso'),e=>e.estado===409);
+ await db.query('DELETE FROM registros_en_curso WHERE id=$1',[registro]);
+ await db.query('UPDATE tuvoto_candidatos SET id_candidato_origen=$2 WHERE id=$1',[otro,id]);
+ await assert.rejects(editarNombreCandidato(db,id,org,actor,'Otra vuelta'),e=>e.estado===409);
+ await db.query('UPDATE tuvoto_candidatos SET id_candidato_origen=null WHERE id=$1',[otro]);
+ await db.query('UPDATE tuvoto_candidatos SET eliminada=true WHERE id=$1',[id]);
+ await assert.rejects(editarNombreCandidato(db,id,org,actor,'Retirado'),e=>e.estado===404);
+ assert.deepEqual(await leer(),{...anterior,nombre:'Nombre corregido'});
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM historial_catalogo WHERE id_recurso=$1',[id])).rows[0].n,1);
+});
+
+test('inicio y cierre institucional atómicos, concurrentes e independientes de la portada', {skip:process.env.TUVOTO_PRUEBA_MODELO!=='SOLO_DATOS_EFIMEROS'},async t=>{
+ const {randomUUID}=await import('node:crypto');
+ const {cambiarConteoInstitucion}=await import(pathToFileURL(resolve(carpeta,'conteo-institucion.js')));
+ const db=new Pool({host:'127.0.0.1',port:Number(process.env.TUVOTO_PRUEBA_PG_PUERTO),user:'postgres',database:'tuvoto_modelo_pruebas'});t.after(()=>db.end());
+ assert.equal((await db.query('SELECT current_database() AS nombre')).rows[0].nombre,'tuvoto_modelo_pruebas');await db.query(ESQUEMA);
+ const org=randomUUID(),otra=randomUUID(),actor=randomUUID(),ids=[randomUUID(),randomUUID(),randomUUID()],mesas=[];
+ for(let i=0;i<3;i++){
+  await db.query('INSERT INTO tuvoto_procesos(id,id_organizacion,nombre,cargo,tipo,unidad,destacado_portada,configuracion) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[ids[i],i===2?otra:org,'Proceso sintético',['Rector','Vicerrector','Decano'][i],'universidad','Facultad',i===0,JSON.stringify({vuelta:1,sectores:[]})]);
+  await db.query('INSERT INTO tuvoto_candidatos(id,id_proceso,nombre) VALUES($1,$2,$3)',[randomUUID(),ids[i],'Candidato sintético']);
+  const mesa=randomUUID();mesas.push(mesa);await db.query('INSERT INTO tuvoto_mesas(id,id_proceso,codigo,unidad) VALUES($1,$2,$3,$4)',[mesa,ids[i],'Mesa sintética','Facultad sintética']);
+  if(i!==1)await db.query('INSERT INTO tuvoto_asignaciones VALUES($1,$2)',[mesa,actor]);
+ }
+ await assert.rejects(cambiarConteoInstitucion(db,org,actor,'iniciar'),e=>e.estado===422&&e.faltantes[0].id===ids[1]);
+ assert.deepEqual((await db.query('SELECT estado FROM tuvoto_procesos WHERE id=ANY($1::uuid[])',[ids.slice(0,2)])).rows.map(p=>p.estado),['borrador','borrador']);
+ await db.query('INSERT INTO tuvoto_asignaciones VALUES($1,$2)',[mesas[1],actor]);
+ const r=await Promise.all([cambiarConteoInstitucion(db,org,actor,'iniciar'),cambiarConteoInstitucion(db,org,actor,'iniciar')]);assert.equal(r.reduce((s,v)=>s+v.actualizados,0),2);
+ for(const id of ids.slice(0,2)){const p=(await db.query('SELECT estado,publicado,actual,destacado_portada FROM tuvoto_procesos WHERE id=$1',[id])).rows[0];assert.equal(p.estado,'recepcion');assert.equal(p.publicado,true);assert.equal(p.actual,false);assert.equal(p.destacado_portada,id===ids[0]);}
+ assert.equal((await db.query('SELECT estado FROM tuvoto_procesos WHERE id=$1',[ids[2]])).rows[0].estado,'borrador');
+ const registro=randomUUID();await db.query('INSERT INTO registros_en_curso(id,id_proceso,id_usuario) VALUES($1,$2,$3)',[registro,ids[1],actor]);
+ await assert.rejects(cambiarConteoInstitucion(db,org,actor,'terminar'),e=>e.estado===409);
+ assert.equal((await db.query("SELECT count(*)::int n FROM tuvoto_procesos WHERE id=ANY($1::uuid[]) AND estado='recepcion'",[ids.slice(0,2)])).rows[0].n,2);
+ await db.query('DELETE FROM registros_en_curso WHERE id=$1',[registro]);
+ assert.equal((await cambiarConteoInstitucion(db,org,actor,'terminar')).actualizados,2);
+ assert.equal((await cambiarConteoInstitucion(db,org,actor,'iniciar')).actualizados,0,'No reabre ni vacía conteos cerrados');
+ assert.equal((await db.query('SELECT count(*)::int n FROM historial_procesos WHERE id_proceso=ANY($1::uuid[])',[ids.slice(0,2)])).rows[0].n,4,'Una transición por cargo e intento');
+ assert.equal((await db.query('SELECT count(*)::int n FROM tuvoto_candidatos WHERE id_proceso=ANY($1::uuid[])',[ids])).rows[0].n,3,'Conserva candidatos');
+});

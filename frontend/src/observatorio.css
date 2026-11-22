@@ -263,3 +263,23 @@
   .etiqueta-candidatura { margin-top: 6px !important; }
 }
 @media (prefers-reduced-motion: reduce) { .observatorio-publico *, .observatorio-publico *::before, .observatorio-publico *::after { animation: none !important; transition: none !important; } }
+.cargos-destacados-portada{margin:24px 0 32px}
+.cargos-destacados-portada>h2{font-size:22px;color:var(--azul-oscuro);margin:0 0 18px}
+.rejilla-cargos-destacados{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px}
+.rejilla-cargos-destacados article{min-width:0;background:#fff;border:1px solid #c4d1e2;border-radius:16px;padding:22px}
+.rejilla-cargos-destacados h3{font-size:20px;margin:0;color:var(--azul-oscuro);overflow-wrap:anywhere}
+.rejilla-cargos-destacados p{color:#52647c;font-size:13px;overflow-wrap:anywhere}
+.rejilla-cargos-destacados ul{list-style:none;display:grid;gap:14px;padding:0;margin:20px 0}
+.rejilla-cargos-destacados li{display:flex;align-items:center;gap:14px;min-width:0}
+.rejilla-cargos-destacados li strong{font-size:15px;overflow-wrap:anywhere}
+.rejilla-cargos-destacados img,.iniciales-destacado{width:64px;height:64px;border-radius:12px;object-fit:cover;flex-shrink:0}
+.iniciales-destacado{display:grid;place-items:center;background:#DBEAFE;color:#123B70;font-weight:800;font-size:20px}
+.rejilla-cargos-destacados button{border:1px solid #2563EB;background:#2563EB;color:#fff;border-radius:10px;padding:12px 16px;font:inherit;cursor:pointer;max-width:100%;overflow-wrap:anywhere}
+
+.resumen-resultados-cargos{margin:26px 0;padding:24px;border:1px solid #dbe5f3;border-radius:18px;background:#fff}
+.resumen-resultados-cargos>header{display:flex;align-items:center;justify-content:space-between;gap:16px}.resumen-resultados-cargos h2{margin:0 0 16px;font-size:22px;color:#123b70}
+.rejilla-resumen-resultados{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.rejilla-resumen-resultados article{padding:18px;border:1px solid #dbe5f3;border-radius:12px;min-width:0;background:#f8fbff}.rejilla-resumen-resultados h3{margin:0;color:#123b70}
+.rejilla-resumen-resultados p{font-size:13px;color:#51647d}.rejilla-resumen-resultados ul{padding:0;list-style:none}.rejilla-resumen-resultados li{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #e4ebf5;font-size:14px;overflow-wrap:anywhere}.rejilla-resumen-resultados li strong{white-space:nowrap;color:#123b70}
+.resumen-resultados-cargos button{padding:8px 14px;border:1px solid #c4d1e2;border-radius:8px;background:#fff;color:#123b70;cursor:pointer}.resumen-resultados-cargos button:disabled{opacity:.5;cursor:default}.resumen-resultados-cargos>nav{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:20px}
+@media(max-width:650px){.resumen-resultados-cargos{padding:16px}.rejilla-resumen-resultados{grid-template-columns:minmax(0,1fr)}.rejilla-resumen-resultados li{flex-wrap:wrap}}

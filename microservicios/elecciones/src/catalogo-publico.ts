@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
-type ProcesoPublicable = { id: string; idOrganizacion: string; nombre: string; cargo: string; tipo: string; actual: boolean; publicado: boolean; archivado: boolean; estado?:string; configuracion?:{ambito?:string;vuelta?:number} };
-type CargoPublico = { id: string; nombre: string; cargo: string; ambito?:string; vuelta?:number; estado?:string };
+type ProcesoPublicable = { id: string; idOrganizacion: string; nombre: string; cargo: string; tipo: string; actual: boolean; destacadoPortada?:boolean; candidatos?:{id:string;nombre:string;foto:string|null}[]; publicado: boolean; archivado: boolean; estado?:string; configuracion?:{ambito?:string;vuelta?:number} };
+type CargoPublico = { id: string; nombre: string; cargo: string; ambito?:string; vuelta?:number; estado?:string; destacadoPortada:boolean; candidatos:{id:string;nombre:string;foto:string|null}[] };
 type EventoPublico = { id: string; nombre: string; tipo: string; destacado: boolean; procesos: CargoPublico[] };
 
 function prioridadCargo(cargo: string) {
@@ -22,9 +22,9 @@ export function agruparEventos(procesos: ProcesoPublicable[]): EventoPublico[] {
   const id = createHash('sha256').update(JSON.stringify([p.idOrganizacion, p.nombre])).digest('hex');
   const evento = eventos.get(id) ?? { id, nombre: p.nombre, tipo: p.tipo, destacado: false, procesos: [] };
   evento.destacado ||= p.actual;
-  evento.procesos.push({ id: p.id, nombre: p.nombre, cargo: p.cargo, ...(p.configuracion?{ambito:p.configuracion.ambito??'',vuelta:p.configuracion.vuelta??1}:{}),...(p.estado?{estado:p.estado}:{}) });
+  evento.procesos.push({ id: p.id, nombre: p.nombre, cargo: p.cargo, destacadoPortada: p.destacadoPortada === true, candidatos: p.destacadoPortada ? (p.candidatos ?? []) : [], ...(p.configuracion?{ambito:p.configuracion.ambito??'',vuelta:p.configuracion.vuelta??1}:{}),...(p.estado?{estado:p.estado}:{}) });
   eventos.set(id, evento);
  }
- for (const e of eventos.values()) e.procesos.sort((a, b) => prioridadCargo(a.cargo) - prioridadCargo(b.cargo) || a.cargo.localeCompare(b.cargo, 'es') || a.id.localeCompare(b.id));
+ for (const e of eventos.values()) e.procesos.sort((a, b) => Number(b.destacadoPortada) - Number(a.destacadoPortada) || prioridadCargo(a.cargo) - prioridadCargo(b.cargo) || a.cargo.localeCompare(b.cargo, 'es') || a.id.localeCompare(b.id));
  return [...eventos.values()].sort((a, b) => Number(b.destacado) - Number(a.destacado) || a.nombre.localeCompare(b.nombre, 'es') || a.id.localeCompare(b.id));
 }

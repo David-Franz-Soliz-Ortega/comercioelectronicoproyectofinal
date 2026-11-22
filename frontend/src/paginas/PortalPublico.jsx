@@ -1,3 +1,5 @@
+import ResumenResultadosCargos from '../componentes/ResumenResultadosCargos.jsx';
+import CargosDestacados from '../componentes/CargosDestacados.jsx';
 import { procesoDesdeEnlace } from '../api/enlacesResultados.js';
 import ResultadosSectores from '../componentes/ResultadosSectores.jsx';
 import { nombresEstado } from '../componentes/EstadoEleccion.jsx';
@@ -8,7 +10,7 @@ import { IconoUrna, IconoEdificio, IconoUsuario, IconoReloj, IconoBarras, IconoI
 import { usarConsultaPublica } from '../api/usarConsultaPublica.js';
 import { comprobarPortal, comprobarEventos } from '../api/datosPortal.js';
 
-const consultaEventos = `query Eventos { eventos { id nombre tipo destacado procesos { id nombre cargo ambito vuelta estado } } }`;
+const consultaEventos = `query Eventos { eventos { id nombre tipo destacado procesos { id nombre cargo ambito vuelta estado destacadoPortada candidatos { id nombre foto } } } }`;
 const consultaPortal = `query Portal($idProceso:ID!, $unidad:String) { portal(idProceso:$idProceso, unidad:$unidad) {
  proceso { id nombre cargo tipo unidad unidades estado ambito vuelta ponderacion sectores {codigo nombre pesoBps} candidatos {id nombre foto} }
  resultados {esperadas contabilizadas pendientes observadas avance blancos nulos total validos actualizadoEn ponderacionAplicada requierenRevision
@@ -145,7 +147,9 @@ export default function PortalPublico() {
         </div>
         <div className="urna-portada"><UrnaAnimada compacta /><span className="leyenda-urna">Del acta al resultado.</span><button type="button" className="pausa-urna" aria-pressed={pausadas} onClick={alternarAnimaciones}>{pausadas ? 'Reanudar animaciones' : 'Pausar animaciones'}</button><small>Una comunidad informada.</small></div>
       </section>
+      {evento && <CargosDestacados cargos={evento.procesos} alElegir={elegirProceso}/> }
       {evento && <div className="barra-cargos"><nav className="navegacion-cargos" aria-label="Cargos del evento">{evento.procesos.map(p => <button key={p.id} type="button" aria-pressed={p.id === proceso?.id} className={p.id === proceso?.id ? 'cargo-seleccionado' : ''} onClick={() => elegirProceso(p.id)}>{p.cargo}{p.ambito?' · '+p.ambito:''}{p.vuelta===2?' · Segunda vuelta':''}</button>)}</nav><a href="#como-leer" className="nota-base-calculo">{r?.ponderacionAplicada?'% ponderado configurado':'% sobre votos válidos'} <IconoInfo tamano={13} /></a></div>}
+      {evento&&<ResumenResultadosCargos key={evento.id} cargos={evento.procesos} alElegir={elegirProceso}/>}
       {error && portal && <div className="aviso-observatorio" role="alert"><div><strong>No pudimos actualizar la información.</strong><p>{error}</p><p>Estás viendo la última respuesta recibida para esta selección.</p></div><button type="button" onClick={reintentar}>Reintentar <span aria-hidden="true">↻</span></button></div>}
       {cargando ? <section className="estado-observatorio" role="status"><UrnaAnimada compacta /><h2>Preparando los resultados…</h2><p>Consultando los eventos y el conteo publicado.</p></section> : !portal ? <section className="estado-observatorio" role={error ? 'alert' : undefined}>
         <IconoUrna tamano={32} />

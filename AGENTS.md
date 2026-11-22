@@ -15,3 +15,10 @@ TUVOTO reemplaza el flujo activo SIGAPE por seguimiento académico de resultados
 - Conservar los cambios locales del usuario. No hacer commit/push/tags sin solicitud explícita.
 
 - La rúbrica oficial está desglosada en `docs/presentaciones/requisitos.md`: conservar 4 CRUD reales, GraphQL de 3 servicios, gRPC, eventos y avances P2/P3; nunca marcar evidencia no ejecutada como cumplida.
+
+## Continuidad entre agentes
+
+- Las skills del proyecto están en `.agents/skills/`: `tuvoto-desarrollar`, `tuvoto-verificar` y `tuvoto-entregar`.
+- Al retomar una tarea de otro agente, leer [el estado compartido](docs/colaboracion/estado.md) y contrastarlo con la rama, el diff y el código actuales.
+- Al cerrar una fase de desarrollo o QA, actualizar su entrega con cambios, pruebas realmente ejecutadas, pendientes y siguiente acción. Para tareas simultáneas, usar entregas separadas y enlazarlas en el estado.
+- Incorporar solo aprendizajes demostrados a [las lecciones](docs/colaboracion/lecciones.md), a la skill pertinente o a una prueba de regresión; conservar el registro breve y sin secretos.

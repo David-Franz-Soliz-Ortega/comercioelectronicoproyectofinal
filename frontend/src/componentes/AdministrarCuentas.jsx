@@ -1,3 +1,4 @@
+import { notificarExito } from '../api/confirmaciones.js';
 import React, { useState } from 'react';
 import { solicitarRest } from '../api/clienteRest.js';
 import { IconoUsuario } from './Iconos.jsx';
@@ -16,14 +17,13 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
   const [activa, cambiarActiva] = useState(true);
   const [ocupado, cambiarOcupado] = useState(false);
   const [error, cambiarError] = useState('');
-  const [mensaje, cambiarMensaje] = useState('');
 
   async function guardar(evento) {
     evento.preventDefault();
     if (ocupado) return;
     cambiarOcupado(true);
     cambiarError('');
-    cambiarMensaje('');
+
     const contrasena = clave;
     cambiarClave('');
     cambiarMostrarClave(false);
@@ -38,7 +38,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
       } else {
         await solicitarRest('/usuarios/' + encodeURIComponent(cuenta) + '/roles', { metodo: 'POST', datos: { idOrganizacion: rol === 'ADMINISTRADOR' ? null : (organizacion || null), rol, revocar: accion === 'revocar' } });
       }
-      cambiarMensaje(accion === 'usuario' ? (rol === 'ADMINISTRADOR' ? 'Cuenta de administrador creada correctamente.' : 'Cuenta creada. Si es operador, continúa asignándole sus mesas.') : accion === 'revocar' ? 'Rol revocado correctamente.' : 'Cambios guardados correctamente.');
+      notificarExito(accion === 'usuario' ? (rol === 'ADMINISTRADOR' ? 'Cuenta de administrador creada correctamente.' : 'Cuenta creada. Si es operador, continúa asignándole sus mesas.') : accion === 'revocar' ? 'Rol revocado correctamente.' : 'Cambios guardados correctamente.');
       cambiarNombre('');
       cambiarUsuario('');
       alGuardar();
@@ -74,7 +74,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
                 onChange={e => {
                   cambiarAccion(e.target.value);
                   cambiarError('');
-                  cambiarMensaje('');
+
                   cambiarClave('');
                   cambiarMostrarClave(false);
                   cambiarOrganizacion(organizacionInicial);
@@ -239,7 +239,7 @@ export default function AdministrarCuentas({ organizaciones, cuentas, idActual, 
           )}
 
           {error && <div className="aviso" role="alert">{error}</div>}
-          {mensaje && <div className="confirmacion" role="status">{mensaje}</div>}
+
 
           <button className="boton primario" disabled={ocupado} style={{ width: 'fit-content', marginTop: 12 }}>
             {ocupado ? 'Procesando…' : accion === 'revocar' ? 'Confirmar revocación' : rol === 'ADMINISTRADOR' ? 'Crear administrador' : 'Guardar'}

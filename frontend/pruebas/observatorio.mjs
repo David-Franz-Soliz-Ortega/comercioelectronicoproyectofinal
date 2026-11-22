@@ -147,6 +147,25 @@ try {
   assert.equal(await pagina.getByRole('button', { name: /Ocultar este cargo/ }).isDisabled(), true);
   assert.equal(await pagina.locator('.barra-lateral-privada').evaluate(n => getComputedStyle(n).position), 'sticky');
   correcto('Panel administrativo y estilos diferidos; revisión de publicación sin escrituras');
+  await pagina.getByRole('button', { name: 'Elección', exact: true }).click();
+  const importadorCargos = pagina.locator('details[data-importacion="cargos"]');
+  await importadorCargos.waitFor();
+  await importadorCargos.locator(':scope > summary').click();
+  await importadorCargos.getByText('Columnas para completar', { exact: true }).waitFor();
+  assert.deepEqual(await importadorCargos.locator('.guia-columnas li strong').allTextContents(), ['cargo', 'facultad', 'grupoCarreras', 'carreras']);
+  assert.equal(await importadorCargos.getByText('Ejemplo:', { exact: false }).count(), 0);
+  const plantillaSuave = await importadorCargos.locator('.accion-plantilla').evaluate(n => getComputedStyle(n).backgroundColor);
+  await importadorCargos.locator('.accion-plantilla').hover();
+  const plantillaHover = await importadorCargos.locator('.accion-plantilla').evaluate(n => getComputedStyle(n).backgroundColor);
+  assert.notEqual(plantillaSuave, plantillaHover);
+  const revisarDeshabilitado = await importadorCargos.locator('.accion-revisar').evaluate(n => getComputedStyle(n).backgroundColor);
+  assert.notEqual(plantillaSuave, revisarDeshabilitado);
+  for (const ancho of [320, 390, 768, 1440]) {
+    await pagina.setViewportSize({ width: ancho, height: 900 });
+    assert.ok(await importadorCargos.evaluate(n => n.scrollWidth <= n.clientWidth + 1), `El importador no se desborda a ${ancho}px`);
+    if (ancho === 390) await pagina.screenshot({ path: `${carpeta}/importacion-movil.png`, fullPage: true, animations: 'disabled' });
+  }
+  correcto('Importador XLSX: guía dinámica de cargos, botones verdes con hover y ajuste móvil sin desbordamiento');
   const procesoConDatos = procesosAdmin[0];
   sesionAdmin = { ...sesionAdmin, idOrganizacion: null, roles: [{ rol: 'ADMINISTRADOR', idOrganizacion: null }] };
   organizacionesAdmin = []; procesosAdmin = [];

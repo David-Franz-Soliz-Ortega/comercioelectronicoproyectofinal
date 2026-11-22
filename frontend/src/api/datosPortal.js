@@ -23,7 +23,11 @@ export function comprobarPortal(portal) {
 }
 
 export function comprobarEventos(eventos) {
+  const cargoValido = p => texto(p.id) && texto(p.nombre) && texto(p.cargo)
+    && (p.destacadoPortada == null || typeof p.destacadoPortada === 'boolean')
+    && (!p.destacadoPortada || (Array.isArray(p.candidatos) && unicos(p.candidatos)
+      && p.candidatos.every(c => texto(c.id) && texto(c.nombre) && (c.foto == null || typeof c.foto === 'string'))));
   if (!Array.isArray(eventos) || !unicos(eventos) || !eventos.every(e => texto(e.id) && texto(e.nombre) && typeof e.destacado === 'boolean'
-    && Array.isArray(e.procesos) && e.procesos.length > 0 && unicos(e.procesos) && e.procesos.every(p => texto(p.id) && texto(p.nombre) && texto(p.cargo)))) throw incompleta();
+    && Array.isArray(e.procesos) && e.procesos.length > 0 && unicos(e.procesos) && e.procesos.every(cargoValido))) throw incompleta();
   return eventos;
 }

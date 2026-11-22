@@ -33,6 +33,7 @@ export const ESQUEMA=`
 CREATE TABLE IF NOT EXISTS tuvoto_procesos(id UUID PRIMARY KEY,id_organizacion UUID NOT NULL,nombre TEXT NOT NULL,cargo TEXT NOT NULL,tipo TEXT NOT NULL,unidad TEXT NOT NULL,actual BOOLEAN NOT NULL DEFAULT false,archivado BOOLEAN NOT NULL DEFAULT false,creado_en TIMESTAMPTZ NOT NULL DEFAULT now());
 ALTER TABLE tuvoto_procesos ADD COLUMN IF NOT EXISTS archivado BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE tuvoto_procesos ADD COLUMN IF NOT EXISTS publicado BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE tuvoto_procesos ADD COLUMN IF NOT EXISTS destacado_portada BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE tuvoto_procesos ADD COLUMN IF NOT EXISTS configuracion JSONB NOT NULL DEFAULT '{}';
 UPDATE tuvoto_procesos SET publicado=true WHERE actual AND NOT publicado;
 ALTER TABLE tuvoto_procesos ADD COLUMN IF NOT EXISTS estado TEXT;

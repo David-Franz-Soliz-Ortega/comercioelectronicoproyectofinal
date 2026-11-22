@@ -20,7 +20,7 @@ try{
  await comando('session.subscribe',{events:['log.entryAdded']});
  const {context}=await comando('browsingContext.create',{type:'tab'});
  const evaluar=async expression=>{const r=await comando('script.evaluate',{expression,target:{context},awaitPromise:true});if(r.type==='exception')throw Error('Error JavaScript en la página');return r.result?.value;};
- const hasta=async expresion=>{for(let i=0;i<60;i++){if(await evaluar(expresion))return;await esperar(250);}throw Error('No apareció el estado esperado de la interfaz');};
+ const hasta=async expresion=>{for(let i=0;i<60;i++){if(await evaluar(expresion)){await evaluar("(()=>{document.querySelector('.modal-confirmacion-global[open] button')?.click();return true;})()");return;}await esperar(250);}throw Error('No apareció el estado esperado de la interfaz');};
  const abrirCargoEnGrupo=async id=>{
   assert.equal(await evaluar(`(()=>{const b=Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(id)});const grupo=b?.closest('[data-grupo-cargos]');if(!grupo)return false;if(!grupo.open)grupo.querySelector('summary').click();return grupo.open&&b.getBoundingClientRect().height>0;})()`),true,'El cargo se abre desde su grupo visible');
  };
@@ -31,7 +31,7 @@ try{
  await evaluar(`(()=>{const poner=(id,v)=>{const el=document.getElementById(id);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));};poner('usuario',${JSON.stringify(cuenta.usuario)});poner('contrasena',${JSON.stringify(cuenta.contrasena)});return true;})()`);
  await evaluar("document.querySelector('.formulario-acceso-tuvoto button.primario').click();true");
  await hasta("!!document.querySelector('.navegacion-lateral')");
- assert.equal(await evaluar("document.querySelector('.control-pasos-preparacion').getAttribute('aria-pressed')"),'false','La guía comienza desactivada');
+ assert.equal(await evaluar("!document.querySelector('.control-pasos-preparacion') && !document.querySelector('.preparacion-eleccion')"),true,'La guía paso a paso fue retirada');
  await hasta("document.querySelectorAll('.lista-instituciones [data-institucion]').length>0 && !document.querySelector('.crear-institucion').disabled");
  assert.equal(await evaluar("!document.getElementById('evento-administrado')&&!document.getElementById('cargo-administrado')"),true);
  await evaluar("document.querySelector('.crear-institucion').click();true");
@@ -50,11 +50,7 @@ try{
  await evaluar("document.querySelector('.agregar-cargo').click();true");
  await hasta("!!document.querySelector('.opciones-eleccion')");
  assert.equal(await evaluar("document.querySelector('.preparacion-eleccion')===null"),true);
- await evaluar("document.querySelector('.control-pasos-preparacion').click();true");
- await hasta("document.querySelectorAll('.preparacion-eleccion li').length===6");
- await evaluar("document.querySelector('.control-pasos-preparacion').click();true");
- assert.equal(await evaluar("document.querySelector('.preparacion-eleccion')===null && !!document.querySelector('.opciones-eleccion')"),true,'Desactivar pasos conserva el formulario');
- await evaluar("document.querySelector('.control-pasos-preparacion').click();true");
+ assert.equal(await evaluar("document.querySelector('.preparacion-eleccion')===null && !!document.querySelector('.opciones-eleccion')"),true,'El formulario se conserva sin asistente');
 
  await evaluar("document.querySelector('.cancelar-cargo').click();true");
  await hasta("!!document.querySelector('.sin-cargos-institucion')");
@@ -72,8 +68,17 @@ try{
  const institucionActiva=await evaluar("document.querySelector('[data-institucion][aria-pressed=true]').dataset.institucion");
  assert.equal(await evaluar("(async()=>{const org=document.querySelector('[data-institucion][aria-pressed=true]').dataset.institucion;const pro=await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json());const usuarios=[];for(let pagina=1;pagina<=100;pagina++){const r=await fetch('/api/v1/usuarios?pagina='+pagina+'&limite=100',{headers:{'X-Organizacion':org}}).then(r=>r.json());usuarios.push(...r.elementos);if(usuarios.length>=r.total)break;}const activos=pro.elementos.filter(p=>p.estado!=='archivada');const valores={candidatos:activos.reduce((s,p)=>s+p.candidatos.length,0),mesas:new Set(activos.flatMap(p=>p.mesas.map(m=>m.idMesaFisica||m.id))).size,operadores:new Set(usuarios.filter(u=>u.activo&&u.roles.some(r=>r.rol==='OPERADOR'&&r.idOrganizacion===org)&&!u.roles.some(r=>r.rol==='ADMINISTRADOR'&&(r.idOrganizacion===null||r.idOrganizacion===org))).map(u=>u.idUsuario)).size};return Object.entries(valores).every(([k,v])=>Number(document.querySelector('[data-indicador='+k+']>strong').textContent)===v);})()"),true);
  for(const ancho of [390,768,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});await esperar(250);assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Resumen desbordado a '+ancho+'px');}
+ // Elegir explícitamente un cargo de portada: no depende del cargo activo del panel.
+ const cargoPortada=await evaluar("(async()=>{const r=await fetch('/api/v1/publico/actual');if(!r.ok)throw Error('Cargo público no disponible');return (await r.json()).id;})()");
+ await evaluar("document.querySelector('.portada-administracion button[aria-controls=seleccion-cargos-portada]').click();true");
+ await hasta(`!!Array.from(document.querySelectorAll('.opciones-portada input')).find(i=>i.value===${JSON.stringify(cargoPortada)}&&!i.disabled)`);
+ await evaluar(`(()=>{const i=Array.from(document.querySelectorAll('.opciones-portada input')).find(i=>i.value===${JSON.stringify(cargoPortada)});if(!i.checked)i.click();return true;})()`);
+ await evaluar("(()=>{const b=document.querySelector('.seleccion-portada button.primario');if(!b.disabled)b.click();return true;})()");
+ await hasta("(!document.querySelector('.seleccion-portada') || document.querySelector('.seleccion-portada button.primario')?.disabled) && !document.querySelector('.cabecera-resumen-institucion button')?.disabled");
+ assert.equal(await evaluar(`(async()=>{const r=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(cargoPortada)},{headers:{'X-Organizacion':${JSON.stringify(institucionActiva)}}});return r.ok&&(await r.json()).destacadoPortada===true;})()`),true,'La selección de portada se persiste en el servicio');
  await hasta("!!document.querySelector('.vista-previa-resultados .enlace-resultados-cargo')");
  assert.equal(await evaluar("document.querySelector('.enlace-resultados-cargo').getAttribute('href')==='#resultados?proceso='+document.querySelector('.vista-previa-resultados').dataset.procesoPrevia && !document.querySelector('.vista-previa-resultados input')"),true);
+ await evaluar("(()=>{const b=document.querySelector('.portada-administracion button[aria-expanded=true]');if(b)b.click();return true;})()");
  const resumen=await comando('browsingContext.captureScreenshot',{context});await writeFile('/tmp/tuvoto-admin-resumen.png',Buffer.from(resumen.data,'base64'));
  await evaluar("document.querySelector('.cabecera-resumen-institucion button').click();true");
 
@@ -107,15 +112,18 @@ try{
  await hasta("!!document.querySelector('.detalle-configuracion-eleccion')");
  for(const modulo of ['Usuarios','Mesas','Candidatos']){
   await evaluar(`Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()===${JSON.stringify(modulo)}).click();true`);
+  if(modulo==='Usuarios'){await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Usuarios y organizaciones'");assert.equal(await evaluar("!document.querySelector('.contexto-modulo-admin')"),true);continue;}
   await hasta("!!document.querySelector('.contexto-modulo-admin')");
   assert.equal(await evaluar("!document.querySelector('.espacio-instituciones')&&!document.querySelector('.seleccion-administracion')"),true);
   assert.equal(await evaluar("document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion"),institucionActiva);
   assert.equal(await evaluar("document.querySelector('.contexto-modulo-admin').dataset.contextoProceso"),cargoActivo);
-  assert.equal(await evaluar("!!document.querySelector('.elegir-cargo-existente') && !!document.querySelector('.crear-cargo-directo')"),true,'El módulo ofrece elegir uno guardado o crear un cargo nuevo');
+  assert.equal(await evaluar("document.querySelectorAll('.acciones-contexto-cargo button').length===1 && document.querySelector('.acciones-contexto-cargo button').textContent==='Cambiar institución'"),true,'La barra ofrece solo Cambiar institución');
  }
  // Crear desde Candidatos no edita el seleccionado ni guarda datos al cambiar de vista.
  const catalogoAntesElegir=await evaluar("(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;return JSON.stringify((await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json())).elementos.sort((a,b)=>a.id.localeCompare(b.id)));})()");
- await evaluar("document.querySelector('.crear-cargo-directo').click();true");
+ await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Elección').click();true");
+ await hasta("!!document.querySelector('.agregar-cargo') && !document.querySelector('.agregar-cargo').disabled");
+ await evaluar("document.querySelector('.agregar-cargo').click();true");
  await hasta("!!document.querySelector('.elegir-existente-desde-formulario') && !!document.querySelector('[aria-label=\"Cargo universitario\"]')");
  assert.equal(await evaluar("document.querySelector('[aria-label=\"Cargo universitario\"]').value==='' && document.querySelector('.contexto-modulo-admin').textContent.includes('Nuevo cargo') && !document.querySelector('.detalle-configuracion-eleccion')"),true,'El formulario nuevo no reutiliza el cargo seleccionado');
  await evaluar("document.querySelector('.elegir-existente-desde-formulario').click();true");
@@ -123,11 +131,11 @@ try{
  const cargoParaElegir=cargoAlternativo??cargoActivo;
  await abrirCargoEnGrupo(cargoParaElegir);
  await evaluar(`Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(cargoParaElegir)}).click();true`);
- await hasta("!!document.querySelector('.detalle-configuracion-eleccion') && !!document.querySelector('.elegir-cargo-existente')");
+ await hasta("!!document.querySelector('.detalle-configuracion-eleccion') && !!document.querySelector('.volver-cargos')");
  assert.equal(await evaluar("document.querySelector('.contexto-modulo-admin').dataset.contextoProceso"),cargoParaElegir);
- assert.equal(await evaluar("!!document.querySelector('.crear-cargo-directo')"),true,'Se puede crear otro cargo también desde el detalle');
+ assert.equal(await evaluar("document.querySelectorAll('.acciones-contexto-cargo button').length"),1,'El detalle no agrega acciones variables a la barra');
  for(const ancho of [390,768,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Acciones de cargo desbordadas a '+ancho+'px');}
- await evaluar("document.querySelector('.elegir-cargo-existente').click();true");
+ await evaluar("document.querySelector('.volver-cargos').click();true");
  await hasta("!!document.querySelector('[data-grupo-cargos]')");
  await abrirCargoEnGrupo(cargoActivo);
  await evaluar(`Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(cargoActivo)}).click();true`);
@@ -135,19 +143,20 @@ try{
  assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const ps=(await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':org}}).then(r=>r.json())).elementos.sort((a,b)=>a.id.localeCompare(b.id));return JSON.stringify(ps)===${JSON.stringify(catalogoAntesElegir)};})()`),true,'Crear/cancelar/elegir no modifica los cargos persistidos');
  await evaluar("document.querySelector('.contexto-modulo-admin button').click();true");
  await hasta("!!document.querySelector('.indicadores-institucion')");
+ assert.equal(await evaluar("!document.querySelector('.accesos-resumen')"),true,'Resumen no repite accesos del menú');
  await evaluar("document.querySelector('.cabecera-resumen-institucion button').click();true");
  await hasta("!!document.querySelector('.lista-cargos-institucion')");
  assert.equal(await evaluar("document.querySelector('[data-cargo][aria-pressed=true]').dataset.cargo"),cargoActivo);
  await evaluar("document.querySelector('.contexto-modulo-admin button').click();true");
  await hasta("!!document.querySelector('.indicadores-institucion')");
- await evaluar("document.querySelector('.lista-accesos-resumen button:nth-child(2)').click();true");
+ await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Candidatos').click();true");
  await hasta("!!document.querySelector('.contexto-modulo-admin')");
  assert.equal(await evaluar("document.querySelector('.titulo-seccion-privada h1').textContent"),'Candidatos');
  assert.equal(await evaluar("document.querySelector('.control-guia-lateral')===null"),true);
  await evaluar("Array.from(document.querySelectorAll('.menu-lateral button, .item-menu-lateral')).find(b=>b.textContent.includes('Estado y publicación')).click();true");
- await hasta("!!document.querySelector('.control-estado')");
- assert.equal(await evaluar("document.querySelector('.control-estado').innerText.includes('En recepción')"),true);
- await evaluar("Array.from(document.querySelectorAll('.control-estado button')).find(b=>b.textContent==='Terminar conteo').click();true");
+ await hasta("!!document.querySelector('.conteo-institucion')");
+ assert.equal(await evaluar("document.querySelector('.conteo-institucion').innerText.includes('En recepción')"),true);
+ await evaluar("Array.from(document.querySelectorAll('.conteo-institucion button')).find(b=>b.textContent==='Terminar conteo de la institución').click();true");
  assert.equal(await evaluar("document.querySelector('.confirmacion-estado .primario').disabled"),true);
  await evaluar("Array.from(document.querySelectorAll('.confirmacion-estado button')).find(b=>b.textContent==='Cancelar').click();true");
  await evaluar("document.querySelector('.contexto-modulo-admin button').click();true");
@@ -162,12 +171,8 @@ try{
  for(const ancho of [390,768,1440]){
   await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});
   await esperar(250);
-  await evaluar("document.querySelector('.preparacion-eleccion').scrollIntoView({block:'start'});true");
   const captura=await comando('browsingContext.captureScreenshot',{context});
-  await writeFile('/tmp/tuvoto-pasos-eleccion-'+ancho+'.png',Buffer.from(captura.data,'base64'));
-  assert.equal(await evaluar("(()=>{const panel=document.querySelector('.preparacion-eleccion');const ancho=panel.getBoundingClientRect().width;return panel.querySelector('nav').getBoundingClientRect().width>=ancho-48;})()"),true,'La navegación de pasos está comprimida a '+ancho+'px');
-  assert.equal(await evaluar("(()=>{const panel=document.querySelector('.preparacion-eleccion'),cabecera=panel.querySelector('.cabecera-pasos').getBoundingClientRect(),nav=panel.querySelector('nav').getBoundingClientRect(),acciones=panel.querySelector('.acciones-pasos').getBoundingClientRect();return nav.top>=cabecera.bottom && acciones.top>=nav.bottom;})()"),true,'Los pasos se solapan a '+ancho+'px');
-  assert.equal(await evaluar("Array.from(document.querySelectorAll('.preparacion-eleccion nav button')).every(b=>b.getBoundingClientRect().width>=90&&b.scrollWidth<=b.clientWidth+1)"),true,'Los pasos no tienen espacio legible a '+ancho+'px');
+  await writeFile('/tmp/tuvoto-formulario-cargo-'+ancho+'.png',Buffer.from(captura.data,'base64'));
  }
  await evaluar("Array.from(document.querySelectorAll('.opciones-eleccion label')).find(l=>l.textContent.includes('Separar mesas')).querySelector('input').click();true");
  await hasta("!!Array.from(document.querySelectorAll('.opciones-eleccion label')).find(l=>l.textContent.includes('Activar ponderación'))");
@@ -188,13 +193,13 @@ try{
  await evaluar("document.querySelector('.opciones-eleccion').closest('form').querySelector('button.primario').scrollIntoView({block:'center'});true");
  await evaluar("document.querySelector('.opciones-eleccion').closest('form').querySelector('button.primario').click();true");
  await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Candidatos' && !!document.querySelector('.totales-candidatos') && !Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Mesas')?.disabled");
- assert.equal(await evaluar("(()=>{const r=document.querySelector('.preparacion-eleccion').getBoundingClientRect();return r.top>=0 && r.top<innerHeight;})()"),true,'El paso siguiente debe quedar visible después de guardar');
  const procesoCreado=await evaluar("document.querySelector('.contexto-modulo-admin').dataset.contextoProceso");
  assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoCreado)},{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.nombre===${JSON.stringify(nombreInstitucion.slice(0,120))}&&p.cargo===${JSON.stringify(cargoEleccion)}&&p.estado==='borrador';})()`),true,'La API persistió el nombre automático de la institución');
- assert.equal(await evaluar("document.querySelectorAll('.preparacion-eleccion li').length"),6);
- assert.equal(await evaluar("document.querySelector('.preparacion-eleccion [aria-current=step]').textContent.includes('Candidatos')"),true);
- for(const ancho of [390,768,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Pasos desbordados a '+ancho+'px');}
- await evaluar("document.querySelector('.acciones-pasos button').click();true");
+ for(const ancho of [390,768,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Formulario desbordado a '+ancho+'px');}
+ await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Elección').click();true");
+ await hasta("!!document.querySelector('.lista-cargos-institucion') && !document.querySelector('.item-menu-lateral').disabled");
+ await abrirCargoEnGrupo(procesoCreado);
+ await evaluar(`Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(procesoCreado)}).click();true`);
  await hasta("!!document.querySelector('.detalle-configuracion-eleccion')");
  await evaluar("Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Editar elección en borrador').click();true");
  await hasta("!!document.querySelector('.opciones-eleccion')");
@@ -204,11 +209,10 @@ try{
  await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Candidatos' && !document.querySelector('.item-menu-lateral').disabled");
  assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoCreado)},{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.nombre===${JSON.stringify(nombreInstitucion.slice(0,120))}&&p.facultad==='Ámbito sintético editado';})()`),true,'Editar conserva el nombre y guarda las opciones');
 
- await evaluar("Array.from(document.querySelectorAll('.preparacion-eleccion nav button')).find(b=>b.textContent.includes('Asignar mesas')).click();true");
+ await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Asignar operadores').click();true");
  await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Asignar operadores'");
  assert.equal(await evaluar("!document.querySelector('.formulario-simple input[type=checkbox]')&&!document.querySelector('.formulario-simple').textContent.includes('todos los candidatos')"),true,'Asignar no exige confirmar todos los candidatos');
- assert.equal(await evaluar("document.querySelector('.preparacion-eleccion nav li:last-child button')?.textContent.includes('Datos guardados')"),false);
- await evaluar("document.querySelector('.cabecera-pasos button').click();true");
+ await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Resumen').click();true");
  await hasta("!!document.querySelector('.indicadores-institucion')");
  await evaluar("document.querySelector('.cabecera-resumen-institucion button').click();true");
  await hasta("!!document.querySelector('.lista-cargos-institucion')");
@@ -216,13 +220,15 @@ try{
   await abrirCargoEnGrupo(procesoCreado);
  await evaluar(`Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(procesoCreado)}).click();true`);
  await hasta("!!document.querySelector('.detalle-configuracion-eleccion')");
- assert.equal(await evaluar("document.querySelectorAll('.preparacion-eleccion li').length"),6);
  const procesoExcel=await evaluar("document.querySelector('.contexto-modulo-admin').dataset.contextoProceso");
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Mesas').click();true");
- await hasta("!!document.querySelector('[data-importacion=mesas] input[type=file]')");
+ await hasta("!!document.querySelector('[data-importacion=mesas] [data-abrir-importacion]')");
+ await evaluar("document.querySelector('[data-importacion=mesas] [data-abrir-importacion]').click();true");
  const cargarExcel=createRequire(new URL('../../microservicios/elecciones/package.json',import.meta.url));const ExcelJS=cargarExcel('exceljs');
- const plantillaMesas=await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoExcel)}+'/importaciones/mesas/plantilla',{headers:{'X-Organizacion':org}});if(!r.ok)throw Error('Plantilla no disponible');const a=new Uint8Array(await r.arrayBuffer());return btoa(String.fromCharCode(...a));})()`);
- const libro=new ExcelJS.Workbook();await libro.xlsx.load(Buffer.from(plantillaMesas,'base64'));const hoja=libro.worksheets[0];hoja.addRow(['TEC-UI-001','Facultad sintética de Tecnología','docentes']);hoja.addRow(['SAL-UI-001','Facultad sintética de Salud','estudiantes']);
+ const plantillaMesas=await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/mesas-compartidas/importacion/plantilla',{headers:{'X-Organizacion':org}});if(!r.ok)throw Error('Plantilla no disponible');const a=new Uint8Array(await r.arrayBuffer());return btoa(String.fromCharCode(...a));})()`);
+ const cargoImportacion=JSON.parse(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoExcel)},{headers:{'X-Organizacion':org}});return JSON.stringify(await r.json());})()`));
+ const libro=new ExcelJS.Workbook();await libro.xlsx.load(Buffer.from(plantillaMesas,'base64'));const hoja=libro.worksheets[0];
+ for(const [codigo,unidad,sector] of [['TEC-UI-001','Facultad sintética de Tecnología','docentes'],['SAL-UI-001','Facultad sintética de Salud','estudiantes']])hoja.addRow([codigo,unidad,sector,'','','',cargoImportacion.cargo,cargoImportacion.ambito??'',cargoImportacion.vuelta??1,'']);
  const archivoMesas=Buffer.from(await libro.xlsx.writeBuffer()).toString('base64');
  await evaluar(`(()=>{const contenido=Uint8Array.from(atob(${JSON.stringify(archivoMesas)}),c=>c.charCodeAt(0));const archivo=new File([contenido],'mesas-sinteticas.xlsx',{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const datos=new DataTransfer();datos.items.add(archivo);const entrada=document.querySelector('[data-importacion=mesas] input[type=file]');entrada.files=datos.files;entrada.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
  await hasta("!!Array.from(document.querySelectorAll('[data-importacion=mesas] button')).find(b=>b.textContent==='Revisar archivo'&&!b.disabled)");
@@ -230,42 +236,38 @@ try{
  await hasta("document.querySelectorAll('[data-importacion=mesas] tbody tr').length===2");
  await evaluar("document.querySelector('[data-importacion=mesas] input[type=checkbox]').click();true");
  await evaluar("Array.from(document.querySelectorAll('[data-importacion=mesas] button')).find(b=>b.textContent==='Confirmar importación').click();true");
- await hasta("document.querySelectorAll('.grupo-mesas-unidad').length===2");
+ await hasta("Array.from(document.querySelectorAll('[data-mesa-listado]>summary')).some(s=>s.textContent.includes('TEC-UI-001')) && Array.from(document.querySelectorAll('[data-mesa-listado]>summary')).some(s=>s.textContent.includes('SAL-UI-001'))");
  assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoExcel)},{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.estado==='borrador'&&p.mesas.length===2&&p.mesas.some(m=>m.codigo==='TEC-UI-001'&&m.unidad==='Facultad sintética de Tecnología'&&m.sector==='docentes')&&p.mesas.some(m=>m.codigo==='SAL-UI-001'&&m.unidad==='Facultad sintética de Salud'&&m.sector==='estudiantes');})()`),true);
  // Asignar desde el formulario antes de registrar candidatos; completar el catálogo después.
  await hasta("!document.querySelector('.item-menu-lateral').disabled");
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Asignar operadores').click();true");
- await hasta("document.querySelectorAll('.formulario-simple select').length===2 && document.querySelectorAll('.formulario-simple select')[1].options.length>1");
- await evaluar("(()=>{const el=document.querySelectorAll('.formulario-simple select')[0];el.value=Array.from(el.options).find(o=>o.value).value;el.dispatchEvent(new Event('change',{bubbles:true}));return true;})()");
- await evaluar("(()=>{const el=document.querySelectorAll('.formulario-simple select')[1];el.value=Array.from(el.options).find(o=>o.value).value;el.dispatchEvent(new Event('change',{bubbles:true}));return true;})()");
- await hasta("!document.querySelector('.formulario-simple button.primario').disabled");
- assert.equal(await evaluar("!document.querySelector('.formulario-simple input[type=checkbox]')"),true);
- await evaluar("document.querySelector('.formulario-simple button.primario').click();true");
- await hasta("document.querySelectorAll('.formularios-preparacion-mesas ul li').length===1 && !document.querySelector('.item-menu-lateral').disabled");
+ await hasta("!!document.querySelector('.mesas-por-operador [data-operador] .acciones-operador button:not(:disabled)')");
+ await evaluar("document.querySelector('.mesas-por-operador [data-operador] .acciones-operador button:not(:disabled)').click();true");
+ await hasta("!!document.querySelector('.opciones-mesas-operador input:not(:disabled)')");
+ await evaluar("document.querySelector('.opciones-mesas-operador input:not(:disabled)').click();true");
+ await evaluar("document.querySelector('.formulario-operador button.primario').click();true");
+ await hasta("!document.querySelector('.formulario-operador') && !document.querySelector('.item-menu-lateral').disabled");
  assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+${JSON.stringify(procesoCreado)},{headers:{'X-Organizacion':org}}).then(r=>r.json());const a=await fetch('/api/v1/configuracion/procesos/'+p.id+'/asignaciones',{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.candidatos.length===0&&p.estado==='borrador'&&a.elementos.length===1;})()`),true,'Formulario de asignación persistió sin candidatos');
  await hasta("document.querySelectorAll('.mesas-por-operador [data-operador]').length>0");
  assert.equal(await evaluar("(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/asignaciones',{headers:{'X-Organizacion':org}}).then(r=>r.json());return r.elementos.every(a=>{const el=Array.from(document.querySelectorAll('.mesas-por-operador [data-operador]')).find(e=>e.dataset.operador===a.idUsuario);return el&&el.textContent.includes(a.codigo)&&el.textContent.includes(a.cargo);});})()"),true,'Cada operador muestra sus mesas y cargos reales');
  for(const ancho of [390,768,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Asignaciones por operador desbordadas a '+ancho+'px');}
 
- await evaluar("Array.from(document.querySelectorAll('.preparacion-eleccion nav button')).find(b=>b.textContent.includes('Candidatos')).click();true");
+ await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Candidatos').click();true");
  await hasta("!!document.querySelector('.candidatos-administracion .gestionar-candidatos') && !document.querySelector('.gestionar-candidatos').disabled");
  await evaluar("document.querySelector('.gestionar-candidatos').click();true");
  await hasta("!!document.querySelector('.grid-candidatos-fotos')");
  await evaluar("(()=>{const el=document.querySelector('.formulario-simple input:not([type=file])');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,'Candidatura sintética del flujo');el.dispatchEvent(new Event('input',{bubbles:true}));return true;})()");
  await evaluar("document.querySelector('.formulario-simple button[value=continuar]').click();true");
  await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Mesas de recepción' && !document.querySelector('.item-menu-lateral').disabled");
- assert.equal(await evaluar("Array.from(document.querySelectorAll('.preparacion-eleccion nav button')).find(b=>b.textContent.includes('Candidatos')).classList.contains('paso-guardado')"),true);
- await evaluar("document.querySelector('.control-pasos-preparacion').click();true");
  assert.equal(await evaluar("!document.querySelector('.preparacion-eleccion')"),true);
  await comando('browsingContext.reload',{context,wait:'complete'});
- await hasta("!!document.querySelector('.control-pasos-preparacion') && !!document.querySelector('.lista-instituciones')");
- assert.equal(await evaluar("document.querySelector('.control-pasos-preparacion').getAttribute('aria-pressed')"),'false','Preferencia recordada al recargar sin almacenar credenciales');
+ await hasta("!!document.querySelector('.navegacion-lateral') && !!document.querySelector('.lista-instituciones')");
  await hasta(`!!Array.from(document.querySelectorAll('[data-institucion]')).find(b=>b.dataset.institucion===${JSON.stringify(institucionActiva)}&&!b.disabled)`);
  await evaluar(`Array.from(document.querySelectorAll('[data-institucion]')).find(b=>b.dataset.institucion===${JSON.stringify(institucionActiva)}).click();true`);
  await hasta("!!document.querySelector('.cabecera-resumen-institucion button') && !document.querySelector('.cabecera-resumen-institucion button').disabled");
  await evaluar("document.querySelector('.cabecera-resumen-institucion button').click();true");
- await hasta("!!document.querySelector('[data-importacion=cargos] summary')");
- await evaluar("document.querySelector('[data-importacion=cargos] summary').click();true");
+ await hasta("!!document.querySelector('[data-importacion=cargos] [data-abrir-importacion]')");
+ await evaluar("document.querySelector('[data-importacion=cargos] [data-abrir-importacion]').click();true");
  const plantillaCargos=await evaluar("(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const r=await fetch('/api/v1/configuracion/importaciones/cargos/plantilla',{headers:{'X-Organizacion':org}});if(!r.ok)throw Error('Plantilla cargos no disponible');return btoa(String.fromCharCode(...new Uint8Array(await r.arrayBuffer())));})()");
  // Reproducir 34 filas con 20 errores: la tabla válida no habilita un lote incompleto.
  const libroIncompleto=new ExcelJS.Workbook();await libroIncompleto.xlsx.load(Buffer.from(plantillaCargos,'base64'));
@@ -309,7 +311,7 @@ try{
  await evaluar(`Array.from(document.querySelectorAll('[data-cargo]')).find(b=>b.dataset.cargo===${JSON.stringify(directoresUi[0].id)}).click();true`);
  await hasta("!!document.querySelector('.detalle-configuracion-eleccion')");
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Candidatos').click();true");
- await hasta("!!document.querySelector('[data-importacion=candidatos-general] summary')");
+ await hasta("!!document.querySelector('[data-importacion=candidatos-general] [data-abrir-importacion]')");
 
  const libroGeneral=new ExcelJS.Workbook();const hojaGeneral=libroGeneral.addWorksheet('Datos');hojaGeneral.addRow(['cargo','ambito','vuelta','nombre','orden']);
  hojaGeneral.addRow(['Director',directoresUi[0].ambito,1,'Postulante UI global A',1]);hojaGeneral.addRow(['Director','Etiqueta sintética del archivo',1,'Postulante UI global B',1]);
@@ -317,7 +319,7 @@ try{
 
  // Solo queda la importación conjunta; el registro manual se elige desde su cargo.
  assert.equal(await evaluar("!document.querySelector('[data-importacion=candidatos]') && document.querySelectorAll('[data-importacion=candidatos-general]').length===1"),true,'No hay dos importaciones de candidatos con formatos distintos');
- await evaluar("document.querySelector('[data-importacion=candidatos-general]').open=true;true");
+ await evaluar("document.querySelector('[data-importacion=candidatos-general] [data-abrir-importacion]').click();true");
 
  await evaluar(`(()=>{const datos=new DataTransfer();datos.items.add(new File([Uint8Array.from(atob(${JSON.stringify(archivoGeneral)}),c=>c.charCodeAt(0))],'todos-los-candidatos.xlsx'));const el=document.querySelector('[data-importacion=candidatos-general] input[type=file]');el.files=datos.files;el.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
  await hasta("!!Array.from(document.querySelectorAll('[data-importacion=candidatos-general] button')).find(b=>b.textContent==='Revisar archivo'&&!b.disabled)");
@@ -351,7 +353,7 @@ try{
  await hasta(`document.querySelector('[data-editor-candidatos]')?.dataset.editorCandidatos===${JSON.stringify(directoresUi[1].id)}`);
  const pngPrueba='iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAeklEQVR4nO3PUQkAIBTAwFfGZMa3hCH8OITBAtxm7fN1wwUNaEEDWtCAFjSgBQ1oQQNa0IAWNKAFDWhBA1rQgBY0oAUNaEEDWtCAFjSgBQ1oQQNa0IAWNKAFDWhBA1rQgBY0oAUNaEEDWtCAFjSgBQ1oQQNa0IAWPHYBmGYxWlLxJbIAAAAASUVORK5CYII=';
  await evaluar(`(()=>{const d=new DataTransfer();d.items.add(new File([Uint8Array.from(atob(${JSON.stringify(pngPrueba)}),c=>c.charCodeAt(0))],'foto-sintetica.png',{type:'image/png'}));const e=document.querySelector('[data-candidato-foto] input[type=file]');e.files=d.files;e.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
- await hasta("document.querySelector('.contenido-seccion-privada>.confirmacion')?.textContent.includes('Fotografía guardada') && !!document.querySelector('[data-candidato-foto] small') && !document.querySelector('.gestionar-candidatos').disabled");
+ await hasta("document.querySelector('.modal-confirmacion-global .confirmacion')?.textContent.includes('Fotografía guardada') && !!document.querySelector('[data-candidato-foto] small') && !document.querySelector('.gestionar-candidatos').disabled");
  assert.equal(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const ps=await Promise.all(${JSON.stringify(directoresUi.map(p=>p.id))}.map(id=>fetch('/api/v1/configuracion/procesos/'+id,{headers:{'X-Organizacion':org}}).then(r=>r.json())));return !ps[0].candidatos[0].tieneFoto&&ps[1].candidatos[0].tieneFoto&&ps[1].candidatos.length===1&&(await fetch(ps[1].candidatos[0].foto)).status===404;})()`),true,'Fotografía persistida solo en el cargo elegido; el borrador no se expone al público');
  await hasta("document.querySelector('[data-candidato-foto] img')?.naturalWidth>0");
  assert.equal(await evaluar("document.querySelector('[data-candidato-foto] small').textContent==='Fotografía cargada'&&document.querySelector('[data-candidato-foto] img').src.startsWith('blob:')&&document.querySelector('.nota-fotos-candidatos').textContent.includes('Se mostrarán en Resultados')"),true,'Los borradores muestran la fotografía mediante lectura privada, sin exponerla al público');
@@ -368,8 +370,8 @@ try{
  // Reimportar cargos: mantener por defecto y reemplazar uno tras una nueva revisión explícita.
  const antesReimportar=JSON.parse(await evaluar(`(async()=>{const org=document.querySelector('.contexto-modulo-admin').dataset.contextoInstitucion;const ps=await Promise.all(${JSON.stringify(directoresUi.map(p=>p.id))}.map(id=>fetch('/api/v1/configuracion/procesos/'+id,{headers:{'X-Organizacion':org}}).then(r=>r.json())));return JSON.stringify(ps);})()`));
  await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Elección').click();true");
- await hasta("!!document.querySelector('[data-importacion=cargos] summary')");
- await evaluar("document.querySelector('[data-importacion=cargos]').open=true;true");
+ await hasta("!!document.querySelector('[data-importacion=cargos] [data-abrir-importacion]')");
+ await evaluar("document.querySelector('[data-importacion=cargos] [data-abrir-importacion]').click();true");
  libroCargos.worksheets[0].getCell('D2').value='Sistemas; Civil; Nueva carrera UI';
  const archivoReimportar=Buffer.from(await libroCargos.xlsx.writeBuffer()).toString('base64');
  async function cargarRepetidos(){
@@ -409,9 +411,11 @@ try{
  await evaluar(`(()=>{const el=document.querySelector('[aria-label="Nombre del nuevo cargo"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,${JSON.stringify(cargoPersonalizado)});el.dispatchEvent(new Event('input',{bubbles:true}));return true;})()`);
  for(const ancho of [390,768,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Nombre de cargo desbordado a '+ancho+'px');}
  await evaluar("document.querySelector('.opciones-eleccion').closest('form').querySelector('button.primario').click();true");
- await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Candidatos' && !!document.querySelector('.crear-cargo-directo') && !document.querySelector('.crear-cargo-directo').disabled");
+ await hasta("document.querySelector('.titulo-seccion-privada h1')?.textContent==='Candidatos' && !!document.querySelector('.item-menu-lateral') && !document.querySelector('.item-menu-lateral').disabled");
  assert.equal(await evaluar(`(async()=>{const el=document.querySelector('.contexto-modulo-admin'),org=el.dataset.contextoInstitucion;const p=await fetch('/api/v1/configuracion/procesos/'+el.dataset.contextoProceso,{headers:{'X-Organizacion':org}}).then(r=>r.json());return p.cargo===${JSON.stringify(cargoPersonalizado)}&&p.tipo==='universidad'&&p.ambito==='Facultad sintética de Tecnología'&&p.sectores.length===2&&p.estado==='borrador';})()`),true,'El nombre personalizado se guarda por REST en PostgreSQL con la configuración conservada');
- await evaluar("document.querySelector('.crear-cargo-directo').click();true");
+ await evaluar("Array.from(document.querySelectorAll('.item-menu-lateral')).find(b=>b.textContent.trim()==='Elección').click();true");
+ await hasta("!!document.querySelector('.agregar-cargo') && !document.querySelector('.agregar-cargo').disabled");
+ await evaluar("document.querySelector('.agregar-cargo').click();true");
  await hasta(`!!Array.from(document.querySelector('[aria-label="Cargo universitario"]').options).find(o=>o.value===${JSON.stringify(cargoPersonalizado)})`);
  await evaluar(`(()=>{const el=document.querySelector('[aria-label="Cargo universitario"]');el.value=${JSON.stringify(cargoPersonalizado)};el.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
  assert.equal(await evaluar(`document.querySelector('[aria-label="Cargo universitario"]').value===${JSON.stringify(cargoPersonalizado)} && !document.querySelector('[aria-label="Nombre del nuevo cargo"]') && !!document.querySelector('.opciones-eleccion')`),true,'El nuevo nombre ya puede seleccionarse entre los existentes sin otro formulario');
@@ -450,7 +454,7 @@ try{
  assert.equal(await evaluar("document.querySelectorAll('.tarjeta-candidatura').length"),0);
  if(erroresJavascript.length)for(const e of erroresJavascript){const texto=String(e.text??'');console.error(/contrasen|password|cookie|csrf|session|token|authorization/i.test(texto)?'Error JavaScript: detalle sensible omitido':texto.replace(/[A-Za-z0-9_-]{20,}/g,'[omitido]').slice(0,250));}
  assert.equal(erroresJavascript.length,0,'Sin errores JavaScript no controlados en la página');
- await writeFile('pruebas/ampliacion/interfaz.json',JSON.stringify({estado:'OK',fecha:new Date().toISOString(),erroresJavascript:erroresJavascript.length,navegador:'Firefox existente, perfil temporal',entorno:entorno.proyecto,comprobaciones:['Nuevo tipo en el mismo formulario: primera opción Nuevo, nombre requerido, ámbito/sectores conservados, persistencia REST/PostgreSQL y nombre reutilizable; tres tamaños','Elegir o crear cargo: accesos directos desde módulos y detalle, formulario vacío, vuelta a existentes y selección por UUID sin modificar registros; tres tamaños','Cargos agrupados: cantidades comparadas con API, apertura/cierre de cada grupo, selección de UUID y tres tamaños','Candidatos por cargo: todos los nombres y totales contra API, búsqueda y filtros, edición por UUID, foto persistida solo en su cargo, borradores privados, catálogo iniciado bloqueado y Excel único general; tres tamaños','Confirmación: 34 filas/20 errores reproducidos; motivo junto a la casilla, enlace a errores con foco, bloqueo seguro y archivo corregido habilitado; tres tamaños','Cargos repetidos desde React: mantener sin cambios y reemplazar una fila tras nueva revisión, persistencia y tres tamaños','Excel conjunto real de candidatos: dos cargos, selección explícita de destino, nueva revisión obligatoria, persistencia y tres tamaños','Login real con cuenta sintética','Excel de cargos desde React: plantilla, vista previa y dos Directores persistidos','Mesas y cargos agrupados por operador, comprobados contra API y sin desbordamiento','Operador: login y formulario de actas sin error de inicialización; mesas identificadas por cargo','Asignación individual real desde React sin candidatos; persistencia comprobada; candidato añadido después; guía no determina permisos','Institución vacía: lista sin formulario automático, botón Agregar cargo y cancelación sin crear datos','Recorrido separado de estilos antiguos: ancho legible y sin solapamientos a 390, 768 y 1440 px','Crear nueva elección no muestra el selector ni el nombre del cargo anterior','Crear sin campo de nombre de evento: nombre automático de institución persistido y edición comprobada por API','Códigos de sector validados por HTML con expresiones compatibles con el modo v del navegador','Guardar desde el final del formulario móvil deja visible el siguiente paso','Guía opcional de 6 pasos: desactivada inicialmente, activación y desactivación sin alterar formularios; preferencia recordada al recargar','Espacio de trabajo antes del resumen; indicadores y candidatos debajo tras elegir institución','Resumen con totales de institución comprobados por API y accesos que navegan al módulo correspondiente','Excel real en Mesas: dos facultades y sectores distintos persistidos y agrupados por unidad','Vista previa de candidatos sin edición y enlace al cargo público exacto; cargo retirado no muestra resultados ajenos','Cargos, sectores y ponderación en Elección; formularios fuera de Resumen','Institución y cargo conservados al navegar por Usuarios, Mesas y Candidatos','Lista de instituciones sin desplegable, ficha seleccionada y eventos ocultos hasta elegir','Creación real de institución sintética desde el formulario, persistencia consultada por API','Lista única de todos los cargos verificada contra la API; selección por UUID, cancelación y recuperación de borrador','Formulario con sectores, ponderación y regla opcionales','Estado real y confirmación obligatoria de cierre sin ejecutar cambios','Sin desbordamiento: 390, 768 y 1440 px','Catálogo público real de eventos y cargos, con resultados por sector y ponderación','Portada sin desbordamiento en 390, 768 y 1440 px'],sinCrearActas:true,institucionCreadaSoloEnEntornoSintetico:true,eleccionYMesasCreadasSoloEnEntornoSintetico:true},null,2)+'\n');
- console.log('OK: navegador real, login sintético, pasos, opciones y tres tamaños; sin modificar el entorno principal ni crear actas.');
+ await writeFile('pruebas/ampliacion/interfaz.json',JSON.stringify({estado:'OK',fecha:new Date().toISOString(),erroresJavascript:erroresJavascript.length,navegador:'Firefox existente, perfil temporal',entorno:entorno.proyecto,comprobaciones:['Nuevo tipo en el mismo formulario: primera opción Nuevo, nombre requerido, ámbito/sectores conservados, persistencia REST/PostgreSQL y nombre reutilizable; tres tamaños','Elegir o crear cargo desde Elección; barra estable con solo Cambiar institución, formulario vacío y selección por UUID sin modificar registros; tres tamaños','Cargos agrupados: cantidades comparadas con API, apertura/cierre de cada grupo, selección de UUID y tres tamaños','Candidatos por cargo: todos los nombres y totales contra API, búsqueda y filtros, edición por UUID, foto persistida solo en su cargo, borradores privados, catálogo iniciado bloqueado y Excel único general; tres tamaños','Confirmación: 34 filas/20 errores reproducidos; motivo junto a la casilla, enlace a errores con foco, bloqueo seguro y archivo corregido habilitado; tres tamaños','Cargos repetidos desde React: mantener sin cambios y reemplazar una fila tras nueva revisión, persistencia y tres tamaños','Excel conjunto real de candidatos: dos cargos, selección explícita de destino, nueva revisión obligatoria, persistencia y tres tamaños','Login real con cuenta sintética','Excel de cargos desde React: plantilla, vista previa y dos Directores persistidos','Mesas y cargos agrupados por operador, comprobados contra API y sin desbordamiento','Operador: login y formulario de actas sin error de inicialización; mesas identificadas por cargo','Asignación individual real desde React sin candidatos; persistencia comprobada; candidato añadido después; autorización validada en backend','Institución vacía: lista sin formulario automático, botón Agregar cargo y cancelación sin crear datos','Recorrido separado de estilos antiguos: ancho legible y sin solapamientos a 390, 768 y 1440 px','Crear nueva elección no muestra el selector ni el nombre del cargo anterior','Crear sin campo de nombre de evento: nombre automático de institución persistido y edición comprobada por API','Códigos de sector validados por HTML con expresiones compatibles con el modo v del navegador','Guardar desde el formulario móvil permite continuar con candidatos','Navegación directa sin guía paso a paso ni accesos redundantes en Resumen','Espacio de trabajo antes del resumen; indicadores y candidatos debajo tras elegir institución','Resumen con totales de institución comprobados por API; navegación desde el menú lateral','Excel real en Mesas: dos facultades y sectores distintos persistidos y agrupados por unidad','Portada seleccionada explícitamente y persistida por API; vista previa sin edición y enlace al cargo público exacto; cargo retirado no muestra resultados ajenos','Cargos, sectores y ponderación en Elección; formularios fuera de Resumen','Institución y cargo conservados al navegar por Usuarios, Mesas y Candidatos','Lista de instituciones sin desplegable, ficha seleccionada y eventos ocultos hasta elegir','Creación real de institución sintética desde el formulario, persistencia consultada por API','Lista única de todos los cargos verificada contra la API; selección por UUID, cancelación y recuperación de borrador','Formulario con sectores, ponderación y regla opcionales','Estado real y confirmación obligatoria de cierre sin ejecutar cambios','Sin desbordamiento: 390, 768 y 1440 px','Catálogo público real de eventos y cargos, con resultados por sector y ponderación','Portada sin desbordamiento en 390, 768 y 1440 px'],sinCrearActas:true,institucionCreadaSoloEnEntornoSintetico:true,eleccionYMesasCreadasSoloEnEntornoSintetico:true},null,2)+'\n');
+ console.log('OK: navegador real, login sintético, navegación, opciones y tres tamaños; sin modificar el entorno principal ni crear actas.');
  await comando('session.end');
 }finally{if(ws)ws.close();navegador.kill('SIGTERM');}

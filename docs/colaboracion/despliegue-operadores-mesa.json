@@ -1,0 +1,21 @@
+{
+  "fecha": "2026-11-22T00:42:15.402498+00:00",
+  "proyecto": "tuvoto",
+  "serviciosActualizados": [
+    "identidad",
+    "frontend"
+  ],
+  "saludables": 13,
+  "otrosContenedoresConservados": 11,
+  "montajesConservados": true,
+  "respaldoIdentidadValidado": true,
+  "todasLasTablasIdentidadSinCambios": true,
+  "autenticacionSinCambios": true,
+  "recursosServidosCoinciden": true,
+  "modulosIdentidadCoinciden": true,
+  "contratoDesplegadoCoincide": true,
+  "sinEscriturasDePruebaEnBD": true,
+  "rutasAnonimasNginx401Verificadas": true,
+  "pruebasFrontend": 61,
+  "baseObservada": "main@3dcdf5b"
+}

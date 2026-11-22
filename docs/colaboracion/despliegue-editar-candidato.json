@@ -1,0 +1,18 @@
+{
+  "fecha": "2026-11-21T21:26:32.939834+00:00",
+  "proyecto": "tuvoto",
+  "serviciosActualizados": [
+    "elecciones",
+    "frontend"
+  ],
+  "saludables": 13,
+  "otrosContenedoresConservados": 11,
+  "montajesConservados": true,
+  "datosAnterioresSinCambios": true,
+  "migracionAditivaVerificada": true,
+  "recursosServidosCoinciden": true,
+  "guiaRetirada": true,
+  "accesosResumenRetirados": true,
+  "contratoGraphqlVerificado": true,
+  "sinEscriturasDePrueba": true
+}

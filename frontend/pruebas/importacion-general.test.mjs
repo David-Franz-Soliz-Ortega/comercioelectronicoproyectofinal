@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {cargosParaReferencia,mensajeImportacion,motivoBloqueoImportacion,presentacionImportacion} from '../src/api/importacionGeneral.js';
+import {cargosParaReferencia,columnasImportacion,mensajeImportacion,motivoBloqueoImportacion,presentacionImportacion} from '../src/api/importacionGeneral.js';
 test('opciones para revisar Excel: conserva ámbito visible, limita cargo y vuelta y excluye recepción/cierre',()=>{
  const cargos=[{id:'a',cargo:'Decano',ambito:'Tecnología',estado:'borrador',vuelta:1},{id:'b',cargo:'Decano',ambito:'Medicina',estado:'borrador',vuelta:1},{id:'c',cargo:'Decano',estado:'recepcion',vuelta:1},{id:'d',cargo:'Decano',estado:'borrador',vuelta:2},{id:'e',cargo:'Rector',estado:'borrador',vuelta:1}];
  assert.deepEqual(cargosParaReferencia(cargos,{cargo:' decano ',vuelta:1}).map(p=>p.id),['a','b']);
@@ -14,6 +14,27 @@ test('las plantillas conjunta e individual tienen nombres distintos y explican d
  assert.match(individual.encabezado,/solo para este cargo/);assert.match(general.encabezado,/de todos los cargos/);
  assert.notEqual(individual.nombreArchivo,general.nombreArchivo);assert.equal(general.nombreArchivo,'candidatos-todos-los-cargos.xlsx');
  assert.equal(presentacionImportacion({titulo:'cargos',ruta:'/configuracion/importaciones/cargos'}).nombreArchivo,'cargos.xlsx');
+});
+
+test('la guía de columnas cambia según el tipo, alcance y requisitos del Excel',()=>{
+ const cargos=columnasImportacion({titulo:'cargos',ruta:'/configuracion/importaciones/cargos'});
+ assert.deepEqual(cargos.map(c=>c.nombre),['cargo','facultad','grupoCarreras','carreras']);
+ assert.equal(cargos[0].obligatoria,true);
+ assert.match(cargos[2].descripcion,/Director/);
+ const candidatos=columnasImportacion({titulo:'candidatos',ruta:'/configuracion/procesos/proceso-sintetico/importaciones/candidatos'});
+ assert.deepEqual(candidatos.map(c=>c.nombre),['nombre','orden']);
+ assert.deepEqual(candidatos.map(c=>Boolean(c.obligatoria)),[true,false]);
+ const general=columnasImportacion({titulo:'mesas',ruta:'/configuracion/importaciones-generales/mesas',general:true});
+ assert.deepEqual(general.map(c=>c.nombre),['cargo','ambito','vuelta','codigo','unidad','sector']);
+ assert.equal(general.find(c=>c.nombre==='vuelta').obligatoria,undefined);
+ const compartidas=columnasImportacion({titulo:'mesas compartidas',ruta:'/configuracion/mesas-compartidas/importacion'});
+ assert.deepEqual(compartidas.map(c=>c.nombre),['codigo','unidad','sector','recinto','apellidoDesde','apellidoHasta','cargo','ambito','vuelta','usuario']);
+ assert.equal(compartidas.find(c=>c.nombre==='usuario').obligatoria,false);
+ assert.match(compartidas.find(c=>c.nombre==='codigo').descripcion,/repítelo/);
+ assert.match(compartidas.find(c=>c.nombre==='cargo').descripcion,/Cargo existente/);
+ const operadores=columnasImportacion({titulo:'operadores',ruta:'/importaciones/operadores',operadores:true});
+ assert.deepEqual(operadores.map(c=>c.nombre),['usuario','contrasena','mesa']);
+ assert.equal(operadores.find(c=>c.nombre==='mesa').obligatoria,false);
 });
 
 test('confirmación: explica los errores aunque la tabla contenga filas válidas; solo habilita un archivo revisado sin errores',()=>{

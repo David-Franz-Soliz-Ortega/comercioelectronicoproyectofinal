@@ -44,7 +44,7 @@ try{
   assert.equal(await evaluar(`(${raiz}).querySelector('.confirmar-retirada').disabled`),true,'Eliminar exige confirmación explícita');
   await evaluar(`(${raiz}).querySelector('.confirmar-eliminacion input').click();true`);
   await evaluar(`(${raiz}).querySelector('.confirmar-retirada').click();true`);
-  await hasta("document.querySelector('.contenido-seccion-privada>.confirmacion')?.textContent.includes('retirad')&&!document.querySelector('.item-menu-lateral').disabled");
+  await hasta("document.querySelector('.modal-confirmacion-global .confirmacion')?.textContent.includes('retirad')&&!document.querySelector('.item-menu-lateral').disabled");
  }
  async function publico(ruta,metodo='GET',entrada){
   return evaluar(`(async()=>{const csrf=document.cookie.split(';').map(v=>v.trim()).find(v=>/^(?:__Host-)?tuvoto-csrf=/.test(v))?.split('=').slice(1).join('=');const r=await fetch('/api/v1'+${JSON.stringify(ruta)},{method:${JSON.stringify(metodo)},headers:{'X-Organizacion':${JSON.stringify(datos.organizacion)},'X-CSRF-Token':csrf,...${JSON.stringify(entrada!==undefined?{'Content-Type':'application/json'}:{})}},${entrada!==undefined?'body:JSON.stringify('+JSON.stringify(entrada)+'),':''}});if(!r.ok)throw Error('Solicitud sintética rechazada');return r.status===204?'':JSON.stringify(await r.json());})()`);
@@ -61,9 +61,9 @@ try{
  await hasta(`!!document.querySelector('.totales-candidatos')&&!document.querySelector('[data-candidato-foto="${datos.candidatoEliminar}"]')`);
  let p=JSON.parse(await publico('/configuracion/procesos/'+datos.idsProcesos[0]));assert.equal(p.candidatos.length,2);
  await ir('Mesas');
- await hasta(`!!document.querySelector('[data-gestionar-proceso="${datos.idsProcesos[0]}"]')`);
- await evaluar(`document.querySelector('[data-gestionar-proceso="${datos.idsProcesos[0]}"]').click();true`);
  await hasta(`!!document.querySelector('[data-mesa-cargo="${datos.mesaEliminar}"]')`);
+ await evaluar(`document.querySelector('[data-mesa-cargo="${datos.mesaEliminar}"]').closest('.grupo-mesas-facultad').querySelector('summary').click();true`);
+ await evaluar(`document.querySelector('[data-mesa-cargo="${datos.mesaEliminar}"]').closest('details').querySelector('summary').click();true`);
  await retirar(`document.querySelector('[data-mesa-cargo="${datos.mesaEliminar}"]')`);
  await hasta(`!!document.querySelector('.mesas-compartidas')&&!document.querySelector('[data-mesa-cargo="${datos.mesaEliminar}"]')`);
  await ir('Elección');await abrirCargoEnGrupo(datos.cargoEliminar);
@@ -71,26 +71,26 @@ try{
  await hasta(`!!document.querySelector('.grupos-cargos-institucion')&&!document.querySelector('[data-cargo="${datos.cargoEliminar}"]')`);
  console.log('OK: eliminar candidato, mesa y cargo desde React; confirmación requerida y datos originales conservados.');
  await ir('Mesas');await hasta("!!document.querySelector('.crear-mesa-compartida')");
- await evaluar("document.querySelector('.crear-mesa-compartida').open=true;true");
- await evaluar(`(()=>{const f=document.querySelector('.formulario-mesa-compartida');const poner=(selector,v)=>{const e=f.querySelector(selector);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,v);e.dispatchEvent(new Event('input',{bubbles:true}));};poner('input[placeholder="TEC-GA-EST-001"]',${JSON.stringify(datos.codigoUi)});poner('input[placeholder="Tecnología · Grupo A"]',${JSON.stringify(datos.unidad)});const s=f.querySelector('select');s.value='estudiantes';s.dispatchEvent(new Event('change',{bubbles:true}));const usuario=f.querySelectorAll('select')[1];usuario.value=${JSON.stringify(datos.usuario)};usuario.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
+ await evaluar("document.querySelector('.crear-mesa-compartida').click();true");
+ await evaluar(`(()=>{const f=document.querySelector('.formulario-mesa-compartida');const poner=(e,v)=>{Object.getOwnPropertyDescriptor(e.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype,'value').set.call(e,v);e.dispatchEvent(new Event(e.tagName==='SELECT'?'change':'input',{bubbles:true}));};poner(f.querySelector('input[placeholder="Ej.: Mesa 001"]'),${JSON.stringify(datos.codigoUi)});poner(f.querySelector('[aria-label="Unidad de la mesa"]'),${JSON.stringify(datos.unidad)});poner(Array.from(f.querySelectorAll('label')).find(l=>l.textContent.startsWith('Sector')).querySelector('select'),'estudiantes');poner(Array.from(f.querySelectorAll('label')).find(l=>l.textContent.startsWith('Operador')).querySelector('select'),${JSON.stringify(datos.usuario)});return true;})()`);
  for(const id of datos.idsProcesos)await evaluar(`(()=>{const e=document.querySelector('.cargos-mesa-compartida input[value="${id}"]');if(!e.checked)e.click();return true;})()`);
  await evaluar(`(()=>{const ids=${JSON.stringify(datos.idsProcesos)};for(const e of document.querySelectorAll('.cargos-mesa-compartida input:checked'))if(!ids.includes(e.value))e.click();return true;})()`);
  assert.equal(await evaluar("document.querySelectorAll('.cargos-mesa-compartida input:checked').length"),3);
  for(const ancho of [320,390,768,1024,1440]){await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1000}});await evaluar("document.querySelector('.crear-mesa-compartida').scrollIntoView({block:'start'});true");assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Formulario compartido desbordado a '+ancho+'px');const c=await comando('browsingContext.captureScreenshot',{context});await writeFile('/tmp/tuvoto-mesa-compartida-'+ancho+'.png',Buffer.from(c.data,'base64'));}
  await evaluar("document.querySelector('.formulario-mesa-compartida button[type=submit]').click();true");
- await hasta("document.querySelector('.contenido-seccion-privada>.confirmacion')?.textContent.includes('Mesa física y cargos vinculados')&&!!document.querySelector('.mesas-compartidas [data-mesa-fisica]')");
+ await hasta("document.querySelector('.modal-confirmacion-global .confirmacion')?.textContent.includes('Mesa guardada correctamente')&&!!document.querySelector('.mesas-compartidas [data-mesa-fisica]')");
  const grupos=JSON.parse(await publico('/configuracion/mesas-compartidas'));const creada=grupos.elementos.find(g=>g.codigo===datos.codigoUi);assert.equal(creada.cargos.length,3);
  const idsAntes=creada.cargos.map(c=>c.idMesa).sort();
  // Reimportación real del mismo archivo: vincula sin duplicar mesas ni asignaciones.
- await hasta("!!document.querySelector('[data-importacion=\"mesas compartidas\"]')");
- await evaluar("document.querySelector('[data-importacion=\"mesas compartidas\"]').open=true;true");
- await evaluar(`(()=>{const d=new DataTransfer();d.items.add(new File([Uint8Array.from(atob(${JSON.stringify(datos.archivo)}),c=>c.charCodeAt(0))],'mesas-compartidas-sinteticas.xlsx'));const e=document.querySelector('[data-importacion="mesas compartidas"] input[type=file]');e.files=d.files;e.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
- await hasta("!!Array.from(document.querySelectorAll('[data-importacion=\"mesas compartidas\"] button')).find(b=>b.textContent==='Revisar archivo'&&!b.disabled)");
- await evaluar("Array.from(document.querySelectorAll('[data-importacion=\"mesas compartidas\"] button')).find(b=>b.textContent==='Revisar archivo').click();true");
- await hasta("document.querySelectorAll('[data-importacion=\"mesas compartidas\"] tbody tr').length===6&&!document.querySelector('[data-importacion=\"mesas compartidas\"] input[type=checkbox]').disabled");
- await evaluar("document.querySelector('[data-importacion=\"mesas compartidas\"] input[type=checkbox]').click();true");
- await evaluar("Array.from(document.querySelectorAll('[data-importacion=\"mesas compartidas\"] button')).find(b=>b.textContent==='Confirmar importación').click();true");
- await hasta("document.querySelector('.contenido-seccion-privada>.confirmacion')?.textContent.includes('Mesas físicas y cargos importados')&&!document.querySelector('.item-menu-lateral').disabled");
+ await hasta("!!document.querySelector('[data-importacion=\"mesas\"]')");
+ await evaluar("document.querySelector('[data-importacion=\"mesas\"] [data-abrir-importacion]').click();true");
+ await evaluar(`(()=>{const d=new DataTransfer();d.items.add(new File([Uint8Array.from(atob(${JSON.stringify(datos.archivo)}),c=>c.charCodeAt(0))],'mesas-compartidas-sinteticas.xlsx'));const e=document.querySelector('[data-importacion="mesas"] input[type=file]');e.files=d.files;e.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`);
+ await hasta("!!Array.from(document.querySelectorAll('[data-importacion=\"mesas\"] button')).find(b=>b.textContent==='Revisar archivo'&&!b.disabled)");
+ await evaluar("Array.from(document.querySelectorAll('[data-importacion=\"mesas\"] button')).find(b=>b.textContent==='Revisar archivo').click();true");
+ await hasta("document.querySelectorAll('[data-importacion=\"mesas\"] tbody tr').length===6&&!document.querySelector('[data-importacion=\"mesas\"] input[type=checkbox]').disabled");
+ await evaluar("document.querySelector('[data-importacion=\"mesas\"] input[type=checkbox]').click();true");
+ await evaluar("Array.from(document.querySelectorAll('[data-importacion=\"mesas\"] button')).find(b=>b.textContent==='Confirmar importación').click();true");
+ await hasta("document.querySelector('.modal-confirmacion-global .confirmacion')?.textContent.includes('Mesas físicas y cargos importados')&&!document.querySelector('.item-menu-lateral').disabled");
  const despues=JSON.parse(await publico('/configuracion/mesas-compartidas')).elementos.find(g=>g.id===creada.id);assert.deepEqual(despues.cargos.map(c=>c.idMesa).sort(),idsAntes);
  await ir('Resumen');await hasta("!!document.querySelector('.indicadores-institucion')");
  assert.equal(await evaluar(`(async()=>{const ps=(await fetch('/api/v1/configuracion/procesos',{headers:{'X-Organizacion':${JSON.stringify(datos.organizacion)}}}).then(r=>r.json())).elementos.filter(p=>p.estado!=='archivada');return Number(document.querySelector('[data-indicador=mesas]>strong').textContent)===new Set(ps.flatMap(p=>p.mesas.map(m=>m.idMesaFisica||m.id))).size;})()`),true,'Resumen cuenta una mesa física una sola vez');

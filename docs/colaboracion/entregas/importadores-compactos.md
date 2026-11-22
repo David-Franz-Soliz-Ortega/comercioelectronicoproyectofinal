@@ -1,0 +1,9 @@
+# Importadores compactos
+
+- Responsable: Codex; siguiente responsable QA por asignar. Base observada: `main@2c51ae2`; conservados los cambios locales. Estado: `listo_para_qa` visual.
+- `frontend/src/componentes/ImportarExcel.jsx`: presentación compartida para todos los importadores. Solo nombres de columnas, sin descripciones, etiquetas repetidas, ayuda contextual extensa ni descarga de plantilla. Se mantienen límites de archivo, vista previa, errores, resolución de destinos/conflictos y confirmación explícita. Sin cambios en las APIs ni sus validaciones.
+- `frontend/src/administracion.css`: sustituida la presentación verde por blanco y azul; columnas en etiquetas compactas adaptables y selector de archivo junto a Revisar en escritorio, apilados en móvil.
+- Pruebas ejecutadas: frontend **57/57** y compilación Vite OK; `node frontend/pruebas/formularios-interfaz.mjs` OK en Firefox instalado, con todas las API interceptadas mediante fixture sintético, a 390/768/1440 px. Probados revisión, cancelación y confirmación Excel, así como regresiones del flujo de operadores y mesas. Captura de móvil inspeccionada visualmente. Logs `/tmp/tuvoto-importadores-compactos-{pruebas,compilacion,navegador}.log`. No se probaron nuevas escrituras persistentes reales.
+- `git diff --check` de los dos archivos de interfaz y esta entrega: OK. Sin commit/push/tag, cambios de servicios o escrituras en bases de datos.
+- Despliegue: consultar [evidencia de actualización](../despliegue-importadores-compactos.json), generada solo tras comprobar recursos servidos idénticos a compilación, 13 saludables, otros 12 IDs y todos los montajes conservados.
+- Siguiente acción: recargar la página con Ctrl+F5 y revisar el diseño con sesión autorizada. Los endpoints de plantilla se conservan aunque el botón ya no se presenta.

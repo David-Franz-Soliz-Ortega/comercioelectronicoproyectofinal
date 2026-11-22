@@ -25,3 +25,17 @@ test('el evento destacado precede al alfabético y su identificador no cambia co
  assert.equal(agruparEventos(filas)[0].nombre, 'Z evento');
  assert.deepEqual(agruparEventos([{ ...base, id: 'b', cargo: 'Privado', publicado: false }]), []);
 });
+
+test('la portada usa selección explícita de cualquier cargo y no expone borradores ni candidatos de otros cargos', () => {
+ const candidato = {id:'c-prueba',nombre:'Persona sintética',foto:null};
+ const eventos = agruparEventos([
+  {...base,id:'rector',cargo:'Rector',candidatos:[candidato]},
+  {...base,id:'alcalde',cargo:'Alcalde',destacadoPortada:true,candidatos:[candidato]},
+  {...base,id:'privado',cargo:'Privado',publicado:false,destacadoPortada:true,candidatos:[candidato]},
+  {...base,id:'archivado',cargo:'Archivado',archivado:true,destacadoPortada:true,candidatos:[candidato]},
+ ]);
+ assert.deepEqual(eventos[0].procesos.map(p=>p.id),['alcalde','rector']);
+ assert.deepEqual(eventos[0].procesos[0].candidatos,[candidato]);
+ assert.deepEqual(eventos[0].procesos[1].candidatos,[]);
+ assert.equal(eventos[0].destacado,false,'Destacar cargos no cambia el evento activo');
+});

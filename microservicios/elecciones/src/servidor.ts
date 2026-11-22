@@ -1,3 +1,6 @@
+import { rutasConteoInstitucion } from './conteo-institucion.js';
+import { rutasCandidatos } from './candidatos.js';
+import { rutasPortada } from './portada.js';
 import { rutasEliminaciones } from './eliminaciones.js';
 import { rutasMesasCompartidas } from './mesas-compartidas.js';
 import { rutasCargosUniversitarios, comprobarGrupoDirector } from './cargos-universitarios.js';
@@ -26,12 +29,17 @@ app.use('/docs',swagger.serveFiles(JSON.parse(contrato)),swagger.setup(JSON.pars
 app.get('/openapi.json',(_req,res)=>{res.type('application/json').send(contrato);});
 app.get('/api/v1/salud',async (_req,res)=>{await db.query('SELECT 1');res.json({servicio:'elecciones',estado:'saludable'});});
 async function obtener(id:string) {
- const r=await db.query('SELECT id,nombre,cargo,tipo,unidad,actual,publicado,estado,configuracion FROM tuvoto_procesos WHERE id=$1 AND NOT eliminada',[id]); if(!r.rowCount)return null;
+ const r=await db.query('SELECT id,nombre,cargo,tipo,unidad,actual,publicado,destacado_portada AS "destacadoPortada",estado,configuracion FROM tuvoto_procesos WHERE id=$1 AND NOT eliminada',[id]); if(!r.rowCount)return null;
  const candidatos=await db.query('SELECT id,nombre,orden,id_candidato_origen AS "idCandidatoOrigen",foto IS NOT NULL AS "tieneFoto" FROM tuvoto_candidatos WHERE id_proceso=$1 AND NOT eliminada ORDER BY orden,id',[id]);
  const mesas=await db.query('SELECT m.id,m.codigo,m.unidad,m.sector,m.id_mesa_fisica AS "idMesaFisica",f.recinto,f.apellido_desde AS "apellidoDesde",f.apellido_hasta AS "apellidoHasta" FROM tuvoto_mesas m LEFT JOIN tuvoto_mesas_fisicas f ON f.id=m.id_mesa_fisica WHERE m.id_proceso=$1 AND NOT m.eliminada ORDER BY m.unidad,m.codigo',[id]);
  return {...r.rows[0],ambito:'',vuelta:1,idPrimeraVuelta:null,sectores:[],ponderacion:false,reglaSegundaVuelta:null,...r.rows[0].configuracion,configuracion:undefined,candidatos:candidatos.rows.map(c=>({...c,foto:c.tieneFoto?`/api/v1/publico/candidatos/${c.id}/foto`:null})),mesas:mesas.rows};
 }
-app.get('/api/v1/publico/eventos',async(_req,res)=>{const r=await db.query(`SELECT id,id_organizacion AS "idOrganizacion",nombre,cargo,tipo,actual,publicado,archivado,estado,configuracion FROM tuvoto_procesos WHERE (publicado OR actual) AND NOT archivado AND NOT eliminada ORDER BY nombre,id`);res.set('Cache-Control','public,max-age=3').json({elementos:agruparEventos(r.rows)});});
+app.get('/api/v1/publico/eventos',async(_req,res)=>{
+ const r=await db.query(`SELECT id,id_organizacion AS "idOrganizacion",nombre,cargo,tipo,actual,publicado,destacado_portada AS "destacadoPortada",archivado,estado,configuracion FROM tuvoto_procesos WHERE (publicado OR actual) AND NOT archivado AND NOT eliminada ORDER BY nombre,id`);
+ const ids=r.rows.filter(p=>p.destacadoPortada).map(p=>p.id);
+ const candidatos=ids.length?(await db.query('SELECT id,id_proceso,nombre,foto IS NOT NULL AS "tieneFoto" FROM tuvoto_candidatos WHERE id_proceso=ANY($1::uuid[]) AND NOT eliminada ORDER BY orden,id',[ids])).rows:[];
+ res.set('Cache-Control','public,max-age=3').json({elementos:agruparEventos(r.rows.map(p=>({...p,candidatos:candidatos.filter(c=>c.id_proceso===p.id).map(c=>({id:c.id,nombre:c.nombre,foto:c.tieneFoto?`/api/v1/publico/candidatos/${c.id}/foto`:null}))})))});
+});
 app.get('/api/v1/publico/actual',async(_req,res)=>{const r=await db.query('SELECT id FROM tuvoto_procesos WHERE actual AND NOT archivado');res.set('Cache-Control','public,max-age=3');res.json(r.rowCount?await obtener(r.rows[0].id):null);});
 app.get('/api/v1/publico/elecciones',async(_req,res)=>{const actual=await db.query('SELECT id_organizacion FROM tuvoto_procesos WHERE actual AND NOT archivado');if(!actual.rowCount){res.json({elementos:[]});return;}const r=await db.query('SELECT id,nombre,cargo,tipo,configuracion FROM tuvoto_procesos WHERE id_organizacion=$1 AND (publicado OR actual) AND NOT archivado ORDER BY creado_en,id',[actual.rows[0].id_organizacion]);res.json({elementos:r.rows.map(p=>({id:p.id,nombre:p.nombre,cargo:p.cargo,tipo:p.tipo,ambito:p.configuracion.ambito??'',vuelta:p.configuracion.vuelta??1}))});});
 app.get('/api/v1/publico/procesos/:id',async(req,res)=>{const id=uuid.parse(req.params.id);if(!(await db.query('SELECT 1 FROM tuvoto_procesos WHERE id=$1 AND (publicado OR actual) AND NOT archivado',[id])).rowCount){res.status(404).json({detalle:'Recurso no disponible'});return;}res.json(await obtener(id));});
@@ -40,6 +48,9 @@ app.get('/api/v1/publico/candidatos/:id/foto',async(req,res)=>{
  if(!r.rowCount||!r.rows[0].foto){res.status(404).json({detalle:'Recurso no disponible'});return;}res.set({'Content-Type':r.rows[0].mime,'X-Content-Type-Options':'nosniff','Cache-Control':'public,max-age=60'}).send(r.rows[0].foto);
 });
 app.use('/api/v1/configuracion',async(req:Request,res:Response,next:NextFunction)=>{try{res.locals.actor=await permiso(req,'proceso:configurar',!['GET','HEAD'].includes(req.method));next();}catch(e){res.status((e as {estado?:number}).estado??503).json({detalle:'Configuración no autorizada'});}});
+rutasPortada(app,db);
+rutasConteoInstitucion(app,db);
+rutasCandidatos(app,db);
 rutasEliminaciones(app,db);
 rutasMesasCompartidas(app,db);
 rutasImportaciones(app,db);

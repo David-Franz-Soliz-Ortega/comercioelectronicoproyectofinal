@@ -706,7 +706,8 @@
           {
             "sesion": []
           }
-        ]
+        ],
+        "description": "XLSX de una hoja: usuario y contrasena requeridos; mesa opcional (código, máximo 60 caracteres). Identidad crea cuentas y devuelve la referencia mesa; la interfaz asigna mediante los endpoints autorizados de elecciones. Una mesa ausente o inválida no impide el alta: queda pendiente de asignación. No se cambian claves de cuentas existentes."
       }
     },
     "/importaciones/operadores/previsualizar": {
@@ -784,7 +785,8 @@
               }
             }
           }
-        }
+        },
+        "description": "XLSX de una hoja: usuario y contrasena requeridos; mesa opcional (código, máximo 60 caracteres). Identidad crea cuentas y devuelve la referencia mesa; la interfaz asigna mediante los endpoints autorizados de elecciones. Una mesa ausente o inválida no impide el alta: queda pendiente de asignación. No se cambian claves de cuentas existentes."
       }
     },
     "/importaciones/operadores/confirmar": {
@@ -806,7 +808,47 @@
             "description": "Operación o vista previa completada"
           },
           "201": {
-            "description": "Lote importado íntegramente"
+            "description": "Cuentas creadas en una transacción; la asignación de mesas es posterior e independiente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "importados",
+                    "operadores"
+                  ],
+                  "properties": {
+                    "importados": {
+                      "type": "integer"
+                    },
+                    "operadores": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "idUsuario",
+                          "usuario",
+                          "mesa"
+                        ],
+                        "properties": {
+                          "idUsuario": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "usuario": {
+                            "type": "string"
+                          },
+                          "mesa": {
+                            "type": "string",
+                            "maxLength": 60
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "Sesión requerida"
@@ -862,7 +904,8 @@
               }
             }
           }
-        }
+        },
+        "description": "XLSX de una hoja: usuario y contrasena requeridos; mesa opcional (código, máximo 60 caracteres). Identidad crea cuentas y devuelve la referencia mesa; la interfaz asigna mediante los endpoints autorizados de elecciones. Una mesa ausente o inválida no impide el alta: queda pendiente de asignación. No se cambian claves de cuentas existentes."
       }
     }
   },

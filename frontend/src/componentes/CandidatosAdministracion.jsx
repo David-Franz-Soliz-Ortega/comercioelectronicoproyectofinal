@@ -1,3 +1,4 @@
+import EditarNombreCandidato from './EditarNombreCandidato.jsx';
 import React, { useRef, useState } from 'react';
 import { agruparCargos } from '../api/seleccionAdministracion.js';
 import { candidatosPorCargo } from '../api/candidatosPorCargo.js';
@@ -5,7 +6,7 @@ import { nombresEstado } from './EstadoEleccion.jsx';
 import ConfirmarEliminacion from './ConfirmarEliminacion.jsx';
 import FotoCandidatoAdministracion from './FotoCandidatoAdministracion.jsx';
 
-export default function CandidatosAdministracion({ organizacion, procesos, idProceso, ocupado, cargando, disponible, alProceso, alAgregarCargo, alEliminar, alReintentar, revision, children }) {
+export default function CandidatosAdministracion({ organizacion, procesos, idProceso, ocupado, cargando, disponible, alProceso, alAgregarCargo, alEliminar, alReintentar, alActualizar, revision, children }) {
   const [editando, setEditando] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [familia, setFamilia] = useState('');
@@ -39,7 +40,7 @@ export default function CandidatosAdministracion({ organizacion, procesos, idPro
           <summary><strong>{g.nombre}</strong><span>{g.procesos.length} cargos · {g.procesos.reduce((s, p) => s + p.candidatos.length, 0)} candidatos</span></summary>
           <div className="cargos-con-candidatos">{g.procesos.map(p => <article key={p.id} className="cargo-con-candidatos" data-candidatos-cargo={p.id}>
             <header><div><h3>{p.cargo}</h3><p>{p.ambito || p.facultad || 'Toda la institución'}</p><small>{p.vuelta === 2 ? 'Segunda' : 'Primera'} vuelta · {p.candidatos.length} {p.candidatos.length === 1 ? 'candidato' : 'candidatos'}</small></div><span className={`etiqueta-estado estado-${p.estado}`}>{nombresEstado[p.estado] ?? 'Estado no disponible'}</span></header>
-            {p.candidatos.length ? <ul className="nombres-candidatos-cargo">{p.candidatos.map(c => <li key={c.id} data-candidato-listado={c.id}><FotoCandidatoAdministracion candidato={c} organizacion={organizacion} revision={revision} /><div><strong>{c.nombre}</strong><small>{c.tieneFoto || c.foto ? 'Fotografía cargada' : 'Sin fotografía'}</small></div>{p.estado==='borrador'&&alEliminar&&<ConfirmarEliminacion nombre={c.nombre+' · '+p.cargo} ocupado={ocupado} alConfirmar={()=>alEliminar(c)}/>}</li>)}</ul> : <p className="vacio-candidatos-cargo">Este cargo todavía no tiene candidatos registrados.</p>}
+            {p.candidatos.length ? <ul className="nombres-candidatos-cargo">{p.candidatos.map(c => <li key={c.id} data-candidato-listado={c.id}><FotoCandidatoAdministracion candidato={c} organizacion={organizacion} revision={revision} /><div><strong>{c.nombre}</strong><small>{c.tieneFoto || c.foto ? 'Fotografía cargada' : 'Sin fotografía'}</small></div>{p.estado==='borrador'&&!p.actual&&!p.publicado&&alActualizar&&<EditarNombreCandidato candidato={c} organizacion={organizacion} ocupado={ocupado} alGuardar={alActualizar}/>} {p.estado==='borrador'&&alEliminar&&<ConfirmarEliminacion nombre={c.nombre+' · '+p.cargo} ocupado={ocupado} alConfirmar={()=>alEliminar(c)}/>}</li>)}</ul> : <p className="vacio-candidatos-cargo">Este cargo todavía no tiene candidatos registrados.</p>}
             <button type="button" className="boton secundario gestionar-cargo-candidatos" disabled={ocupado} onClick={() => gestionar(p.id)}>{p.estado === 'borrador' ? 'Agregar o cambiar fotografías' : 'Ver candidatos del cargo'}</button>
           </article>)}</div>
         </details>)}</div> : <div className="vacio-candidatos"><p>No hay coincidencias con esta búsqueda.</p><button type="button" className="boton secundario" onClick={() => { setBusqueda(''); setFamilia(''); }}>Mostrar todos</button></div>}
