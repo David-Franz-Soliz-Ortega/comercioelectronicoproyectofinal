@@ -1,7 +1,8 @@
 import EditarOperador from './EditarOperador.jsx';
 import ImportarExcel from './ImportarExcel.jsx';
 import { agruparMesasFisicas } from '../api/mesasCompartidas.js';
-import { listarOperadoresInstitucion } from '../api/operadores.js';
+import { asignarMesasOperador, distribuirMesasPendientes, listarOperadoresInstitucion } from '../api/operadores.js';
+import { notificarExito } from '../api/confirmaciones.js';
 import React,{useEffect,useState} from 'react';
 import {solicitarRest} from '../api/clienteRest.js';
 import {nombresEstado} from '../api/catalogos.js';
@@ -9,19 +10,33 @@ import {nombresEstado} from '../api/catalogos.js';
 export default function AsignacionesOperadores({organizacion,cuentas,version,alCargo,procesos,nombreOrganizacion,alGuardar,alRevocar,idActual,ocupado=false}){
  const [edicion,setEdicion]=useState(null),[soloPendientes,setSoloPendientes]=useState(false);
  const [asignaciones,setAsignaciones]=useState(null),[error,setError]=useState(''),[usuario,setUsuario]=useState(''),[busqueda,setBusqueda]=useState(''),[intento,setIntento]=useState(0);
- const [pagina,setPagina]=useState(1),[limite,setLimite]=useState(10),[expandidos,setExpandidos]=useState(new Set());
+ const [pagina,setPagina]=useState(1),[limite,setLimite]=useState(10),[expandidos,setExpandidos]=useState(new Set()),[distribuyendo,setDistribuyendo]=useState(false);
  useEffect(()=>{let vigente=true;setAsignaciones(null);setError('');solicitarRest('/configuracion/asignaciones',{organizacion}).then(r=>{if(vigente)setAsignaciones(r.elementos);}).catch(e=>{if(vigente)setError(e.message);});return()=>{vigente=false};},[organizacion,version,intento]);
  const operadores=listarOperadoresInstitucion({cuentas,asignaciones:asignaciones??[],organizacion});
  const grupos=listarOperadoresInstitucion({cuentas,asignaciones:asignaciones??[],organizacion,busqueda,idUsuario:usuario,soloPendientes});
  const paginas=Math.max(1,Math.ceil(grupos.length/limite)),actual=Math.min(pagina,paginas),inicio=(actual-1)*limite;
  const cargando=asignaciones===null,deshabilitado=ocupado||cargando||!!error;
  function alternar(id){setExpandidos(prev=>{const siguiente=new Set(prev);if(siguiente.has(id))siguiente.delete(id);else siguiente.add(id);return siguiente;});}
+ async function distribuir(){
+  if(deshabilitado||distribuyendo)return;
+  const grupos=distribuirMesasPendientes({cuentas,asignaciones:asignaciones??[],procesos,organizacion});
+  const total=grupos.reduce((n,g)=>n+g.mesas.length,0);
+  if(!total){setError('No hay mesas pendientes ni operadores activos para distribuir.');return;}
+  if(!window.confirm(`Se repartirán ${total} mesas pendientes entre ${grupos.length} operadores activos. ¿Continuar?`))return;
+  setDistribuyendo(true);setError('');
+  try{
+   for(const grupo of grupos)await asignarMesasOperador({pedir:solicitarRest,organizacion,idUsuario:grupo.idUsuario,mesas:grupo.mesas,completadas:new Set()});
+   alGuardar();notificarExito(`${total} mesas distribuidas entre ${grupos.length} operadores.`);
+  }catch(e){setError(e.message);}
+  finally{setDistribuyendo(false);}
+ }
  return <section className="operadores-recepcion" aria-label="Asignar operadores">
   <header className="cabecera-operadores-recepcion"><div><h2>Asignar operadores</h2><p>{nombreOrganizacion}</p></div><div className="acciones-cabecera-operadores">
    <details className="menu-importar-operadores"><summary className="boton secundario">Importar Excel <span aria-hidden="true">⌄</span></summary><div>
     <ImportarExcel ruta="/importaciones/operadores" organizacion={organizacion} titulo="operadores" textoBoton="Operadores y mesas" operadores alImportar={alGuardar}/>
     <ImportarExcel general cargos={procesos} ruta="/configuracion/importaciones-generales/asignaciones" organizacion={organizacion} titulo="asignaciones" textoBoton="Asignaciones existentes" alImportar={alGuardar}/>
    </div></details>
+   <button type="button" className="boton secundario" disabled={deshabilitado||distribuyendo} onClick={distribuir}>{distribuyendo?'Distribuyendo…':'Distribuir mesas pendientes'}</button>
    <button type="button" className="boton primario" disabled={deshabilitado} onClick={()=>setEdicion('nuevo')}>＋ Crear operador</button>
   </div></header>
   <div className="filtros-operadores-recepcion panel-admin">

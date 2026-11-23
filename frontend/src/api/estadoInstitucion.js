@@ -3,7 +3,7 @@ import { listarMesasInstitucion } from './mesasCompartidas.js';
 
 export function resumirInstitucion(procesos,asignaciones=null){
  const cargos=procesos.filter(p=>p.estado!=='archivada'&&!p.archivado&&!p.eliminada);
- const mesas=cargos.flatMap(p=>(p.mesas??[]).map(m=>({...m,idProceso:p.id,cargo:p.cargo,ambito:p.ambito,puedeAsignar:p.estado==='borrador'&&!p.actual&&!p.publicado}))),ids=new Set(mesas.map(m=>m.id));
+ const mesas=cargos.flatMap(p=>(p.mesas??[]).map(m=>({...m,idProceso:p.id,cargo:p.cargo,ambito:p.ambito,facultad:p.facultad,puedeAsignar:p.estado==='borrador'&&!p.actual&&!p.publicado}))),ids=new Set(mesas.map(m=>m.id));
  const propias=asignaciones===null?null:asignaciones.filter(a=>ids.has(a.idMesa));
  const cubiertas=propias===null?null:new Set(propias.map(a=>a.idMesa));
  const estados=[...new Set(cargos.map(p=>p.estado))];

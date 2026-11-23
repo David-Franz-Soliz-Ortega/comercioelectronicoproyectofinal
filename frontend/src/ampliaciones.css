@@ -20,3 +20,29 @@
 .control-estado{display:grid;gap:14px;padding:20px;border:1px solid #DBEAFE;border-radius:16px;background:#F8FAFC}.etiqueta-estado{justify-self:start;padding:7px 14px;border-radius:30px;font-weight:700}.estado-borrador{background:#FEF3C7;color:#92400E}.estado-recepcion{background:#DCFCE7;color:#166534}.estado-cerrada{background:#DBEAFE;color:#123B70}.estado-archivada{background:#E2E8F0;color:#475569}.acciones-estado{display:flex;gap:10px;flex-wrap:wrap}.confirmacion-estado{display:grid;gap:14px;padding:16px;background:#FFFFFF;border:1px solid #CBD5E1;border-radius:12px}.confirmacion-estado label{display:flex;gap:10px;align-items:center}@media(max-width:600px){.acciones-estado .boton{width:100%}.control-estado{padding:14px}}
 
 .observatorio-publico .resultados-sectores,.observatorio-publico .indicador-regla{margin:24px 0;padding:24px;background:#fff;border:1px solid #dbe5ef;border-radius:18px}.resultados-sectores table{width:100%;border-collapse:collapse;table-layout:fixed}.resultados-sectores th,.resultados-sectores td{padding:10px;text-align:left;border-bottom:1px solid #e2e8f0;overflow-wrap:anywhere}.resultados-sectores th{background:#f1f5f9;color:#123B70}.resultados-sectores h2,.indicador-regla h2{font-size:22px}.resultados-sectores article{min-width:0}@media(max-width:600px){.observatorio-publico .resultados-sectores,.observatorio-publico .indicador-regla{padding:14px}.resultados-sectores td,.resultados-sectores th{font-size:12px;padding:7px}}
+
+/* Flujo básico: las decisiones excepcionales quedan plegadas. */
+.opciones-eleccion .opciones-avanzadas{margin:14px 0;padding:12px 14px;border:1px dashed #c4d1e2;border-radius:10px;background:#fff}
+.opciones-eleccion .opciones-avanzadas summary{cursor:pointer;font-weight:700;color:var(--azul-oscuro)}
+.opciones-eleccion .opciones-avanzadas label{display:grid;gap:8px;margin:12px 0}
+.opciones-eleccion .opciones-avanzadas input:not([type=checkbox]),.opciones-eleccion .opciones-avanzadas select{width:100%;min-width:0}
+.opciones-eleccion .resumen-opciones-conteo{display:inline-block;margin:4px 0 0;padding:5px 10px;border-radius:20px;background:#e8f0fe;color:#123b70;font-weight:600}
+.ayuda-agrupacion-mesas{grid-column:1/-1;margin:0;font-size:13px;color:var(--secundario)}
+
+/* Acciones primarias a la derecha y cancelar a la izquierda. */
+.acciones-formulario{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px}
+.acciones-formulario .boton{width:auto;min-width:120px}
+@media(max-width:520px){.acciones-formulario .boton{flex:1 1 auto}}
+
+/* Asignación por mesa completa; el detalle por acta queda plegado. */
+.asignacion-individual-avanzada,.asignacion-individual-operador{margin-top:12px;padding:10px 12px;border:1px dashed #c4d1e2;border-radius:10px;background:#fff}
+.asignacion-individual-avanzada summary,.asignacion-individual-operador summary{cursor:pointer;font-weight:600;color:var(--azul-oscuro)}
+.asignacion-individual-operador>div{display:grid;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #e2e8f0}
+.asignacion-individual-operador label{display:flex;align-items:center;gap:8px;font-weight:400}
+
+.estado-operador-mesa.asignado{color:#16a34a;font-weight:700}
+.estado-operador-mesa.pendiente{color:#dc2626;font-weight:700}
+
+.cabecera-pendientes-facultad{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 6px}
+.asignacion-grupo-pendiente{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.seleccionar-todo-grupo{display:inline-flex;align-items:center;gap:8px;font-weight:600}

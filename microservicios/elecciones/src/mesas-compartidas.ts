@@ -82,6 +82,34 @@ export function rutasMesasCompartidas(app:Express,db:Pool){
   const us=await operadores(req,org,filas),c=await db.connect();
   try{await c.query('BEGIN');await bloquear(c,org);const v=await validar(c,org,filas,us);if(v.errores.length)throw Object.assign(new Error(),{estado:422,detalle:v.errores[0].mensaje});const resultado=await guardar(c,org,res.locals.actor.idUsuario,v.registros);await c.query('COMMIT');res.status(201).json(resultado);}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  });
+ app.post(base+'/grupos/renombrar',async(req,res)=>{
+  const d=z.object({anterior:z.string().trim().min(1).max(120),nuevo:z.string().trim().min(1).max(120)}).strict().parse(req.body);
+  const org=res.locals.actor.idOrganizacion,anterior=d.anterior,nuevo=d.nuevo;
+  if(normalizar(anterior)===normalizar(nuevo)){res.json({actualizados:0});return;}
+  const c=await db.connect();
+  try{
+   await c.query('BEGIN');
+   const filas=(await c.query('SELECT id,configuracion FROM tuvoto_procesos WHERE id_organizacion=$1 AND NOT eliminada',[org])).rows;
+   for(const fila of filas){
+    const config={...(fila.configuracion??{})};let changed=false;
+    const grupoActual=config.facultad&&config.grupoCarreras?`${config.facultad} · ${config.grupoCarreras}`:'';
+    if(grupoActual&&normalizar(grupoActual)===normalizar(anterior)&&anterior.includes('·')){
+     const partes=nuevo.split('·').map(x=>x.trim());
+     config.facultad=partes[0]??config.facultad;
+     config.grupoCarreras=partes.slice(1).join(' · ').trim();
+     config.ambito=nuevo;
+     changed=true;
+    }else{
+     if(config.facultad&&normalizar(config.facultad)===normalizar(anterior)){config.facultad=nuevo;changed=true;}
+     if(config.ambito&&normalizar(config.ambito)===normalizar(anterior)){config.ambito=nuevo;changed=true;}
+    }
+    if(changed)await c.query('UPDATE tuvoto_procesos SET configuracion=$2 WHERE id=$1',[fila.id,JSON.stringify(config)]);
+   }
+   await c.query('UPDATE tuvoto_mesas SET unidad=$2 WHERE id_proceso IN (SELECT id FROM tuvoto_procesos WHERE id_organizacion=$1) AND unidad=$3',[org,nuevo,anterior]);
+   await c.query('UPDATE tuvoto_mesas_fisicas SET unidad=$2 WHERE id_organizacion=$1 AND unidad=$3',[org,nuevo,anterior]);
+   await c.query('COMMIT');res.json({ok:true});
+  }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
+ });
  app.get(base+'/importacion/plantilla',async(_req,res)=>res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').attachment('mesas-compartidas.xlsx').send(await plantillaExcel(columnasMesasCompartidas)));
  for(const accion of ['previsualizar','confirmar'])app.post(base+'/importacion/'+accion,async(req,res)=>{
   const d=z.object({archivo:z.string(),confirmar:z.boolean().optional(),huella:z.string().optional()}).strict().parse(req.body),actor=res.locals.actor,org=actor.idOrganizacion;

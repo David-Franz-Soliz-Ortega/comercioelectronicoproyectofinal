@@ -22,6 +22,16 @@ export function listarMesasInstitucion(procesos) {
   .sort((a,b) => a.codigo.localeCompare(b.codigo,'es',{numeric:true}) || (a.unidad ?? '').localeCompare(b.unidad ?? '','es'));
 }
 
+// Sugiere un código legible a partir del último número usado en la institución.
+export function siguienteCodigoMesa(procesos) {
+  let mayor = 0;
+  for (const mesa of listarMesasInstitucion(procesos)) {
+    const numero = Number(String(mesa.codigo ?? '').match(/(\d+)\s*$/)?.[1] ?? 0);
+    if (Number.isFinite(numero) && numero > mayor) mayor = numero;
+  }
+  return 'Mesa ' + String(mayor + 1).padStart(3, '0');
+}
+
 // Agrupación visual; no deduce vínculos entre mesas por su código o por su nombre.
 export function agruparMesasPorFacultad(mesas) {
  const grupos = new Map();

@@ -85,6 +85,8 @@ async function autenticar(pool: Pool|PoolClient,req: Request) {
   const token=tokenSesion(req);if(!token || token.length!==43) return null;
   const r=await pool.query('SELECT u.id,u.usuario,s.csrf_hash,s.id_organizacion FROM sesiones s JOIN usuarios u ON u.id=s.id_usuario WHERE s.hash=$1 AND NOT s.revocada AND s.expira_en>now() AND u.activo',[hash(token)]);
   if(!r.rowCount)return null;
+  // Renovación deslizante: solo una sesión usada sigue viva; el navegador recibe la cookie nueva en /autenticacion/yo.
+  await pool.query("UPDATE sesiones SET expira_en=now()+($2||' seconds')::interval WHERE hash=$1",[hash(token),String(duracion)]);
   const asignaciones=(await pool.query('SELECT rol,id_organizacion AS "idOrganizacion" FROM asignaciones_roles WHERE id_usuario=$1',[r.rows[0].id])).rows;
   return {...r.rows[0],asignaciones};
 }
@@ -124,6 +126,7 @@ export function rutasSeguridad(app: Express,pool: Pool) {
   });
   app.get('/autenticacion/yo',async(req,res)=>{
     const actor=await autenticar(pool,req);if(!actor)return error(res,401,'Sesión requerida');
+    res.cookie(cookieSesion,tokenSesion(req),{secure:cookieSegura,httpOnly:true,sameSite:'strict',path:'/',maxAge:duracion*1000});
     res.json({idUsuario:actor.id,usuario:actor.usuario,roles:actor.asignaciones,idOrganizacion:actor.id_organizacion});
   });
   app.post('/interno/autorizar',async(req,res)=>{

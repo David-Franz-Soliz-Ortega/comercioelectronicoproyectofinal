@@ -1,0 +1,23 @@
+# Flujo de configuración simplificado
+
+- **Objetivo:** reducir pasos y campos para preparar y operar una elección sin cambiar contratos ni reglas de conteo.
+- **Responsable:** OpenCode; siguiente responsable QA por asignar. **Estado:** desplegado en frontend e identidad locales; pendiente QA visual.
+- **Base:** `main`, revisión `68eb88f`; árbol limpio al iniciar.
+- **Cambios:**
+  - `OpcionesEleccion.jsx`: vuelta, sectores, ponderación y regla de segunda vuelta quedan plegados en «Opciones avanzadas»; se muestra un resumen del modo de conteo.
+  - `CamposCargo.jsx`: se retira la pregunta por la agrupación de mesas; se deduce del tipo y cargo (`Facultad`, `Carrera`, `Recinto` o `Grupo`) y se informa en una línea.
+  - `MesasCompartidas.jsx`: se retiran recinto y rango de apellidos del formulario; el código se propone automáticamente (`Mesa 001…`), el sector se oculta cuando solo hay uno y el operador se preselecciona si existe uno solo.
+  - `ListadoMesas.jsx`: se deja de buscar y mostrar recinto/apellidos; se muestra la unidad.
+  - `AsignacionesOperadores.jsx` y `ConteoInstitucion.jsx`: botón «Distribuir mesas pendientes» que reparte las mesas sin operador entre operadores activos con menos carga, con confirmación.
+  - `ConteoInstitucion.jsx`: iniciar/terminar/preparar requiere una sola confirmación (se retira la casilla adicional).
+  - `PanelPrivado.jsx`: la fotografía del candidato se rotula como opcional; el alta de candidato queda con un solo botón de guardado y Cancelar abajo; el alta de cargo deja un único Cancelar abajo y Guardar a la derecha.
+  - `ModalFormulario.jsx` y `CandidatosAdministracion.jsx`: el modal de candidatos oculta el Cerrar superior y usa el Cancelar inferior.
+  - `EditarOperador.jsx`: la asignación muestra una mesa física con todas sus actas por defecto; la selección por acta queda en un bloque avanzado.
+  - `ConteoInstitucion.jsx`: las mesas pendientes se agrupan por mesa física; asignar una mesa asigna todas sus actas. La asignación individual queda plegada.
+  - `MesasCompartidas.jsx`: Unidad/facultad/grupo ofrece los grupos ya creados y «Agregar nuevo grupo…».
+  - Sesión deslizante: `identidad` renueva `expira_en` en cada uso y `/autenticacion/yo` reemite la cookie; el frontend envía un latido cada 5 minutos solo si hubo actividad en los últimos 25 minutos.
+- **Sin cambios:** servicios, OpenAPI, GraphQL, gRPC, eventos, migraciones, permisos, reglas de inicio/cierre, publicación y conservación de actas. El backend sigue aceptando recinto y apellidos para registros históricos e importaciones.
+- **Verificación:** `npm run probar` 74/74 OK; `npm run compilar` OK; `tsc` de identidad y elecciones OK; `git diff --check` OK. No se ejecutó la prueba de navegador completa porque `formularios-interfaz.mjs` ya fallaba antes por un selector eliminado (`.grupos-mesas-operador`) ajeno a este cambio.
+- **Despliegue adicional:** `frontend/dist` y `microservicios/elecciones/dist` copiados a `tuvoto-frontend-1` y `tuvoto-elecciones-1`; ambos contenedores `running healthy`, frontend 200 en `http://127.0.0.1:8890/`. No se modificaron datos ni volúmenes.
+- Ajustes extra: selector de grupos en creación de mesa muestra solo grupos/facultades; permite agregar y renombrar un grupo en cargos y mesas; pendientes de operador y edición de operador agrupan mesas por facultad/unidad.
+- **Siguiente acción:** QA visual del alta de cargo, creación de mesa y distribución automática.

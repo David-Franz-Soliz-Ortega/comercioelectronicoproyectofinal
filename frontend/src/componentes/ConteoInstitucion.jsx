@@ -1,7 +1,8 @@
-import {asignarMesasOperador} from '../api/operadores.js';
+import {asignarMesasOperador, distribuirMesasPendientes} from '../api/operadores.js';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { nombresEstadoInstitucion } from '../api/catalogos.js';
 import { resumirInstitucion } from '../api/estadoInstitucion.js';
+import { agruparMesasFisicas, agruparMesasPorFacultad } from '../api/mesasCompartidas.js';
 import { solicitarRest } from '../api/clienteRest.js';
 import { notificarExito } from '../api/confirmaciones.js';
 import {
@@ -17,7 +18,7 @@ import {
 export default function ConteoInstitucion({
   organizacion,
   nombre,
-  procesos,
+  procesos = [],
   ocupado,
   alGuardar,
   alOcupado,
@@ -27,8 +28,8 @@ export default function ConteoInstitucion({
 }) {
   const pendientesRef=useRef(null);
   const [responsables,setResponsables]=useState({});
+  const [responsableGrupo,setResponsableGrupo]=useState({});
   const [accion, setAccion] = useState('');
-  const [confirmado, setConfirmado] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [asignaciones, setAsignaciones] = useState(null);
@@ -59,9 +60,12 @@ export default function ConteoInstitucion({
   }, [organizacion, revision, intento]);
 
   const resumen = resumirInstitucion(procesos, asignaciones);
-  const borradores = procesos.filter(p => p.estado === 'borrador');
-  const abiertos = procesos.filter(p => p.estado === 'recepcion');
-  const finalizados = procesos.filter(p => p.estado === 'cerrada');
+  const pendientesPorMesa = useMemo(() => agruparMesasFisicas(resumen.pendientes ?? []), [resumen.pendientes]);
+  const pendientesPorFacultad = useMemo(() => agruparMesasPorFacultad(pendientesPorMesa.map(g => ({...g, facultad: g.cargos?.[0]?.facultad || '', unidad: g.unidad}))), [pendientesPorMesa]);
+  const listaCargos = procesos ?? [];
+  const borradores = listaCargos.filter(p => p.estado === 'borrador');
+  const abiertos = listaCargos.filter(p => p.estado === 'recepcion');
+  const finalizados = listaCargos.filter(p => p.estado === 'cerrada');
   const bloqueado = ocupado || guardando;
   const operadoresDisponibles=cuentas.filter(c=>c.activo&&c.roles?.some(r=>r.rol==='OPERADOR'&&r.idOrganizacion===organizacion)&&!c.roles.some(r=>r.rol==='ADMINISTRADOR'&&(r.idOrganizacion===null||r.idOrganizacion===organizacion)));
   async function asignarPendiente(mesa){
@@ -71,6 +75,38 @@ export default function ConteoInstitucion({
     try{
       await asignarMesasOperador({pedir:solicitarRest,organizacion,idUsuario,mesas:[mesa.id],completadas:new Set()});
       setIntento(v=>v+1);alGuardar();notificarExito('Operador asignado a '+mesa.codigo+' · '+mesa.cargo+'.');
+    }catch(e){setError(e.message);}finally{setGuardando(false);alOcupado?.(false);}
+  }
+  async function asignarMesaCompleta(grupo){
+    const idUsuario=responsables[grupo.id];
+    const mesas=grupo.cargos.map(c=>c.id);
+    if(bloqueado||!grupo.cargos.every(c=>c.puedeAsignar)||!operadoresDisponibles.some(c=>c.idUsuario===idUsuario))return;
+    setGuardando(true);alOcupado?.(true);setError('');
+    try{
+      await asignarMesasOperador({pedir:solicitarRest,organizacion,idUsuario,mesas,completadas:new Set()});
+      setIntento(v=>v+1);alGuardar();notificarExito('Operador asignado a '+grupo.codigo+' con '+mesas.length+' '+(mesas.length===1?'acta':'actas')+'.');
+    }catch(e){setError(e.message);}finally{setGuardando(false);alOcupado?.(false);}
+  }
+  async function asignarGrupoCompleto(fac){
+    const idUsuario=responsableGrupo[fac.id];
+    const mesas=fac.mesas.flatMap(g=>g.cargos.map(c=>c.id));
+    if(bloqueado||!fac.mesas.every(g=>g.cargos.every(c=>c.puedeAsignar))||!operadoresDisponibles.some(c=>c.idUsuario===idUsuario)||!mesas.length)return;
+    setGuardando(true);alOcupado?.(true);setError('');
+    try{
+      await asignarMesasOperador({pedir:solicitarRest,organizacion,idUsuario,mesas,completadas:new Set()});
+      setIntento(v=>v+1);alGuardar();notificarExito('Operador asignado a '+fac.nombre+' con '+mesas.length+' '+(mesas.length===1?'acta':'actas')+'.');
+    }catch(e){setError(e.message);}finally{setGuardando(false);alOcupado?.(false);}
+  }
+  async function distribuirPendientes(){
+    if(bloqueado||asignaciones===null)return;
+    const grupos=distribuirMesasPendientes({cuentas,asignaciones,procesos,organizacion});
+    const total=grupos.reduce((n,g)=>n+g.mesas.length,0);
+    if(!total){setError('No hay operadores activos o mesas pendientes para distribuir.');return;}
+    if(!window.confirm(`Se repartirán ${total} mesas pendientes entre ${grupos.length} operadores activos. ¿Continuar?`))return;
+    setGuardando(true);alOcupado?.(true);setError('');
+    try{
+      for(const grupo of grupos)await asignarMesasOperador({pedir:solicitarRest,organizacion,idUsuario:grupo.idUsuario,mesas:grupo.mesas,completadas:new Set()});
+      setIntento(v=>v+1);alGuardar();notificarExito(`${total} mesas distribuidas entre ${grupos.length} operadores.`);
     }catch(e){setError(e.message);}finally{setGuardando(false);alOcupado?.(false);}
   }
 
@@ -117,7 +153,7 @@ export default function ConteoInstitucion({
   }, [cargosFiltrados, paginaSegura, filasPorPagina]);
 
   async function guardar() {
-    if (bloqueado || !confirmado) return;
+    if (bloqueado) return;
     setGuardando(true);
     alOcupado?.(true);
     setError('');
@@ -129,7 +165,6 @@ export default function ConteoInstitucion({
         mostrarDetalleValidacion: true
       });
       setAccion('');
-      setConfirmado(false);
       alGuardar();
       notificarExito(
         r.actualizados +
@@ -270,58 +305,90 @@ export default function ConteoInstitucion({
         <section ref={pendientesRef} tabIndex={-1} className="pendientes-inicio-conteo" aria-label="Asignaciones pendientes para iniciar">
           <header>
             <div>
-              <h3>Mesas y cargos sin operador asignado ({resumen.pendientes.length})</h3>
-              <p>Cada acta debe tener un operador asignado para poder iniciar el conteo. Elige un operador para cada fila y pulsa Asignar.</p>
+              <h3>Mesas sin operador asignado ({pendientesPorMesa.length})</h3>
+              <p>{(resumen.pendientes??[]).length} {((resumen.pendientes??[]).length===1)?'acta pendiente':'actas pendientes'}. Al asignar una mesa, el operador recibe todas sus actas.</p>
             </div>
+            <button type="button" className="boton secundario" disabled={bloqueado||!operadoresDisponibles.length} onClick={distribuirPendientes}>
+              Distribuir automáticamente
+            </button>
             <button type="button" className="boton secundario" disabled={bloqueado} onClick={()=>alIr?.('asignaciones')}>
               Ir a Operadores →
             </button>
           </header>
-          <div className="tabla-pendientes-inicio-scroll">
-            <table className="tabla-admin">
-              <thead>
-                <tr>
-                  <th>Mesa</th>
-                  <th>Cargo y unidad</th>
-                  <th>Sector</th>
-                  <th>Operador activo</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>{resumen.pendientes.map(m=><tr key={m.id} data-pendiente-inicio={m.id}>
-                <td><strong>{m.codigo}</strong></td>
-                <td>
-                  <strong>{m.cargo}</strong>
-                  <span style={{ display: 'block', fontSize: 12, color: '#64748B', marginTop: 2 }}>
-                    {m.unidad}{m.ambito&&m.ambito!==m.unidad?' · '+m.ambito:''}
-                  </span>
-                </td>
-                <td>{m.sector||'General'}</td>
-                <td>
-                  <select
-                    aria-label={'Operador para '+m.codigo+' · '+m.cargo}
-                    value={responsables[m.id]||''}
-                    disabled={bloqueado||!m.puedeAsignar||!operadoresDisponibles.length}
-                    onChange={e=>setResponsables(prev=>({...prev,[m.id]:e.target.value}))}
-                  >
-                    <option value="">Seleccionar operador…</option>
-                    {operadoresDisponibles.map(c=><option key={c.idUsuario} value={c.idUsuario}>{c.usuario}</option>)}
-                  </select>
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="boton primario"
-                    disabled={bloqueado||!m.puedeAsignar||!responsables[m.id]||!operadoresDisponibles.some(c=>c.idUsuario===responsables[m.id])}
-                    onClick={()=>asignarPendiente(m)}
-                  >
-                    Asignar
-                  </button>
-                  {!m.puedeAsignar&&<small style={{ display: 'block', color: '#64748B', marginTop: 4 }}>Configuración bloqueada</small>}
-                </td>
-              </tr>)}</tbody>
-            </table>
+          <div className="pendientes-por-facultad">
+            {pendientesPorFacultad.map(fac => (
+              <section key={fac.id} className="pendientes-facultad">
+                <div className="cabecera-pendientes-facultad">
+                  <h4>{fac.nombre} <span className="cantidad-total-mesas">{fac.mesas.length}</span></h4>
+                  <div className="asignacion-grupo-pendiente">
+                    <select aria-label={'Operador para el grupo '+fac.nombre} value={responsableGrupo[fac.id]||''} disabled={bloqueado||!operadoresDisponibles.length} onChange={e=>setResponsableGrupo(prev=>({...prev,[fac.id]:e.target.value}))}>
+                      <option value="">Asignar grupo a…</option>
+                      {operadoresDisponibles.map(c=><option key={c.idUsuario} value={c.idUsuario}>{c.usuario}</option>)}
+                    </select>
+                    <button type="button" className="boton primario" disabled={bloqueado||!responsableGrupo[fac.id]||!operadoresDisponibles.some(c=>c.idUsuario===responsableGrupo[fac.id])} onClick={()=>asignarGrupoCompleto(fac)}>Asignar grupo</button>
+                  </div>
+                </div>
+                <div className="tabla-pendientes-inicio-scroll">
+                  <table className="tabla-admin">
+                    <thead>
+                      <tr>
+                        <th>Mesa</th>
+                        <th>Cargo y unidad</th>
+                        <th>Sector</th>
+                        <th>Operador activo</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>{fac.mesas.map(g=>{const puede=g.cargos.every(c=>c.puedeAsignar);return <tr key={g.id} data-pendiente-inicio={g.id}>
+                      <td><strong>{g.codigo}</strong></td>
+                      <td>
+                        <strong>{g.cargos.map(c=>c.cargo).join(' · ')}</strong>
+                        <span style={{ display: 'block', fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                          {g.unidad} · {g.cargos.length} {(g.cargos.length===1)?'acta':'actas'}
+                        </span>
+                      </td>
+                      <td>{g.sector||'General'}</td>
+                      <td>
+                        <select
+                          aria-label={'Operador para '+g.codigo}
+                          value={responsables[g.id]||''}
+                          disabled={bloqueado||!puede||!operadoresDisponibles.length}
+                          onChange={e=>setResponsables(prev=>({...prev,[g.id]:e.target.value}))}
+                        >
+                          <option value="">Seleccionar operador…</option>
+                          {operadoresDisponibles.map(c=><option key={c.idUsuario} value={c.idUsuario}>{c.usuario}</option>)}
+                        </select>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="boton primario"
+                          disabled={bloqueado||!puede||!responsables[g.id]||!operadoresDisponibles.some(c=>c.idUsuario===responsables[g.id])}
+                          onClick={()=>asignarMesaCompleta(g)}
+                        >
+                          Asignar mesa
+                        </button>
+                        {!puede&&<small style={{ display: 'block', color: '#64748B', marginTop: 4 }}>Configuración bloqueada</small>}
+                      </td>
+                    </tr>;})}</tbody>
+                  </table>
+                </div>
+              </section>
+            ))}
           </div>
+          <details className="asignacion-individual-avanzada">
+            <summary>Asignación individual por acta</summary>
+            <div className="tabla-pendientes-inicio-scroll">
+              <table className="tabla-admin">
+                <thead><tr><th>Mesa</th><th>Cargo</th><th>Operador activo</th><th>Acción</th></tr></thead>
+                <tbody>{(resumen.pendientes??[]).map(m=><tr key={m.id} data-pendiente-acta={m.id}>
+                  <td>{m.codigo}</td><td>{m.cargo}</td>
+                  <td><select aria-label={'Operador individual para '+m.codigo+' · '+m.cargo} value={responsables[m.id]||''} disabled={bloqueado||!m.puedeAsignar||!operadoresDisponibles.length} onChange={e=>setResponsables(prev=>({...prev,[m.id]:e.target.value}))}><option value="">Seleccionar operador…</option>{operadoresDisponibles.map(c=><option key={c.idUsuario} value={c.idUsuario}>{c.usuario}</option>)}</select></td>
+                  <td><button type="button" className="boton secundario" disabled={bloqueado||!m.puedeAsignar||!responsables[m.id]||!operadoresDisponibles.some(c=>c.idUsuario===responsables[m.id])} onClick={()=>asignarPendiente(m)}>Asignar acta</button></td>
+                </tr>)}</tbody>
+              </table>
+            </div>
+          </details>
           {!operadoresDisponibles.length&&<p style={{ marginTop: 12, color: '#B45309' }}>No hay operadores activos disponibles en esta institución. Créalos o asígnales el rol desde Operadores o Usuarios.</p>}
         </section></>
       ) : (
@@ -555,8 +622,7 @@ export default function ConteoInstitucion({
             title={resumen.mesasSinOperador>0?'Completa las asignaciones pendientes indicadas arriba':undefined}
             onClick={() => {
               setAccion('iniciar');
-              setConfirmado(false);
-              setError('');
+                      setError('');
             }}
           >
             Iniciar conteo<span className="sr-only"> de la institución</span>
@@ -567,13 +633,12 @@ export default function ConteoInstitucion({
             disabled={bloqueado || !abiertos.length}
             onClick={() => {
               setAccion('terminar');
-              setConfirmado(false);
-              setError('');
+                      setError('');
             }}
           >
             Terminar conteo<span className="sr-only"> de la institución</span>
           </button>}
-          {finalizados.length>0&&!abiertos.length&&<button type="button" className="boton secundario" disabled={bloqueado} onClick={()=>{setAccion('preparar');setConfirmado(false);setError('');}}>Preparar nuevo conteo de la institución</button>}
+          {finalizados.length>0&&!abiertos.length&&<button type="button" className="boton secundario" disabled={bloqueado} onClick={()=>{setAccion('preparar');setError('');}}>Preparar nuevo conteo de la institución</button>}
         </div>
       </div>
 
@@ -586,20 +651,11 @@ export default function ConteoInstitucion({
               : accion === 'preparar' ? 'Se archivará el conteo finalizado y se copiará su configuración, candidatos, mesas, operadores y destacados a un nuevo borrador. Las actas y resultados anteriores se conservan en el historial y no se sumarán al nuevo conteo.'
               : 'Se detendrá la recepción de actas de todos los cargos abiertos de esta institución. Se conservarán sus datos y resultados.'}
           </p>
-          <label>
-            <input
-              type="checkbox"
-              disabled={bloqueado}
-              checked={confirmado}
-              onChange={e => setConfirmado(e.target.checked)}
-            />
-            Confirmo la acción para toda la institución.
-          </label>
           <div className="acciones-estado">
             <button
               type="button"
               className="boton primario"
-              disabled={bloqueado || !confirmado}
+              disabled={bloqueado}
               onClick={guardar}
             >
               {guardando ? 'Guardando…' : 'Confirmar'}

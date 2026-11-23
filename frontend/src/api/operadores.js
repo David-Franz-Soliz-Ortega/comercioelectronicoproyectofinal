@@ -36,6 +36,39 @@ export async function completarImportacionOperadores({operadores,procesos,organi
  return resultados;
 }
 
+// Reparte las mesas físicas todavía sin operador entre los operadores activos con menos carga.
+// Todas las actas de una misma mesa quedan con el mismo operador.
+// No modifica datos: devuelve los grupos para que el llamador confirme las asignaciones.
+export function distribuirMesasPendientes({ cuentas, asignaciones, procesos, organizacion }) {
+ const operadores = cuentas.filter(c => c.activo && c.roles?.some(r => r.rol === 'OPERADOR' && r.idOrganizacion === organizacion) && !c.roles.some(r => r.rol === 'ADMINISTRADOR' && (r.idOrganizacion === null || r.idOrganizacion === organizacion)));
+ if (!operadores.length) return [];
+ const asignadas = new Set(asignaciones.map(a => a.idMesa));
+ const fisicasPorOperador = new Map();
+ for (const a of asignaciones) {
+  const clave = a.idMesaFisica || a.idMesa;
+  if (!fisicasPorOperador.has(a.idUsuario)) fisicasPorOperador.set(a.idUsuario, new Set());
+  fisicasPorOperador.get(a.idUsuario).add(clave);
+ }
+ const carga = new Map(operadores.map(c => [c.idUsuario, fisicasPorOperador.get(c.idUsuario)?.size ?? 0]));
+ const porMesa = new Map();
+ for (const mesa of mesasAsignables(procesos)) {
+  const clave = mesa.idMesaFisica || mesa.id;
+  if (!porMesa.has(clave)) porMesa.set(clave, []);
+  porMesa.get(clave).push(mesa);
+ }
+ const grupos = new Map();
+ for (const [clave, actas] of porMesa) {
+  const libres = actas.filter(m => !asignadas.has(m.id));
+  if (!libres.length) continue;
+  const yaAsignado = actas.map(m => asignaciones.find(a => a.idMesa === m.id)?.idUsuario).find(Boolean);
+  const idUsuario = yaAsignado && carga.has(yaAsignado) ? yaAsignado : [...carga.entries()].sort((a, b) => a[1] - b[1])[0][0];
+  if (!grupos.has(idUsuario)) grupos.set(idUsuario, []);
+  grupos.get(idUsuario).push(...libres.map(m => m.id));
+  carga.set(idUsuario, carga.get(idUsuario) + (yaAsignado === idUsuario ? 0 : 1));
+ }
+ return [...grupos].map(([idUsuario, mesas]) => ({ idUsuario, mesas }));
+}
+
 // Las cuentas ajenas no se incluyen; las asignaciones provienen del endpoint del ámbito.
 export function listarOperadoresInstitucion({cuentas,asignaciones,organizacion,busqueda='',idUsuario='',soloPendientes=false}) {
  const porId=new Map(cuentas.filter(c=>c.roles?.some(r=>r.rol==='OPERADOR'&&r.idOrganizacion===organizacion)).map(c=>[c.idUsuario,c]));

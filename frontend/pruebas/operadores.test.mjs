@@ -62,3 +62,28 @@ test('el listado institucional conserva pendientes, varias mesas y cuentas histÃ
  assert.equal(listar({busqueda:'inexistente'}).length,0);
  assert.deepEqual({cuentas,asignaciones},copia);
 });
+
+test('distribuye solo mesas sin operador entre operadores activos con menos carga',async()=>{
+ const { distribuirMesasPendientes } = await import('../src/api/operadores.js');
+ const procesos=[{id:'p',estado:'borrador',cargo:'Rector',mesas:[{id:'m1'},{id:'m2'},{id:'m3'},{id:'m4'}]}];
+ const cuentas=[
+  {idUsuario:'a',usuario:'a',activo:true,roles:[{rol:'OPERADOR',idOrganizacion:'org'}]},
+  {idUsuario:'b',usuario:'b',activo:true,roles:[{rol:'OPERADOR',idOrganizacion:'org'}]},
+  {idUsuario:'x',usuario:'x',activo:false,roles:[{rol:'OPERADOR',idOrganizacion:'org'}]},
+ ];
+ const asignaciones=[{idUsuario:'a',idMesa:'m1',idMesaFisica:'f1'}];
+ const grupos=distribuirMesasPendientes({cuentas,asignaciones,procesos,organizacion:'org'});
+ assert.deepEqual(grupos,[{idUsuario:'b',mesas:['m2','m4']},{idUsuario:'a',mesas:['m3']}]);
+ const copia=structuredClone({procesos,cuentas,asignaciones});
+ distribuirMesasPendientes({cuentas,asignaciones,procesos,organizacion:'org'});
+ assert.deepEqual({procesos,cuentas,asignaciones},copia,'No modifica datos: solo propone');
+ assert.deepEqual(distribuirMesasPendientes({cuentas:[],asignaciones:[],procesos,organizacion:'org'}),[]);
+});
+
+test('una mesa fÃ­sica con varias actas se asigna completa al mismo operador',async()=>{
+ const { distribuirMesasPendientes } = await import('../src/api/operadores.js');
+ const procesos=[{id:'p',estado:'borrador',cargo:'Rector',mesas:[{id:'a1',idMesaFisica:'f1'},{id:'a2',idMesaFisica:'f1'},{id:'b1',idMesaFisica:'f2'}]}];
+ const cuentas=[{idUsuario:'a',usuario:'a',activo:true,roles:[{rol:'OPERADOR',idOrganizacion:'org'}]},{idUsuario:'b',usuario:'b',activo:true,roles:[{rol:'OPERADOR',idOrganizacion:'org'}]}];
+ const grupos=distribuirMesasPendientes({cuentas,asignaciones:[],procesos,organizacion:'org'});
+ assert.deepEqual(grupos,[{idUsuario:'a',mesas:['a1','a2']},{idUsuario:'b',mesas:['b1']}]);
+});

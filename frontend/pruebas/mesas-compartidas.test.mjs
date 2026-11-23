@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { agruparMesasFisicas, listarMesasInstitucion, agruparMesasPorFacultad } from '../src/api/mesasCompartidas.js';
+import { agruparMesasFisicas, listarMesasInstitucion, agruparMesasPorFacultad, siguienteCodigoMesa } from '../src/api/mesasCompartidas.js';
 import { resumirInstitucion } from '../src/api/resumenInstitucion.js';
 
 test('una mesa física agrupa actas de tres cargos sin mezclar docentes con estudiantes ni otras mesas', () => {
@@ -38,4 +38,10 @@ test('la facultad cuenta cada mesa física una vez aunque tenga varios cargos y 
  assert.deepEqual(grupos.find(g=>g.nombre==='Tecnología').mesas.map(m=>m.sector),['estudiantes','docentes']);
  assert.equal(grupos.find(g=>g.nombre==='Distrito sintético').mesas.length,1);
  assert.deepEqual(procesos,copia);
+});
+
+test('propone el siguiente código de mesa sin repetir el último número usado', () => {
+ assert.equal(siguienteCodigoMesa([]),'Mesa 001');
+ assert.equal(siguienteCodigoMesa([{id:'p',mesas:[{id:'a',codigo:'Mesa 007'},{id:'b',codigo:'12'}]}]),'Mesa 013');
+ assert.equal(siguienteCodigoMesa([{id:'p',mesas:[{id:'a',codigo:'SIN-NUMERO'}]}]),'Mesa 001');
 });

@@ -4,6 +4,8 @@ Actualizado: 2026-11-22. Responsable: Antigravity. Siguiente responsable: por as
 
 ## Entregas simultáneas recientes
 
+- [Flujo de configuración simplificado](entregas/flujo-simplificado-configuracion.md) — opciones avanzadas plegadas, agrupación de mesas automática, alta de mesa con código propuesto y sin recinto/apellidos, distribución automática de mesas pendientes y confirmación única de inicio/cierre. 74/74 pruebas frontend, compilación e identidad OK; desplegado en `tuvoto-frontend-1` y `tuvoto-identidad-1`, sin cambiar contratos.
+
 - [Resultados: destacados en cómputo preliminar y navegación agrupada por cargo](entregas/resultados-destacados-agrupacion-cargos.md) — retirada la sección redundante de candidaturas estáticas; los cargos destacados configurados en administración encabezan y seleccionan por defecto el Cómputo Preliminar con candidatos, fotos, votos y actas. Barra de cargos agrupada por palabra clave (Rector, Vicerrector, Decano, Director) con menú desplegable por facultades y opción «Ver todos» con cómputos completos. 71/71 pruebas frontend OK, compilación Vite y despliegue en `tuvoto-frontend-1` verificado.
 
 - [Asignación directa de actas pendientes y depuración de cabecera](entregas/asignacion-directa-mesas-publicacion.md) — resuelta la visualización de actas sin operador en Estado y publicación: tabla con las mesas y cargos pendientes exactos, asignación directa mediante selector de operadores activos con persistencia inmediata y actualización de estado; eliminado el recuadro redundante de contexto en cabecera. 71/71 pruebas frontend pasadas, compilación Vite y despliegue local en `tuvoto-frontend-1` verificado.

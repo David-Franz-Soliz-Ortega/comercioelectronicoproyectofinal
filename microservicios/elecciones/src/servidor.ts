@@ -123,11 +123,31 @@ app.put('/api/v1/configuracion/candidatos/:id/foto',async(req,res)=>{
 });
 app.post('/api/v1/configuracion/procesos/:id/mesas',async(req,res)=>{await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);const d=mesa.parse(req.body);await configurarBloqueado(req.params.id,async c=>{const p=await obtener(req.params.id);if(!sectorValido(p,d.sector)||!unidadValida(p,d.unidad))throw Object.assign(new Error(),{estado:422,detalle:'Selecciona un sector y una carrera del cargo'});const agregada=await c.query('INSERT INTO tuvoto_mesas(id,id_proceso,codigo,unidad,sector) VALUES($1,$2,$3,$4,$5) ON CONFLICT(id_proceso,codigo) DO UPDATE SET eliminada=false WHERE tuvoto_mesas.eliminada AND tuvoto_mesas.unidad=EXCLUDED.unidad AND tuvoto_mesas.sector=EXCLUDED.sector RETURNING id',[randomUUID(),req.params.id,d.codigo,d.unidad,d.sector]);if(!agregada.rowCount)throw Object.assign(new Error(),{estado:409,detalle:'Código de mesa registrado o reservado con otros datos'});});res.status(201).json(await obtener(req.params.id));});
 app.get('/api/v1/configuracion/procesos/:id/asignaciones',async(req,res)=>{await comprobarPropio(req.params.id,res.locals.actor.idOrganizacion);const r=await db.query('SELECT a.id_mesa AS "idMesa",a.id_usuario AS "idUsuario",m.codigo,m.unidad,m.sector FROM tuvoto_asignaciones a JOIN tuvoto_mesas m ON m.id=a.id_mesa WHERE m.id_proceso=$1 AND NOT m.eliminada ORDER BY m.codigo,a.id_usuario',[req.params.id]);res.json({elementos:r.rows});});
+app.post('/api/v1/configuracion/mesas-fisicas/:id/cargos',async(req,res)=>{
+ const id=uuid.parse(req.params.id),d=z.object({idProceso:uuid}).strict().parse(req.body);
+ const org=res.locals.actor.idOrganizacion;
+ const fisica=await db.query('SELECT * FROM tuvoto_mesas_fisicas WHERE id=$1 AND id_organizacion=$2',[id,org]);
+ if(!fisica.rowCount){res.status(404).json({detalle:'Mesa física no disponible'});return;}
+ await comprobarPropio(d.idProceso,org);
+ const proceso=await obtener(d.idProceso);
+ if(!proceso||proceso.estado!=='borrador'||proceso.actual||proceso.publicado){res.status(409).json({detalle:'Solo se vinculan cargos en borrador'});return;}
+ if(!sectorValido(proceso,fisica.rows[0].sector)||!unidadValida(proceso,fisica.rows[0].unidad)){res.status(422).json({detalle:'El cargo no admite esta unidad o sector'});return;}
+ const existente=await db.query('SELECT 1 FROM tuvoto_mesas WHERE id_mesa_fisica=$1 AND id_proceso=$2 AND NOT eliminada',[id,d.idProceso]);
+ if(existente.rowCount){res.status(409).json({detalle:'El cargo ya está vinculado a esta mesa'});return;}
+ await configurarBloqueado(d.idProceso,async c=>{await c.query('INSERT INTO tuvoto_mesas(id,id_proceso,codigo,unidad,sector,id_mesa_fisica) VALUES($1,$2,$3,$4,$5,$6)',[randomUUID(),d.idProceso,fisica.rows[0].codigo,fisica.rows[0].unidad,fisica.rows[0].sector,id]);});
+ res.sendStatus(204);
+});
 app.post('/api/v1/configuracion/mesas/:id/asignar',async(req,res)=>{
  const id=uuid.parse(req.params.id),d=z.object({idUsuario:uuid}).strict().parse(req.body);
  const r=await db.query('SELECT p.id FROM tuvoto_mesas m JOIN tuvoto_procesos p ON p.id=m.id_proceso WHERE m.id=$1 AND p.id_organizacion=$2 AND NOT p.eliminada AND NOT m.eliminada',[id,res.locals.actor.idOrganizacion]);if(!r.rowCount){res.status(404).json({detalle:'Recurso no disponible'});return;}
  const operador=await buscarOperador(req,res.locals.actor.idOrganizacion,{idUsuario:d.idUsuario});if(!operador){res.status(403).json({detalle:'Operador fuera del alcance autorizado'});return;}
  await configurarBloqueado(r.rows[0].id,async c=>{if(!(await c.query('SELECT 1 FROM tuvoto_mesas WHERE id=$1 AND NOT eliminada',[id])).rowCount)throw Object.assign(new Error(),{estado:404});await c.query('INSERT INTO tuvoto_asignaciones(id_mesa,id_usuario) VALUES($1,$2) ON CONFLICT DO NOTHING',[id,d.idUsuario]);});res.sendStatus(204);
+});
+app.delete('/api/v1/configuracion/mesas/:id/asignar',async(req,res)=>{
+ const id=uuid.parse(req.params.id);
+ const r=await db.query('SELECT p.id FROM tuvoto_mesas m JOIN tuvoto_procesos p ON p.id=m.id_proceso WHERE m.id=$1 AND p.id_organizacion=$2 AND NOT p.eliminada AND NOT m.eliminada',[id,res.locals.actor.idOrganizacion]);if(!r.rowCount){res.status(404).json({detalle:'Mesa no disponible'});return;}
+ await configurarBloqueado(r.rows[0].id,async c=>{await c.query('DELETE FROM tuvoto_asignaciones WHERE id_mesa=$1',[id]);});
+ res.sendStatus(204);
 });
 app.get('/api/v1/mis-mesas',async(req,res)=>{try{const a=await permiso(req,'actas:consultar',false);const r=await db.query('SELECT m.id,m.codigo,m.unidad,m.sector,m.id_mesa_fisica AS "idMesaFisica",m.id_proceso AS "idProceso",p.nombre,p.cargo,p.estado FROM tuvoto_mesas m JOIN tuvoto_procesos p ON p.id=m.id_proceso WHERE p.id_organizacion=$2 AND (p.actual OR p.publicado) AND NOT p.archivado AND NOT p.eliminada AND NOT m.eliminada AND ($3 OR EXISTS(SELECT 1 FROM tuvoto_asignaciones a WHERE a.id_mesa=m.id AND a.id_usuario=$1))',[a.idUsuario,a.idOrganizacion,Boolean(a.esAuditor)]);res.json({elementos:r.rows});}catch(e){res.status((e as any).estado??503).json({detalle:'Mesas no autorizadas'});}});
 app.get('/api/v1/mesas/:id/contexto',async(req,res)=>{try{const a=await permiso(req,'actas:consultar',false);const r=await db.query('SELECT m.id,m.id_proceso AS "idProceso",m.codigo,m.unidad,m.sector,m.id_mesa_fisica AS "idMesaFisica",p.estado FROM tuvoto_mesas m JOIN tuvoto_procesos p ON p.id=m.id_proceso JOIN tuvoto_asignaciones a ON a.id_mesa=m.id WHERE m.id=$1 AND a.id_usuario=$2 AND p.id_organizacion=$3 AND (p.actual OR p.publicado) AND NOT p.archivado AND NOT p.eliminada AND NOT m.eliminada',[uuid.parse(req.params.id),a.idUsuario,a.idOrganizacion]);if(!r.rowCount){res.status(403).json({detalle:'Acceso no autorizado'});return;}const p=await obtener(r.rows[0].idProceso);res.json({...r.rows[0],cargo:p!.cargo,sectorNombre:p!.sectores.find((s:any)=>s.codigo===r.rows[0].sector)?.nombre??'General',candidatos:p!.candidatos});}catch(e){res.status((e as any).estado??503).json({detalle:'Mesa no autorizada'});}});

@@ -66,10 +66,18 @@ function Aviso({ error }) {
 }
 
 export default function AccesoPrivado() {
-  return <Sesion>{estado => <PanelPrivado key={`${estado.sesion.idUsuario}-${estado.sesion.idOrganizacion ?? ''}`} {...estado} />}</Sesion>;
+  return <Sesion>{estado => <PanelPrivadoReal key={`${estado.sesion.idUsuario}-${estado.sesion.idOrganizacion ?? ''}`} {...estado} />}</Sesion>;
 }
 
-function PanelPrivado(estado) {
+class ErrorLimitePublicacion extends React.Component {
+ constructor(props){super(props);this.state={error:null};}
+ static getDerivedStateFromError(error){return {error};}
+ componentDidCatch(error){console.error('Error en Estado y publicación:',error);}
+ render(){if(this.state.error)return <section className="panel-admin"><p className="aviso" role="alert">Error en Estado y publicación: {this.state.error.message}</p></section>;return this.props.children;}
+}
+
+class ErrorLimiteMesas extends React.Component { constructor(props){super(props);this.state={error:null};} static getDerivedStateFromError(error){return {error};} componentDidCatch(error){console.error('Error en Mesas:',error);} render(){if(this.state.error)return <section className="panel-admin"><p className="aviso" role="alert">Error en Mesas: {this.state.error.message}</p></section>;return this.props.children;} }
+function PanelPrivadoReal(estado) {
   const { sesion } = estado;
   const admin = sesion.roles.some(
     r => r.rol === 'ADMINISTRADOR' && (r.idOrganizacion === null || r.idOrganizacion === sesion.idOrganizacion)
@@ -505,7 +513,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
           {pestana === 'configuracion' && org && (!creandoProceso && !editandoProceso && revisandoCargo && actual) && (
             <div className="panel-admin" style={{ padding: 24 }}>
               <h2 style={{ fontSize: 18, color: 'var(--azul-oscuro)', marginBottom: 16 }}>{editandoProceso?'Editar opciones del cargo':creandoProceso ? 'Crear nuevo cargo' : 'Configuración del cargo'}</h2>
-              {actual&&!creandoProceso&&!editandoProceso&&<div className="detalle-configuracion-eleccion"><h3>{actual.cargo}</h3><dl><dt>Elección</dt><dd>{actual.nombre}</dd><dt>Facultad</dt><dd>{actual.facultad||'Toda la institución'}</dd><dt>Carreras</dt><dd>{actual.carreras?.join(', ')||'Sin lista de carreras configurada'}</dd><dt>Ámbito</dt><dd>{actual.ambito||'Sin ámbito adicional'}</dd><dt>Vuelta</dt><dd>{actual.vuelta===2?'Segunda vuelta':'Primera vuelta'}</dd><dt>Conteo</dt><dd>{actual.ponderacion?'Ponderación por sectores activada':actual.sectores?.length?'Sectores separados; todos los votos valen igual':'Normal: todos los votos valen igual'}</dd></dl>{actual.sectores?.length>0&&<ul>{actual.sectores.map(s=><li key={s.codigo}>{s.nombre}{actual.ponderacion?` · ${s.pesoBps/100} %`:''}</li>)}</ul>}<p>{configuracionCerrada?'La configuración está bloqueada porque este cargo ya salió de borrador.':'Puedes editar las opciones mientras el cargo esté en borrador.'}</p><button type="button" className="boton secundario" disabled={bloqueado} onClick={()=>setPestana('publicacion')}>Ver estado y publicación</button></div>}
+              {actual&&!creandoProceso&&!editandoProceso&&<div className="detalle-configuracion-eleccion"><h3>{actual.cargo}</h3><dl><dt>Elección</dt><dd>{actual.nombre}</dd><dt>Facultad</dt><dd>{actual.facultad||'Toda la institución'}</dd><dt>Carreras</dt><dd>{actual.carreras?.join(', ')||'Sin lista de carreras configurada'}</dd><dt>Ámbito</dt><dd>{actual.ambito||'Sin ámbito adicional'}</dd><dt>Vuelta</dt><dd>{actual.vuelta===2?'Segunda vuelta':'Primera vuelta'}</dd><dt>Conteo</dt><dd>{actual.ponderacion?'Ponderación por sectores activada':actual.sectores?.length?'Sectores separados; todos los votos valen igual':'Normal: todos los votos valen igual'}</dd></dl>{actual.sectores?.length>0&&<ul>{actual.sectores.map(s=><li key={s.codigo}>{s.nombre}{actual.ponderacion?` · ${s.pesoBps/100} %`:''}</li>)}</ul>}<p>{configuracionCerrada?'La configuración está bloqueada porque este cargo ya salió de borrador.':'Puedes editar las opciones mientras el cargo esté en borrador.'}</p></div>}
               {!creandoProceso && !editandoProceso && <button type="button" className="boton secundario volver-cargos" disabled={bloqueado} onClick={mostrarCargos}>← Volver a cargos</button>}
 
               {actual&&!creandoProceso&&!editandoProceso&&<button type="button" className="boton secundario" disabled={bloqueado||configuracionCerrada} onClick={()=>{const d=datosDeProceso(actual);setEventoBase('');setDatos(d);setEditandoProceso(true);}}>Editar elección en borrador</button>}
@@ -514,7 +522,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
             </div>
           )}
 
-          {pestana==='configuracion'&&org&&<ModalFormulario abierto={creandoProceso||editandoProceso} titulo={editandoProceso?'Editar cargo':'Crear nuevo cargo'} ocupado={bloqueado} alCerrar={mostrarCargos}>
+          {pestana==='configuracion'&&org&&<ModalFormulario abierto={creandoProceso||editandoProceso} titulo={editandoProceso?'Editar cargo':'Crear nuevo cargo'} ocupado={bloqueado} alCerrar={mostrarCargos} cerrarAbajo>
               <form
                 className="formulario-simple"
                 onSubmit={e => {
@@ -527,23 +535,24 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                 }}
               >
                 <Aviso error={error}/><p>{creandoProceso?'Crearás un cargo nuevo; el cargo que tenías seleccionado se conserva.':'Edita únicamente las opciones de este cargo.'} Después podrás registrar sus candidatos, mesas y operadores.</p>
-                {creandoProceso&&<button type="button" className="boton secundario elegir-existente-desde-formulario" disabled={bloqueado} onClick={mostrarCargos}>Cancelar y elegir un cargo existente</button>}
                 <CamposCargo datos={datos} cambiar={setDatos} procesos={procesos} bloqueado={bloqueado} identidadFija={editandoProceso} tipoBloqueado={!!eventoBase}/>
 
-                <button className="boton primario" disabled={bloqueado||(editandoProceso&&configuracionCerrada)||(datos.ponderacion&&datos.sectores.reduce((a,s)=>a+s.pesoBps,0)!==10000)} style={{ width: 'fit-content', marginTop: 10 }}>
-                  {ocupado ? 'Guardando…' : editandoProceso?'Guardar cambios':'Guardar cargo y continuar'}
-                </button>
-                <button type="button" className="boton secundario cancelar-cargo" disabled={bloqueado} onClick={mostrarCargos}>Cancelar y volver a cargos</button>
+                <div className="acciones-formulario">
+                  <button type="button" className="boton secundario cancelar-cargo" disabled={bloqueado} onClick={mostrarCargos}>Cancelar</button>
+                  <button className="boton primario" disabled={bloqueado||(editandoProceso&&configuracionCerrada)||(datos.ponderacion&&datos.sectores.reduce((a,s)=>a+s.pesoBps,0)!==10000)}>
+                    {ocupado ? 'Guardando…' : editandoProceso?'Guardar cambios':'Guardar cargo y continuar'}
+                  </button>
+                </div>
               </form>
           </ModalFormulario>}
 
-          {pestana==='mesas'&&institucionSeleccionada&&datosInstitucionListos&&<MesasCompartidas key={org} nombreInstitucion={institucionSeleccionada.nombre} organizacion={org} procesos={procesos} cuentas={cuentas} idProceso={id} version={version} ocupado={bloqueado} guardar={guardar} alCargo={valor=>{setId(valor);setRevisandoCargo(true);setPestana('configuracion');}} alImportar={()=>{notificarExito('Mesas físicas y cargos importados correctamente.');setVersion(v=>v+1);}}/>}
+          {pestana==='mesas'&&institucionSeleccionada&&datosInstitucionListos&&<ErrorLimiteMesas><MesasCompartidas key={org} nombreInstitucion={institucionSeleccionada.nombre} organizacion={org} procesos={procesos} cuentas={cuentas} idProceso={id} version={version} ocupado={bloqueado} guardar={guardar} alCargo={valor=>{setId(valor);setRevisandoCargo(true);setPestana('configuracion');}} alImportar={()=>{notificarExito('Mesas físicas y cargos importados correctamente.');setVersion(v=>v+1);}}/></ErrorLimiteMesas>}
 
 
           {pestana === 'candidatos' && institucionSeleccionada && <>
           <CandidatosAdministracion nombreInstitucion={institucionSeleccionada.nombre} acciones={datosInstitucionListos?<ImportarExcel key={'general-candidatos-'+org} general cargos={procesos} ruta="/configuracion/importaciones-generales/candidatos" organizacion={org} titulo="candidatos" textoBoton="Importar Excel" alImportar={()=>{setError('');notificarExito('Archivo completo importado. Cada candidato quedó en su cargo de destino.');setVersion(v=>v+1);}}/>:null} key={org} organizacion={org} procesos={procesos} idProceso={id} ocupado={bloqueado} cargando={cargandoDatos} disponible={datosInstitucionListos} revision={version} alActualizar={()=>setVersion(v=>v+1)}
             alEliminar={c=>guardar(()=>pedir(`/configuracion/candidatos/${c.id}`,{metodo:'DELETE',datos:{confirmar:true},mostrarDetalleValidacion:true}),'Candidato retirado del catálogo.')} alProceso={valor=>{setId(valor);setError('');}} alAgregarCargo={()=>prepararNuevoCargo()} alReintentar={()=>setVersion(v=>v+1)}>
-            {actual && <div className="editor-candidatos" data-editor-candidatos={id}>
+            {({ cerrar: cerrarEditor }) => actual && <div className="editor-candidatos" data-editor-candidatos={id}>
               <Aviso error={error}/><h3>Candidatos de {actual.cargo} · {actual.ambito || actual.facultad || 'Toda la institución'}</h3>
               <p style={{ color: 'var(--secundario)', fontSize: 12, marginBottom: 20 }}>
                 {configuracionCerrada ? 'Este cargo ya salió de borrador. Sus candidatos y fotografías están bloqueados.' : 'Puedes agregar candidatos y cambiar fotografías mientras el cargo esté en borrador. Al iniciar el conteo se bloquearán los cambios.'}
@@ -557,7 +566,6 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                   guardar(async () => {
                     await pedir(`/configuracion/procesos/${id}/candidatos`, { metodo: 'POST', datos: candidato });
                     setCandidato({ nombre: '', foto: '' });
-                    if (e.nativeEvent.submitter?.value === 'continuar') setPestana('mesas');
                   });
                 }}
               >
@@ -567,7 +575,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                   <input required maxLength="120" disabled={bloqueado} value={candidato.nombre} onChange={e => setCandidato({ ...candidato, nombre: e.target.value })} />
                 </label>
                 <label>
-                  Fotografía (JPEG/PNG, máx 2 MB)
+                  Fotografía opcional (JPEG/PNG, máx 2 MB)
                   <input
                     type="file"
                     accept="image/jpeg,image/png"
@@ -586,10 +594,12 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
                   />
                 </label>
                 </>}
-                <button className="boton primario" disabled={configuracionCerrada || bloqueado} style={{ width: 'fit-content' }}>
-                  {ocupado ? 'Registrando…' : 'Guardar y agregar otro candidato'}
-                </button>
-                <button className="boton secundario" name="accion" value="continuar" disabled={configuracionCerrada || bloqueado}>Guardar candidato y continuar</button>
+                <div className="acciones-formulario">
+                  <button type="button" className="boton secundario" disabled={bloqueado} onClick={cerrarEditor}>Cancelar</button>
+                  <button className="boton primario" disabled={configuracionCerrada || bloqueado}>
+                    {ocupado ? 'Registrando…' : 'Guardar y agregar otro'}
+                  </button>
+                </div>
               </form>}
 
 
@@ -597,7 +607,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
           </CandidatosAdministracion>
           </>}
 
-          {pestana==='publicacion'&&org&&datosInstitucionListos&&<ConteoInstitucion key={org} cuentas={cuentas} organizacion={org} nombre={institucionSeleccionada?.nombre} procesos={procesos} revision={version} ocupado={bloqueado} alOcupado={setOcupado} alGuardar={()=>setVersion(v=>v+1)} alIr={destino=>setPestana(destino)}/>}
+          {pestana==='publicacion'&&org&&datosInstitucionListos&&<ErrorLimitePublicacion><ConteoInstitucion key={org} cuentas={cuentas} organizacion={org} nombre={institucionSeleccionada?.nombre} procesos={procesos} revision={version} ocupado={bloqueado} alOcupado={setOcupado} alGuardar={()=>setVersion(v=>v+1)} alIr={destino=>setPestana(destino)}/></ErrorLimitePublicacion>}
           {(pestana==='configuracion'&&revisandoCargo&&actual?.estado!=='borrador') && actual && !creandoProceso && !editandoProceso && (() => {
             const mesasConOperador = actual.mesas.filter(m => asignacionesGuardadas.some(a => a.idMesa === m.id));
             const mesasSinOperador = actual.mesas.filter(m => !asignacionesGuardadas.some(a => a.idMesa === m.id));

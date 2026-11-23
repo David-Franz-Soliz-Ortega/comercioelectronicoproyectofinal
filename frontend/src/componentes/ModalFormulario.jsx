@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef } from 'react';
 
-export default function ModalFormulario({ abierto = true, titulo, ocupado = false, alCerrar, children }) {
+export default function ModalFormulario({ abierto = true, titulo, ocupado = false, alCerrar, cerrarAbajo = false, children }) {
  const dialogo = useRef(null), id = useId(), cerrar = useRef(alCerrar);
  cerrar.current = alCerrar;
  useEffect(() => {
@@ -20,7 +20,7 @@ export default function ModalFormulario({ abierto = true, titulo, ocupado = fals
  return <dialog ref={dialogo} className="modal-formulario" aria-labelledby={id} aria-modal="true"
   onCancel={e => { e.preventDefault(); if (!ocupado) cerrar.current(); }}
   onClick={e => { if (e.target !== e.currentTarget || ocupado) return; const r = e.currentTarget.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) cerrar.current(); }}>
-  <header className="cabecera-modal-formulario"><h2 id={id}>{titulo}</h2><button type="button" className="boton secundario" aria-label="Cerrar formulario" disabled={ocupado} onClick={alCerrar}>Cerrar</button></header>
+  <header className="cabecera-modal-formulario"><h2 id={id}>{titulo}</h2>{!cerrarAbajo&&<button type="button" className="boton secundario" aria-label="Cerrar formulario" disabled={ocupado} onClick={alCerrar}>Cerrar</button>}</header>
   {children}
  </dialog>;
 }

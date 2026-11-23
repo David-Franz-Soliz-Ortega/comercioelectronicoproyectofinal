@@ -2,9 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { obtenerSesion, iniciarSesion, finalizarSesion, seleccionarOrganizacion, establecerOrganizacion } from '../api/clienteSesion.js';
 import { IconoTuvoto, IconoUsuario, IconoSalir, IconoOjo, IconoOjoOculto, IconoAlerta } from './Iconos.jsx';
 
+const LATIDO_SESION_MS = 5 * 60 * 1000;
+const INACTIVIDAD_MS = 25 * 60 * 1000;
+
 export default function Sesion({ children }) {
   const revision = useRef(0);
   const operando = useRef(false);
+  const ultimaActividad = useRef(Date.now());
+  const renovarSesion = useRef(() => {});
   const [sesion, cambiarSesion] = useState(null);
   const [cargando, cambiarCargando] = useState(true);
   const [ocupado, cambiarOcupado] = useState(false);
@@ -31,6 +36,7 @@ export default function Sesion({ children }) {
       finally { enCurso = false; if (vigente) cambiarCargando(false); }
     };
     const alMostrar = () => { if (document.visibilityState === 'visible') revisar(); };
+    renovarSesion.current = revisar;
     window.addEventListener('tuvoto:sesion-caducada', caducar);
     window.addEventListener('tuvoto:comprobar-sesion', revisar);
     window.addEventListener('focus', revisar);
@@ -44,6 +50,20 @@ export default function Sesion({ children }) {
       document.removeEventListener('visibilitychange', alMostrar);
     };
   }, []);
+
+  useEffect(() => {
+    if (!sesion) return;
+    const registrar = () => { ultimaActividad.current = Date.now(); };
+    const eventos = ['pointerdown', 'keydown', 'touchstart', 'scroll'];
+    eventos.forEach(evento => window.addEventListener(evento, registrar, { passive: true }));
+    const latido = window.setInterval(() => {
+      if (document.visibilityState === 'visible' && Date.now() - ultimaActividad.current < INACTIVIDAD_MS) renovarSesion.current();
+    }, LATIDO_SESION_MS);
+    return () => {
+      eventos.forEach(evento => window.removeEventListener(evento, registrar));
+      window.clearInterval(latido);
+    };
+  }, [sesion]);
 
   async function ejecutar(operacion) {
     const actual = ++revision.current; operando.current = true;
