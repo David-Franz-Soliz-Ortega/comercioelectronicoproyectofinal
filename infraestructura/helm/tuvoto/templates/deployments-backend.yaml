@@ -1,0 +1,312 @@
+# ======================== IDENTIDAD ========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identidad
+  labels:
+    app: identidad
+    {{- include "tuvoto.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas.identidad }}
+  strategy:
+    type: {{ .Values.estrategiaDespliegue.type }}
+    rollingUpdate:
+      maxSurge: {{ .Values.estrategiaDespliegue.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.estrategiaDespliegue.rollingUpdate.maxUnavailable }}
+  selector:
+    matchLabels:
+      app: identidad
+  template:
+    metadata:
+      labels:
+        app: identidad
+    spec:
+      containers:
+        - name: identidad
+          image: "{{ .Values.imagenes.registry }}/tuvoto-identidad:{{ .Values.imagenes.tag }}"
+          imagePullPolicy: {{ .Values.imagenes.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.puertos.identidad }}
+          resources:
+            {{- toYaml .Values.recursos.backend | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "tuvoto.fullname" . }}-config
+            - secretRef:
+                name: {{ include "tuvoto.fullname" . }}-secrets
+          livenessProbe:
+            httpGet:
+              path: /api/v1/identidad/salud
+              port: {{ .Values.puertos.identidad }}
+            initialDelaySeconds: {{ .Values.sondas.inicialDelay }}
+            periodSeconds: {{ .Values.sondas.periodo }}
+          readinessProbe:
+            httpGet:
+              path: /api/v1/identidad/salud
+              port: {{ .Values.puertos.identidad }}
+            initialDelaySeconds: {{ .Values.sondas.inicialDelay }}
+            periodSeconds: {{ .Values.sondas.periodo }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identidad-svc
+spec:
+  ports:
+    - port: {{ .Values.puertos.identidad }}
+      targetPort: {{ .Values.puertos.identidad }}
+  selector:
+    app: identidad
+---
+# ======================== ELECCIONES ========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elecciones
+  labels:
+    app: elecciones
+    {{- include "tuvoto.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas.elecciones }}
+  strategy:
+    type: {{ .Values.estrategiaDespliegue.type }}
+    rollingUpdate:
+      maxSurge: {{ .Values.estrategiaDespliegue.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.estrategiaDespliegue.rollingUpdate.maxUnavailable }}
+  selector:
+    matchLabels:
+      app: elecciones
+  template:
+    metadata:
+      labels:
+        app: elecciones
+    spec:
+      containers:
+        - name: elecciones
+          image: "{{ .Values.imagenes.registry }}/tuvoto-elecciones:{{ .Values.imagenes.tag }}"
+          imagePullPolicy: {{ .Values.imagenes.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.puertos.eleccionesHttp }}
+              name: http
+            - containerPort: {{ .Values.puertos.eleccionesGrpc }}
+              name: grpc
+          resources:
+            {{- toYaml .Values.recursos.backend | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "tuvoto.fullname" . }}-config
+            - secretRef:
+                name: {{ include "tuvoto.fullname" . }}-secrets
+          livenessProbe:
+            httpGet:
+              path: /api/v1/configuracion/salud
+              port: {{ .Values.puertos.eleccionesHttp }}
+            initialDelaySeconds: {{ .Values.sondas.inicialDelay }}
+            periodSeconds: {{ .Values.sondas.periodo }}
+          readinessProbe:
+            httpGet:
+              path: /api/v1/configuracion/salud
+              port: {{ .Values.puertos.eleccionesHttp }}
+            initialDelaySeconds: {{ .Values.sondas.inicialDelay }}
+            periodSeconds: {{ .Values.sondas.periodo }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elecciones-svc
+spec:
+  ports:
+    - port: {{ .Values.puertos.eleccionesHttp }}
+      name: http
+      targetPort: {{ .Values.puertos.eleccionesHttp }}
+    - port: {{ .Values.puertos.eleccionesGrpc }}
+      name: grpc
+      targetPort: {{ .Values.puertos.eleccionesGrpc }}
+  selector:
+    app: elecciones
+---
+# ======================== ACTAS ========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: actas
+  labels:
+    app: actas
+    {{- include "tuvoto.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas.actas }}
+  strategy:
+    type: {{ .Values.estrategiaDespliegue.type }}
+    rollingUpdate:
+      maxSurge: {{ .Values.estrategiaDespliegue.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.estrategiaDespliegue.rollingUpdate.maxUnavailable }}
+  selector:
+    matchLabels:
+      app: actas
+  template:
+    metadata:
+      labels:
+        app: actas
+    spec:
+      containers:
+        - name: actas
+          image: "{{ .Values.imagenes.registry }}/tuvoto-actas:{{ .Values.imagenes.tag }}"
+          imagePullPolicy: {{ .Values.imagenes.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.puertos.actas }}
+          resources:
+            {{- toYaml .Values.recursos.backend | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "tuvoto.fullname" . }}-config
+            - secretRef:
+                name: {{ include "tuvoto.fullname" . }}-secrets
+          livenessProbe:
+            httpGet:
+              path: /api/v1/actas/salud
+              port: {{ .Values.puertos.actas }}
+            initialDelaySeconds: {{ .Values.sondas.inicialDelay }}
+            periodSeconds: {{ .Values.sondas.periodo }}
+          readinessProbe:
+            httpGet:
+              path: /api/v1/actas/salud
+              port: {{ .Values.puertos.actas }}
+            initialDelaySeconds: {{ .Values.sondas.inicialDelay }}
+            periodSeconds: {{ .Values.sondas.periodo }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: actas-svc
+spec:
+  ports:
+    - port: {{ .Values.puertos.actas }}
+      targetPort: {{ .Values.puertos.actas }}
+  selector:
+    app: actas
+---
+# ======================== RESULTADOS (Alta Concurrencia) ========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resultados
+  labels:
+    app: resultados
+    tipo: alta-concurrencia
+    {{- include "tuvoto.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas.resultados }}
+  strategy:
+    type: {{ .Values.estrategiaDespliegue.type }}
+    rollingUpdate:
+      maxSurge: {{ .Values.estrategiaDespliegue.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.estrategiaDespliegue.rollingUpdate.maxUnavailable }}
+  selector:
+    matchLabels:
+      app: resultados
+  template:
+    metadata:
+      labels:
+        app: resultados
+        tipo: alta-concurrencia
+    spec:
+      containers:
+        - name: resultados
+          image: "{{ .Values.imagenes.registry }}/tuvoto-resultados:{{ .Values.imagenes.tag }}"
+          imagePullPolicy: {{ .Values.imagenes.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.puertos.resultados }}
+          resources:
+            {{- toYaml .Values.recursos.backend | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "tuvoto.fullname" . }}-config
+            - secretRef:
+                name: {{ include "tuvoto.fullname" . }}-secrets
+          livenessProbe:
+            httpGet:
+              path: /api/v1/resultados/salud
+              port: {{ .Values.puertos.resultados }}
+            initialDelaySeconds: {{ .Values.sondas.inicialDelay }}
+            periodSeconds: {{ .Values.sondas.periodo }}
+          readinessProbe:
+            httpGet:
+              path: /api/v1/resultados/salud
+              port: {{ .Values.puertos.resultados }}
+            initialDelaySeconds: {{ .Values.sondas.inicialDelay }}
+            periodSeconds: {{ .Values.sondas.periodo }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: resultados-svc
+spec:
+  ports:
+    - port: {{ .Values.puertos.resultados }}
+      targetPort: {{ .Values.puertos.resultados }}
+  selector:
+    app: resultados
+---
+# ======================== GATEWAY GRAPHQL / BFF ========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  labels:
+    app: gateway
+    {{- include "tuvoto.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas.gateway }}
+  strategy:
+    type: {{ .Values.estrategiaDespliegue.type }}
+    rollingUpdate:
+      maxSurge: {{ .Values.estrategiaDespliegue.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.estrategiaDespliegue.rollingUpdate.maxUnavailable }}
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: "{{ .Values.imagenes.registry }}/tuvoto-gateway:{{ .Values.imagenes.tag }}"
+          imagePullPolicy: {{ .Values.imagenes.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.puertos.gateway }}
+          resources:
+            {{- toYaml .Values.recursos.gateway | nindent 12 }}
+          env:
+            - name: PUERTO
+              value: "{{ .Values.puertos.gateway }}"
+            - name: URL_ELECCIONES
+              value: "http://elecciones-svc:{{ .Values.puertos.eleccionesHttp }}"
+            - name: URL_ACTAS
+              value: "http://actas-svc:{{ .Values.puertos.actas }}"
+            - name: URL_RESULTADOS
+              value: "http://resultados-svc:{{ .Values.puertos.resultados }}"
+          livenessProbe:
+            httpGet:
+              path: /salud
+              port: {{ .Values.puertos.gateway }}
+            initialDelaySeconds: {{ .Values.sondas.inicialDelay }}
+            periodSeconds: {{ .Values.sondas.periodo }}
+          readinessProbe:
+            httpGet:
+              path: /salud
+              port: {{ .Values.puertos.gateway }}
+            initialDelaySeconds: {{ .Values.sondas.inicialDelay }}
+            periodSeconds: {{ .Values.sondas.periodo }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-svc
+spec:
+  ports:
+    - port: {{ .Values.puertos.gateway }}
+      targetPort: {{ .Values.puertos.gateway }}
+  selector:
+    app: gateway

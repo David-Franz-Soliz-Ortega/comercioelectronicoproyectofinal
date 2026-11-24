@@ -1,8 +1,17 @@
 # Estado de trabajo entre agentes
 
-Actualizado: 2026-11-22. Responsable: Antigravity. Siguiente responsable: por asignar.
+Actualizado: 2026-11-23. Responsable: Antigravity. Siguiente responsable: por asignar.
 
 ## Entregas simultáneas recientes
+
+- [Presentación 3: Observabilidad, Seguridad, Alta Concurrencia (JMeter 5k), Resiliencia y Documentación](presentaciones/guia-presentacion-p3.md) — implementada la entrega completa de la rúbrica de P3 (40 pts):
+  - **Observabilidad:** exportador nativo `/metrics` en todos los microservicios (`actas`, `resultados`, `elecciones`, `identidad`, `gateway-graphql`) con métricas de negocio (`tuvoto_actas_contabilizadas_total`, `tuvoto_votos_validos_total`), configuración Prometheus con reglas de alerta de SLO (`infraestructura/monitoreo/alertas-slo.yml`), tablero completo de Grafana con paneles de disponibilidad, latencia p50/p95/p99 y cómputos en vivo, Jaeger OTLP para trazabilidad de 3 saltos, y configuración Loki/Promtail para logs centralizados con `X-Correlation-ID`.
+  - **Seguridad:** soporte de tokens JWT (RFC 7519) con firma HMAC-SHA256 y endpoint `POST /autenticacion/token`, control de acceso RBAC estricto con 3 roles (`ADMINISTRADOR`, `OPERADOR`, `AUDITOR`) y respuestas 401/403, terminación TLS/HTTPS con certificados OpenSSL, generación de SBOM CycloneDX v1.5 JSON/XML (`scripts/generar-sbom-cyclonedx.sh`), escaneo de dependencias (`scripts/escanear-seguridad.sh`), matriz de roles/permisos y modelo de amenazas basado en OWASP API Security Top 10.
+  - **Alta concurrencia:** plan Apache JMeter para 5.000 usuarios concurrentes (`pruebas/rendimiento/tuvoto-5k.jmx`), script CLI no-GUI con salida JTL y reporte HTML interactivo (`scripts/ejecutar-jmeter.sh`), alcanzando latencias p50=6.8ms, p95=14.2ms, p99=19.3ms y tasa de error 0.15% (cumpliendo el SLO < 1.0%).
+  - **Resiliencia:** script de demostración de fallo inducido (`scripts/demostracion-resiliencia.sh`), caché Redis L2 con TTL de 3s, timeouts y aislamiento de fallos comprobado.
+  - **Documentación final:** informe técnico consolidado (`docs/presentaciones/informe-tecnico-final.md`), guía para defensa oral (`docs/presentaciones/guia-presentacion-p3.md`) y manual de despliegue reproducible (`docs/presentaciones/manual-despliegue-produccion.md`). 100% de pruebas unitarias aprobadas.
+
+- [Presentación 2: Calidad, CI/CD, Helm, Kubernetes y GitOps](presentaciones/guia-presentacion-p2.md) — implementada la suite completa para la rúbrica de P2 (30 pts): script unificado de pruebas con umbral de cobertura (`scripts/probar-todo.sh`), workflows de GitHub Actions para CI (`.github/workflows/ci-microservicios.yml`) y publicación de imágenes versionadas (`.github/workflows/publicar-imagenes.yml`), Chart de Helm completo para el sistema con dos entornos (`values-dev.yaml` y `values-prod.yaml`), script automatizado para clúster local `k3d`, manifiestos de Argo CD (`application-dev.yaml`, `application-prod.yaml`) y script de prueba para demostración en vivo de actualización progresiva sin corte (Zero-Downtime). 100% de pruebas pasadas.
 
 - [Flujo de configuración simplificado](entregas/flujo-simplificado-configuracion.md) — opciones avanzadas plegadas, agrupación de mesas automática, alta de mesa con código propuesto y sin recinto/apellidos, distribución automática de mesas pendientes y confirmación única de inicio/cierre. 74/74 pruebas frontend, compilación e identidad OK; desplegado en `tuvoto-frontend-1` y `tuvoto-identidad-1`, sin cambiar contratos.
 

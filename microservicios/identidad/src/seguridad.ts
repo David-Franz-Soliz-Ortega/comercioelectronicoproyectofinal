@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { rutasImportacionOperadores } from './importacion-operadores.js';
 import type { Express, Request, Response } from 'express';
@@ -17,6 +17,38 @@ const origenes = (process.env.ORIGEN_PUBLICO ?? 'http://localhost:8080,http://12
   .filter(Boolean);
 const hash = (valor: string) => createHash('sha256').update(valor).digest('hex');
 const secreto = () => randomBytes(32).toString('base64url');
+const secretoJwt = process.env.TUVOTO_JWT_SECRETO || process.env.CLAVE_INTERNA_IDENTIDAD || 'tuvoto-secreto-jwt-produccion-2026-com600-microservicios';
+
+export function firmarJwt(payload: Record<string, any>, expiraSegundos = duracion): string {
+  const cabecera = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const exp = Math.floor(Date.now() / 1000) + expiraSegundos;
+  const cuerpo = Buffer.from(JSON.stringify({ ...payload, exp })).toString('base64url');
+  const firma = createHmac('sha256', secretoJwt).update(`${cabecera}.${cuerpo}`).digest('base64url');
+  return `${cabecera}.${cuerpo}.${firma}`;
+}
+
+export function verificarJwt(token: string): any | null {
+  const partes = token.split('.');
+  if (partes.length !== 3) return null;
+  const [cabeceraB64, cuerpoB64, firmaB64] = partes;
+  const firmaEsperada = createHmac('sha256', secretoJwt).update(`${cabeceraB64}.${cuerpoB64}`).digest('base64url');
+  if (!iguales(firmaB64, firmaEsperada)) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(cuerpoB64, 'base64url').toString('utf8'));
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+function tokenBearer(req: Request): string {
+  const auth = req.header('Authorization') ?? req.header('authorization') ?? '';
+  if (auth.toLowerCase().startsWith('bearer ')) {
+    return auth.slice(7).trim();
+  }
+  return '';
+}
 export function cookies(req: Request): Record<string,string> {
   return Object.fromEntries((req.headers.cookie ?? '').split(';').map(x => x.trim().split('=')).filter(x => x.length === 2));
 }
@@ -82,13 +114,22 @@ export async function bootstrap(pool: Pool,entrada: unknown) {
   } catch(e) {await db.query('ROLLBACK');throw e;} finally {db.release();}
 }
 async function autenticar(pool: Pool|PoolClient,req: Request) {
+  const bearer = tokenBearer(req);
+  if (bearer) {
+    const payload = verificarJwt(bearer);
+    if (!payload || !payload.sub) return null;
+    const r = await pool.query('SELECT u.id,u.usuario FROM usuarios u WHERE u.id=$1 AND u.activo', [payload.sub]);
+    if (!r.rowCount) return null;
+    const asignaciones = (await pool.query('SELECT rol,id_organizacion AS "idOrganizacion" FROM asignaciones_roles WHERE id_usuario=$1', [payload.sub])).rows;
+    return { id: r.rows[0].id, usuario: r.rows[0].usuario, csrf_hash: '', id_organizacion: payload.idOrganizacion ?? null, asignaciones, esJwt: true };
+  }
   const token=tokenSesion(req);if(!token || token.length!==43) return null;
   const r=await pool.query('SELECT u.id,u.usuario,s.csrf_hash,s.id_organizacion FROM sesiones s JOIN usuarios u ON u.id=s.id_usuario WHERE s.hash=$1 AND NOT s.revocada AND s.expira_en>now() AND u.activo',[hash(token)]);
   if(!r.rowCount)return null;
   // Renovación deslizante: solo una sesión usada sigue viva; el navegador recibe la cookie nueva en /autenticacion/yo.
-  await pool.query("UPDATE sesiones SET expira_en=now()+($2||' seconds')::interval WHERE hash=$1",[hash(token),String(duracion)]);
+  try { await pool.query("UPDATE sesiones SET expira_en=now()+($2||' seconds')::interval WHERE hash=$1",[hash(token),String(duracion)]); } catch {}
   const asignaciones=(await pool.query('SELECT rol,id_organizacion AS "idOrganizacion" FROM asignaciones_roles WHERE id_usuario=$1',[r.rows[0].id])).rows;
-  return {...r.rows[0],asignaciones};
+  return {...r.rows[0],asignaciones,esJwt:false};
 }
 export const permisos: Record<string,string[]> = {
   'proceso:configurar':['ADMINISTRADOR'],
@@ -122,7 +163,21 @@ export function rutasSeguridad(app: Express,pool: Pool) {
     await pool.query("INSERT INTO sesiones(hash,id_usuario,csrf_hash,expira_en,id_organizacion) VALUES($1,$2,$3,now()+($4||' seconds')::interval,$5)",[hash(token),usuario.id,hash(csrfToken),String(duracion),seleccion]);
     res.cookie(cookieSesion,token,{secure:cookieSegura,httpOnly:true,sameSite:'strict',path:'/',maxAge:duracion*1000});
     res.cookie(cookieCsrf,csrfToken,{secure:cookieSegura,httpOnly:false,sameSite:'strict',path:'/'});
-    await auditar(pool,'login',usuario.id);res.json({idUsuario:usuario.id,usuario:usuario.usuario,csrf:csrfToken,expiraEnSegundos:duracion});
+    const tokenJwt=firmarJwt({sub:usuario.id,usuario:usuario.usuario,idOrganizacion:seleccion,roles:membresias});
+    await auditar(pool,'login',usuario.id);res.json({idUsuario:usuario.id,usuario:usuario.usuario,csrf:csrfToken,token:tokenJwt,tipoToken:'Bearer',expiraEnSegundos:duracion});
+  });
+  app.post('/autenticacion/token',async(req,res)=>{
+    const entrada=z.object({usuario:esquemaUsuario,contrasena:z.string().max(200),idOrganizacion:uuid.optional()}).strict().safeParse(req.body);
+    if(!entrada.success)return error(res,400,'Solicitud inválida');
+    const usuario=(await pool.query('SELECT * FROM usuarios WHERE usuario=$1',[entrada.data.usuario])).rows[0];
+    const correcta=await bcrypt.compare(entrada.data.contrasena,usuario?.clave_hash ?? hashFicticio);
+    if(!usuario || !correcta || !usuario.activo){await auditar(pool,'token_fallido');return error(res,401,'Credenciales inválidas');}
+    const asignaciones=(await pool.query('SELECT rol,id_organizacion AS "idOrganizacion" FROM asignaciones_roles WHERE id_usuario=$1',[usuario.id])).rows;
+    const membresias=[...new Set(asignaciones.map(r=>r.rol))];
+    const seleccion=entrada.data.idOrganizacion??(asignaciones.find(a=>a.idOrganizacion)?.idOrganizacion ?? null);
+    const tokenJwt=firmarJwt({sub:usuario.id,usuario:usuario.usuario,idOrganizacion:seleccion,roles:membresias});
+    await auditar(pool,'token_emitido',usuario.id);
+    res.json({token:tokenJwt,tipoToken:'Bearer',expiraEnSegundos:duracion,idUsuario:usuario.id,usuario:usuario.usuario,roles:asignaciones,idOrganizacion:seleccion});
   });
   app.get('/autenticacion/yo',async(req,res)=>{
     const actor=await autenticar(pool,req);if(!actor)return error(res,401,'Sesión requerida');
@@ -137,7 +192,7 @@ export function rutasSeguridad(app: Express,pool: Pool) {
     const actor=await autenticar(pool,req);if(!actor)return error(res,401,'Sesión requerida');
     const datos=z.object({accion:z.string(),idOrganizacion:uuid,escritura:z.boolean()}).strict().safeParse({...req.body,idOrganizacion:req.body?.idOrganizacion||actor.id_organizacion});
     if(!datos.success)return error(res,403,'Organización y operación requeridas');
-    if(datos.data.escritura&&(!csrf(req)||!iguales(hash(req.header('X-CSRF-Token')??''),actor.csrf_hash)))return error(res,403,'Origen o CSRF inválido');
+    if(datos.data.escritura&&!actor.esJwt&&(!csrf(req)||!iguales(hash(req.header('X-CSRF-Token')??''),actor.csrf_hash)))return error(res,403,'Origen o CSRF inválido');
     const organizacion=(await pool.query('SELECT 1 FROM organizaciones WHERE id=$1 AND activa',[datos.data.idOrganizacion])).rowCount;
     const esAdministradorGlobalActor=actor.asignaciones.some((r:{rol:string;idOrganizacion:string|null})=>r.rol==='ADMINISTRADOR'&&r.idOrganizacion===null);
     const asignados=esAdministradorGlobalActor?['ADMINISTRADOR']:actor.asignaciones.filter((r:{idOrganizacion:string})=>r.idOrganizacion===datos.data.idOrganizacion).map((r:{rol:string})=>r.rol);
@@ -157,7 +212,7 @@ export function rutasSeguridad(app: Express,pool: Pool) {
   });
   app.use(['/importaciones','/usuarios','/organizaciones','/auditoria-seguridad','/autenticacion/logout','/autenticacion/contrasena','/autenticacion/organizacion'],async(req,res,next)=>{
     const actor=await autenticar(pool,req);if(!actor)return error(res,401,'Sesión requerida');
-    if(!['GET','HEAD'].includes(req.method)&&(!csrf(req)||hash(req.header('X-CSRF-Token')??'')!==actor.csrf_hash))return error(res,403,'Origen o CSRF inválido');
+    if(!['GET','HEAD'].includes(req.method)&&!actor.esJwt&&(!csrf(req)||hash(req.header('X-CSRF-Token')??'')!==actor.csrf_hash))return error(res,403,'Origen o CSRF inválido');
     res.locals.actor=actor;next();
   });
   const esAdministradorGlobal=(actor:any)=>actor.asignaciones.some((r:any)=>r.rol==='ADMINISTRADOR');

@@ -1,0 +1,58 @@
+{{- if .Values.ingress.habilitar }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tuvoto-ingress
+  labels:
+    {{- include "tuvoto.labels" . | nindent 4 }}
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /graphql
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-svc
+                port:
+                  number: {{ .Values.puertos.gateway }}
+          - path: /api/v1/identidad
+            pathType: Prefix
+            backend:
+              service:
+                name: identidad-svc
+                port:
+                  number: {{ .Values.puertos.identidad }}
+          - path: /api/v1/configuracion
+            pathType: Prefix
+            backend:
+              service:
+                name: elecciones-svc
+                port:
+                  number: {{ .Values.puertos.eleccionesHttp }}
+          - path: /api/v1/actas
+            pathType: Prefix
+            backend:
+              service:
+                name: actas-svc
+                port:
+                  number: {{ .Values.puertos.actas }}
+          - path: /api/v1/resultados
+            pathType: Prefix
+            backend:
+              service:
+                name: resultados-svc
+                port:
+                  number: {{ .Values.puertos.resultados }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-svc
+                port:
+                  number: 80
+{{- end }}

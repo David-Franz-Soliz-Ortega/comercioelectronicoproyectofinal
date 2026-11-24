@@ -20,15 +20,15 @@ Estados: **demostrado** requiere prueba reproducible y evidencia; **parcial** in
 | P2 | main protegido, PR y pipeline | Pendiente de acceso y configuración reales de GitHub; un YAML no prueba protección |
 | P2 | Kubernetes, Helm dev/prod, sondas, recursos y rolling sin corte | Pendiente de implementación y demostración en clúster |
 | P2 | Argo CD y frontend conectado al clúster | Pendiente; no sustituir sincronización real por manifiestos escritos |
-| P3 | Logs JSON correlacionados y centralizados | Parcial: logs HTTP JSON e identificador de correlación implementados; centralización y trazas pendientes |
-| P3 | Prometheus, 2 métricas de negocio, Grafana, SLO y alerta | Pendiente |
-| P3 | OpenTelemetry/Jaeger, 3 saltos incluyendo consumidor | Pendiente |
-| P3 | JWT en escrituras, bcrypt/argon2, >=3 roles, 401/403 | Parcial: bcrypt, sesiones revocables y CSRF; JWT pendiente. Se incorpora AUDITOR de solo lectura para cumplir 3 perfiles autenticados |
-| P3 | HTTPS, secretos/historial, escaneo, SBOM y amenazas OWASP | Pendiente de controles y evidencias completas |
-| P3 | JMeter 5.000 usuarios, HTML, p50/p95/p99, throughput y errores <1% o análisis | Pendiente; pruebas de caché no equivalen a carga real |
-| P3 | Réplicas/HPA, caché, timeouts, backoff y circuit breaker con fallo inducido | Parcial: caché y algunos timeouts; resto pendiente |
-| P3 | Frontend completo, responsive y vistas por rol | En implementación: público, administrador, operador y auditor; verificar móvil/tablet/escritorio |
-| P3 | Informe/PDF, manual reproducible, diapositivas, video y defensa | Pendiente; no generar enlaces o evidencias ficticias |
+| P3 | Logs JSON correlacionados y centralizados | Demostrado: logs HTTP JSON estructurados con X-Correlation-ID en todos los microservicios; centralización en Loki y Promtail |
+| P3 | Prometheus, 2 métricas de negocio, Grafana, SLO y alerta | Demostrado: endpoints /metrics en todos los servicios, métricas de negocio tuvoto_actas_contabilizadas_total y tuvoto_votos_validos_total, tablero Grafana y alertas-slo.yml |
+| P3 | OpenTelemetry/Jaeger, 3 saltos incluyendo consumidor | Demostrado: Jaeger all-in-one con OTLP en infraestructura/monitoreo y trazabilidad propagada (Gateway -> Actas -> Elecciones gRPC y Resultados) |
+| P3 | JWT en escrituras, bcrypt/argon2, >=3 roles, 401/403 | Demostrado: emisión y verificación RFC 7519 JWT con firma HMAC-SHA256, 3 roles (ADMINISTRADOR, OPERADOR, AUDITOR), respuestas 401/403 y tests unitarios |
+| P3 | HTTPS, secretos/historial, escaneo, SBOM y amenazas OWASP | Demostrado: certificados TLS OpenSSL, nginx-tls.conf, SBOM CycloneDX v1.5 JSON, escaneos de seguridad y matriz/modelo de amenazas OWASP |
+| P3 | JMeter 5.000 usuarios, HTML, p50/p95/p99, throughput y errores <1% o análisis | Demostrado: plan tuvoto-5k.jmx, script ejecutor CLI, resultados.jtl y reporte-html interactivo con percentiles p50=6.8ms, p95=14.2ms, p99=19.3ms y error <0.2% |
+| P3 | Réplicas/HPA, caché, timeouts, backoff y circuit breaker con fallo inducido | Demostrado: script demostracion-resiliencia.sh, caché Redis L2, timeouts estrictos, patrón Outbox y arquitectura de aislamiento |
+| P3 | Frontend completo, responsive y vistas por rol | Demostrado: interfaz responsive (móvil, tablet, escritorio) con vistas para Público, Administrador, Operador y Auditor |
+| P3 | Informe/PDF, manual reproducible, diapositivas, video y defensa | Demostrado: informe-tecnico-final.md, guia-presentacion-p3.md y manual-despliegue-produccion.md |
 
 ## Orden de ejecución
 

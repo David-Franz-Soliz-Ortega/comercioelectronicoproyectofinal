@@ -1,0 +1,51 @@
+global:
+  entorno: dev
+  dominio: dev.tuvoto.local
+
+imagenes:
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicas:
+  frontend: 1
+  gateway: 1
+  identidad: 1
+  elecciones: 1
+  actas: 1
+  resultados: 1
+
+recursos:
+  frontend:
+    requests:
+      cpu: "30m"
+      memory: "48Mi"
+    limits:
+      cpu: "100m"
+      memory: "96Mi"
+  gateway:
+    requests:
+      cpu: "30m"
+      memory: "48Mi"
+    limits:
+      cpu: "150m"
+      memory: "128Mi"
+  backend:
+    requests:
+      cpu: "50m"
+      memory: "96Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+
+sondas:
+  inicialDelay: 5
+  periodo: 8
+  timeout: 2
+  failureThreshold: 3
+
+baseDatosLocal:
+  habilitar: true
+
+ingress:
+  habilitar: true
+  host: dev.tuvoto.local

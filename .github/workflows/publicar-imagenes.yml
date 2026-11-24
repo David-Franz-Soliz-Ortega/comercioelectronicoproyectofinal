@@ -1,0 +1,77 @@
+name: Publicar Imágenes Docker Versionadas
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  REPO: ${{ github.repository }}
+
+jobs:
+  construir-y-publicar:
+    name: Construir y Publicar Imagen (${{ matrix.servicio }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - servicio: frontend
+            contexto: .
+            dockerfile: frontend/Dockerfile
+            imagen: tuvoto-frontend
+          - servicio: gateway
+            contexto: .
+            dockerfile: gateway/graphql/Dockerfile
+            imagen: tuvoto-gateway
+          - servicio: elecciones
+            contexto: .
+            dockerfile: microservicios/elecciones/Dockerfile
+            imagen: tuvoto-elecciones
+          - servicio: identidad
+            contexto: .
+            dockerfile: microservicios/identidad/Dockerfile
+            imagen: tuvoto-identidad
+          - servicio: actas
+            contexto: .
+            dockerfile: microservicios/actas/Dockerfile
+            imagen: tuvoto-actas
+          - servicio: resultados
+            contexto: .
+            dockerfile: microservicios/resultados/Dockerfile
+            imagen: tuvoto-resultados
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesión en GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extraer metadatos y etiquetas versionadas
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REPO }}/${{ matrix.imagen }}
+          tags: |
+            type=sha,format=short,prefix=sha-
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Construir y publicar imagen Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.contexto }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

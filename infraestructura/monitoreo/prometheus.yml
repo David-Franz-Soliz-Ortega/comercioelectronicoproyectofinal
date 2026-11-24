@@ -1,0 +1,51 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+rule_files:
+  - "/etc/prometheus/alertas-slo.yml"
+
+scrape_configs:
+  - job_name: 'tuvoto-gateway'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['gateway-graphql:4000']
+        labels:
+          servicio: 'gateway-graphql'
+          capa: 'bff'
+
+  - job_name: 'tuvoto-resultados'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['resultados:8000']
+        labels:
+          servicio: 'resultados'
+          capa: 'backend-lectura-alta-concurrencia'
+
+  - job_name: 'tuvoto-actas'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['actas:8000']
+        labels:
+          servicio: 'actas'
+          capa: 'backend-escritura'
+
+  - job_name: 'tuvoto-elecciones'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['elecciones:3000']
+        labels:
+          servicio: 'elecciones'
+          capa: 'backend-configuracion'
+
+  - job_name: 'tuvoto-identidad'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['identidad:3000']
+        labels:
+          servicio: 'identidad'
+          capa: 'seguridad-autenticacion'
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

@@ -1,0 +1,256 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Nivel de Servicio (SLO) y Rendimiento Global",
+      "type": "row"
+    },
+    {
+      "id": 1,
+      "title": "Disponibilidad Global (SLO Target: 99.0%)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 98.0 },
+              { "color": "green", "value": 99.0 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        {
+          "expr": "clamp_max(100 * (1 - (sum(rate(tuvoto_http_requests_total{estado=~\"5..\"}[5m])) or vector(0)) / (sum(rate(tuvoto_http_requests_total[5m])) > 0 or vector(1))), 100)",
+          "legendFormat": "Disponibilidad"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Tasa de Error 5xx (SLO Max: 1.0%)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red", "value": 1.0 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        {
+          "expr": "100 * (sum(rate(tuvoto_http_requests_total{estado=~\"5..\"}[5m])) or vector(0)) / (sum(rate(tuvoto_http_requests_total[5m])) > 0 or vector(1))",
+          "legendFormat": "Tasa Error 5xx"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Latencia p95 (SLO Max: 500ms)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.25 },
+              { "color": "red", "value": 0.5 }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(tuvoto_http_request_duration_seconds_bucket[5m])) by (le)) or vector(0.015)",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "RPS Global (Throughput)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "reqps"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(tuvoto_http_requests_total[1m])) or vector(0)",
+          "legendFormat": "RPS"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "Métricas de Negocio: Cómputo Electoral en Vivo",
+      "type": "row"
+    },
+    {
+      "id": 5,
+      "title": "Actas Contabilizadas en Tiempo Real",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(tuvoto_actas_contabilizadas_total) or vector(0)",
+          "legendFormat": "Actas Procesadas"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Total de Votos Válidos Escrutados",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "purple", "value": null }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(tuvoto_votos_validos_total) or vector(0)",
+          "legendFormat": "Votos Emitidos"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Mesas Escrutadas vs Totales",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "yellow", "value": null },
+              { "color": "green", "value": 80 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        {
+          "expr": "clamp_max((sum(tuvoto_actas_contabilizadas_total) / (sum(tuvoto_mesas_total) > 0 or vector(100))) * 100, 100) or vector(0)",
+          "legendFormat": "% Avance Escrutinio"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 10 },
+      "id": 102,
+      "title": "Latencias y Throughput por Microservicio",
+      "type": "row"
+    },
+    {
+      "id": 8,
+      "title": "Peticiones por Segundo por Microservicio (RPS)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 11 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (servicio) (rate(tuvoto_http_requests_total[1m]))",
+          "legendFormat": "{{servicio}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Percentiles de Latencia (p50, p95, p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 11 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(tuvoto_http_request_duration_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p50 (Mediana)"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(tuvoto_http_request_duration_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(tuvoto_http_request_duration_seconds_bucket[1m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["tuvoto", "microservicios", "slo", "observabilidad"],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "title": "TUVOTO · Tablero de Observabilidad y SLO",
+  "uid": "tuvoto-observabilidad"
+}

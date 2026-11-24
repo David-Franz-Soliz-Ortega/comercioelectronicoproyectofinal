@@ -1,0 +1,2 @@
+repolib 2.2.2 requires gnupg, which is not installed.
+yt-dlp 2024.4.9 has requirement websockets>=12.0, but you have websockets 10.4.

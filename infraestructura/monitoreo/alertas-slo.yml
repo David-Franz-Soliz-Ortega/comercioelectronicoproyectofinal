@@ -1,0 +1,40 @@
+groups:
+  - name: tuvoto_slo_alertas
+    rules:
+      - alert: SLOErrorRateAlta
+        expr: (sum(rate(tuvoto_http_requests_total{estado=~"5.."}[5m])) / sum(rate(tuvoto_http_requests_total[5m])) * 100) > 1.0
+        for: 1m
+        labels:
+          severity: critical
+          servicio: tuvoto
+        annotations:
+          summary: "Tasa de errores 5xx de TUVOTO supera el 1% (Incumplimiento de SLO)"
+          description: "La tasa actual de errores 5xx es de {{ $value | printf \"%.2f\" }}%, violando el SLO de disponibilidad de 99%."
+
+      - alert: SLOLatenciaAlta
+        expr: (histogram_quantile(0.95, sum(rate(tuvoto_http_request_duration_seconds_bucket[5m])) by (le))) > 0.500
+        for: 1m
+        labels:
+          severity: warning
+          servicio: tuvoto
+        annotations:
+          summary: "Latencia p95 de TUVOTO excede los 500ms (Incumplimiento de SLO)"
+          description: "El percentil 95 de latencia se ubica en {{ $value | printf \"%.3f\" }}s (umbral máximo: 0.500s)."
+
+      - alert: MicroservicioCaido
+        expr: up{job=~"tuvoto-.*"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Microservicio {{ $labels.servicio }} caído"
+          description: "La instancia {{ $labels.instance }} del servicio {{ $labels.servicio }} no responde al scraper de Prometheus."
+
+      - alert: ColaMensajeriaAcumulada
+        expr: tuvoto_actas_pendientes_bandeja > 50
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bandeja outbox de actas acumulada"
+          description: "Hay {{ $value }} actas en outbox pendientes de publicación hacia RabbitMQ."

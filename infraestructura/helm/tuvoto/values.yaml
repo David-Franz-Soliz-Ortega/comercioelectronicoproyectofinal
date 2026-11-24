@@ -1,0 +1,82 @@
+global:
+  entorno: dev
+  dominio: tuvoto.local
+
+imagenes:
+  registry: ghcr.io/richard/tuvoto
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicas:
+  frontend: 1
+  gateway: 1
+  identidad: 1
+  elecciones: 1
+  actas: 1
+  resultados: 1
+
+recursos:
+  frontend:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+  gateway:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "250m"
+      memory: "192Mi"
+  backend:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "384Mi"
+
+sondas:
+  inicialDelay: 10
+  periodo: 10
+  timeout: 3
+  failureThreshold: 3
+
+estrategiaDespliegue:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+puertos:
+  frontend: 80
+  gateway: 4000
+  identidad: 3000
+  eleccionesHttp: 3000
+  eleccionesGrpc: 50051
+  actas: 8000
+  resultados: 8000
+
+baseDatosLocal:
+  habilitar: true
+  postgres:
+    imagen: postgres:17-alpine
+    usuario: tuvoto_admin
+    clave: ClavePostgresSegura2026!
+  mongo:
+    imagen: mongo:8.0
+    usuario: tuvoto_admin
+    clave: ClaveMongoSegura2026!
+  redis:
+    imagen: redis:7-alpine
+  rabbitmq:
+    imagen: rabbitmq:4-management
+    usuario: tuvoto_app
+    clave: ClaveRabbitSegura2026!
+
+ingress:
+  habilitar: true
+  className: traefik
+  host: tuvoto.local

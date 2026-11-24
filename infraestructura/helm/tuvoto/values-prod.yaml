@@ -1,0 +1,57 @@
+global:
+  entorno: prod
+  dominio: tuvoto.usfx.bo
+
+imagenes:
+  tag: v2.0-p2
+  pullPolicy: Always
+
+replicas:
+  frontend: 2
+  gateway: 2
+  identidad: 2
+  elecciones: 2
+  actas: 2
+  resultados: 3 # Microservicio de alta concurrencia declarado
+
+recursos:
+  frontend:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+  gateway:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "384Mi"
+  backend:
+    requests:
+      cpu: "150m"
+      memory: "256Mi"
+    limits:
+      cpu: "600m"
+      memory: "512Mi"
+
+sondas:
+  inicialDelay: 15
+  periodo: 10
+  timeout: 3
+  failureThreshold: 2
+
+estrategiaDespliegue:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+baseDatosLocal:
+  habilitar: true
+
+ingress:
+  habilitar: true
+  host: tuvoto.usfx.bo

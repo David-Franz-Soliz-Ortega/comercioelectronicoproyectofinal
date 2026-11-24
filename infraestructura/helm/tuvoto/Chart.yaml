@@ -1,0 +1,14 @@
+apiVersion: v2
+name: tuvoto
+description: Chart de Helm para el sistema de observatorio y cómputo electoral TUVOTO
+type: application
+version: 1.0.0
+appVersion: "2.0-p2"
+keywords:
+  - elecciones
+  - microservicios
+  - observatorio
+  - usfx
+maintainers:
+  - name: Equipo TUVOTO
+    email: contacto@tuvoto.bo

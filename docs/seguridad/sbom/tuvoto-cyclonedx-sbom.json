@@ -1,0 +1,257 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:2d16da2a-0d50-4271-a2bc-f670196f1564",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-23T21:29:37.930405+00:00",
+    "tools": [
+      {
+        "vendor": "TUVOTO Security Toolchain",
+        "name": "tuvoto-cyclonedx-generator",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "TUVOTO - Observatorio Electoral y Computo",
+      "version": "1.0.0",
+      "description": "Sistema de Microservicios para Escrutinio y Observatorio Electoral USFX"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "react",
+      "version": "19.1.1",
+      "purl": "pkg:npm/react@19.1.1",
+      "scope": "required",
+      "description": "Dependencia Node.js de frontend"
+    },
+    {
+      "type": "library",
+      "name": "react-dom",
+      "version": "19.1.1",
+      "purl": "pkg:npm/react-dom@19.1.1",
+      "scope": "required",
+      "description": "Dependencia Node.js de frontend"
+    },
+    {
+      "type": "library",
+      "name": "@vitejs/plugin-react",
+      "version": "5.0.4",
+      "purl": "pkg:npm/@vitejs/plugin-react@5.0.4",
+      "scope": "required",
+      "description": "Dependencia Node.js de frontend"
+    },
+    {
+      "type": "library",
+      "name": "vite",
+      "version": "7.1.7",
+      "purl": "pkg:npm/vite@7.1.7",
+      "scope": "required",
+      "description": "Dependencia Node.js de frontend"
+    },
+    {
+      "type": "library",
+      "name": "playwright",
+      "version": "1.56.1",
+      "purl": "pkg:npm/playwright@1.56.1",
+      "scope": "required",
+      "description": "Dependencia Node.js de frontend"
+    },
+    {
+      "type": "library",
+      "name": "dataloader",
+      "version": "2.2.3",
+      "purl": "pkg:npm/dataloader@2.2.3",
+      "scope": "required",
+      "description": "Dependencia Node.js de gateway/graphql"
+    },
+    {
+      "type": "library",
+      "name": "graphql",
+      "version": "16.11.0",
+      "purl": "pkg:npm/graphql@16.11.0",
+      "scope": "required",
+      "description": "Dependencia Node.js de gateway/graphql"
+    },
+    {
+      "type": "library",
+      "name": "@grpc/grpc-js",
+      "version": "1.14.0",
+      "purl": "pkg:npm/@grpc/grpc-js@1.14.0",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/elecciones"
+    },
+    {
+      "type": "library",
+      "name": "@grpc/proto-loader",
+      "version": "0.8.0",
+      "purl": "pkg:npm/@grpc/proto-loader@0.8.0",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/elecciones"
+    },
+    {
+      "type": "library",
+      "name": "exceljs",
+      "version": "4.4.0",
+      "purl": "pkg:npm/exceljs@4.4.0",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/identidad"
+    },
+    {
+      "type": "library",
+      "name": "express",
+      "version": "5.1.0",
+      "purl": "pkg:npm/express@5.1.0",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/identidad"
+    },
+    {
+      "type": "library",
+      "name": "pg",
+      "version": "8.16.3",
+      "purl": "pkg:npm/pg@8.16.3",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/identidad"
+    },
+    {
+      "type": "library",
+      "name": "swagger-ui-express",
+      "version": "5.0.1",
+      "purl": "pkg:npm/swagger-ui-express@5.0.1",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/identidad"
+    },
+    {
+      "type": "library",
+      "name": "zod",
+      "version": "4.1.12",
+      "purl": "pkg:npm/zod@4.1.12",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/identidad"
+    },
+    {
+      "type": "library",
+      "name": "@types/express",
+      "version": "5.0.3",
+      "purl": "pkg:npm/@types/express@5.0.3",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/identidad"
+    },
+    {
+      "type": "library",
+      "name": "@types/node",
+      "version": "24.10.1",
+      "purl": "pkg:npm/@types/node@24.10.1",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/identidad"
+    },
+    {
+      "type": "library",
+      "name": "@types/pg",
+      "version": "8.15.5",
+      "purl": "pkg:npm/@types/pg@8.15.5",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/identidad"
+    },
+    {
+      "type": "library",
+      "name": "@types/swagger-ui-express",
+      "version": "4.1.8",
+      "purl": "pkg:npm/@types/swagger-ui-express@4.1.8",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/identidad"
+    },
+    {
+      "type": "library",
+      "name": "typescript",
+      "version": "5.9.3",
+      "purl": "pkg:npm/typescript@5.9.3",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/identidad"
+    },
+    {
+      "type": "library",
+      "name": "bcryptjs",
+      "version": "3.0.2",
+      "purl": "pkg:npm/bcryptjs@3.0.2",
+      "scope": "required",
+      "description": "Dependencia Node.js de microservicios/identidad"
+    },
+    {
+      "type": "library",
+      "name": "fastapi",
+      "version": "0.115.12",
+      "purl": "pkg:pypi/fastapi@0.115.12",
+      "scope": "required",
+      "description": "Dependencia Python de resultados"
+    },
+    {
+      "type": "library",
+      "name": "uvicorn",
+      "version": "0.34.2",
+      "purl": "pkg:pypi/uvicorn@0.34.2",
+      "scope": "required",
+      "description": "Dependencia Python de resultados"
+    },
+    {
+      "type": "library",
+      "name": "psycopg[binary]",
+      "version": "3.2.9",
+      "purl": "pkg:pypi/psycopg[binary]@3.2.9",
+      "scope": "required",
+      "description": "Dependencia Python de actas"
+    },
+    {
+      "type": "library",
+      "name": "pika",
+      "version": "1.3.2",
+      "purl": "pkg:pypi/pika@1.3.2",
+      "scope": "required",
+      "description": "Dependencia Python de resultados"
+    },
+    {
+      "type": "library",
+      "name": "grpcio",
+      "version": "1.73.1",
+      "purl": "pkg:pypi/grpcio@1.73.1",
+      "scope": "required",
+      "description": "Dependencia Python de actas"
+    },
+    {
+      "type": "library",
+      "name": "grpcio-tools",
+      "version": "1.73.1",
+      "purl": "pkg:pypi/grpcio-tools@1.73.1",
+      "scope": "required",
+      "description": "Dependencia Python de actas"
+    },
+    {
+      "type": "library",
+      "name": "pymongo",
+      "version": "4.12.1",
+      "purl": "pkg:pypi/pymongo@4.12.1",
+      "scope": "required",
+      "description": "Dependencia Python de resultados"
+    },
+    {
+      "type": "library",
+      "name": "jsonschema",
+      "version": "4.23.0",
+      "purl": "pkg:pypi/jsonschema@4.23.0",
+      "scope": "required",
+      "description": "Dependencia Python de resultados"
+    },
+    {
+      "type": "library",
+      "name": "redis",
+      "version": "5.2.1",
+      "purl": "pkg:pypi/redis@5.2.1",
+      "scope": "required",
+      "description": "Dependencia Python de resultados"
+    }
+  ]
+}
