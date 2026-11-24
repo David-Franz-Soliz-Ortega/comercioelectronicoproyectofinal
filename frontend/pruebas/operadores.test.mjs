@@ -87,3 +87,20 @@ test('una mesa física con varias actas se asigna completa al mismo operador',as
  const grupos=distribuirMesasPendientes({cuentas,asignaciones:[],procesos,organizacion:'org'});
  assert.deepEqual(grupos,[{idUsuario:'a',mesas:['a1','a2']},{idUsuario:'b',mesas:['b1']}]);
 });
+
+const {estadoAsignacionMesa}=await import('../src/api/operadores.js');
+test('bloquea una mesa ocupada por otro operador y conserva editables las propias y libres',()=>{
+ const grupo={id:'fisica',cargos:[{id:'r',idMesaFisica:'fisica'},{id:'v',idMesaFisica:'fisica'}]};
+ const propias=[{idMesa:'r',idUsuario:'yo'}];
+ assert.equal(estadoAsignacionMesa(grupo,[],'yo').ocupada,false);
+ const parcial=estadoAsignacionMesa(grupo,propias,'yo');
+ assert.equal(parcial.ocupada,false);assert.equal(parcial.parcial,true);assert.equal(parcial.completa,false);
+ assert.equal(estadoAsignacionMesa(grupo,propias,undefined).ocupada,true);
+ assert.equal(estadoAsignacionMesa(grupo,[...propias,{idMesa:'v',idUsuario:'otro'}],'yo').ocupada,true);
+ assert.equal(estadoAsignacionMesa(grupo,[...propias,{idMesa:'v',idUsuario:'yo'}],'yo').completa,true);
+});
+test('la ocupación física incluye cargos ajenos al subconjunto editable, pero no códigos de mesa repetidos',()=>{
+ const grupo={id:'fisica',codigo:'001',cargos:[{id:'r',idMesaFisica:'fisica'}]};
+ assert.equal(estadoAsignacionMesa(grupo,[{idMesa:'cargo-cerrado',idMesaFisica:'fisica',idUsuario:'otro'}],'yo').ocupada,true);
+ assert.equal(estadoAsignacionMesa(grupo,[{idMesa:'otra',idMesaFisica:'otra-fisica',codigo:'001',idUsuario:'otro'}],'yo').ocupada,false);
+});

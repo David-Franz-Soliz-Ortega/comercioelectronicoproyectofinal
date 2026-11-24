@@ -61,6 +61,6 @@ export default function AsignacionesOperadores({organizacion,cuentas,version,alC
     <footer className="paginacion-operadores"><label>Filas por página<select aria-label="Filas por página" value={limite} onChange={e=>{setLimite(Number(e.target.value));setPagina(1);}}>{[10,25,50].map(n=><option key={n} value={n}>{n}</option>)}</select></label><span role="status">{grupos.length?inicio+1:0}–{Math.min(inicio+limite,grupos.length)} de {grupos.length}</span><nav aria-label="Páginas de operadores"><button type="button" className="boton secundario" disabled={actual===1} onClick={()=>setPagina(actual-1)}>‹ Anterior</button><span aria-current="page">{actual}</span><button type="button" className="boton secundario" disabled={actual===paginas} onClick={()=>setPagina(actual+1)}>Siguiente ›</button></nav></footer>
    </>}
   </section>
-  {edicion&&<EditarOperador cuenta={edicion==='nuevo'?null:edicion} organizacion={organizacion} nombreOrganizacion={nombreOrganizacion} procesos={procesos} asignaciones={asignaciones??[]} alCerrar={()=>setEdicion(null)} alGuardar={alGuardar}/>}
+  {edicion&&<EditarOperador cuenta={edicion==='nuevo'?null:edicion} organizacion={organizacion} nombreOrganizacion={nombreOrganizacion} procesos={procesos} asignaciones={asignaciones} alCerrar={()=>setEdicion(null)} alGuardar={alGuardar}/>}
  </section>;
 }

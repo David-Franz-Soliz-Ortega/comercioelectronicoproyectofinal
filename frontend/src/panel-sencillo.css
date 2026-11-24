@@ -39,9 +39,6 @@
 .panel-operador :is(.panel-foto-acta,.panel-verificacion-acta) { border: 1px solid #d9e3f0; border-radius: 16px; padding: 24px; background: white; box-shadow: 0 8px 24px #19365c08; min-width: 0; }
 .panel-operador .visor-foto-acta { margin: 18px 0; background: #f3f6fb; max-height: none; }
 .panel-operador .imagen-acta-cargada { height: auto; max-height: 620px; object-fit: contain; }
-.reutilizar-foto { color: #455873; font-size: 13px; margin-top: 12px; }
-.reutilizar-foto summary { cursor: pointer; padding: 8px 0; }
-.reutilizar-foto select { width: 100%; }
 .estado-lectura { border: 1px solid #bfd1f4; background: #eef4ff; color: #1b3763; border-radius: 10px; padding: 16px; margin: 18px 0; font-size: 13px; line-height: 1.6; }
 .estado-lectura p { margin: 6px 0 0; }
 .estado-lectura a,.estado-lectura button { display: inline-block; text-decoration: underline; color: #1743a3; padding: 8px 0 0; }
@@ -55,3 +52,7 @@
 .panel-operador .tabla-conteo-acta td { padding: 12px 4px; }
 .titulo-confirmacion { margin: 26px 0 14px; color: #142b4d; font-size: 16px; }
 @media(max-width:768px) { .panel-operador :is(.panel-foto-acta,.panel-verificacion-acta) { padding: 18px; } .panel-operador .selector-mesa-topbar { width: 100%; max-width: 100%; } }
+
+.destino-acta-operador { display: grid; gap: 6px; flex: 1 1 300px; min-width: 0; font-size: 12px; font-weight: 700; color: #455873; }
+.contexto-acta-operador { display: grid; gap: 6px; padding: 14px 16px; border-left: 3px solid #174bd1; background: #eef4ff; overflow-wrap: anywhere; }
+.contexto-acta-operador span { font-size: 13px; }

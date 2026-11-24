@@ -8,7 +8,16 @@ export async function asignarMesasOperador({ pedir, organizacion, idUsuario, mes
  }
 }
 export function mesasAsignables(procesos) {
- return procesos.filter(p => p.estado === 'borrador' && !p.actual && !p.publicado).flatMap(p => (p.mesas ?? []).map(m => ({ ...m, cargo: p.cargo, ambito: p.ambito, idProceso: p.id })));
+ return procesos.filter(p => p.estado === 'borrador' && !p.actual && !p.publicado).flatMap(p => (p.mesas ?? []).map(m => ({ ...m, cargo: p.cargo, ambito: p.ambito, facultad: p.facultad, idProceso: p.id })));
+}
+
+// La ocupación se resuelve por identificadores, nunca por códigos de mesa repetidos.
+export function estadoAsignacionMesa(grupo, asignaciones, idUsuario) {
+ const ids=new Set(grupo.cargos.map(c=>c.idMesa??c.id));
+ const fisicas=new Set(grupo.cargos.map(c=>c.idMesaFisica).filter(Boolean));
+ const vinculadas=asignaciones.filter(a=>ids.has(a.idMesa)||(a.idMesaFisica&&fisicas.has(a.idMesaFisica)));
+ const propias=new Set(vinculadas.filter(a=>idUsuario&&a.idUsuario===idUsuario&&ids.has(a.idMesa)).map(a=>a.idMesa));
+ return {ocupada:vinculadas.some(a=>a.idUsuario!==idUsuario),propias,completa:propias.size===ids.size,parcial:propias.size>0&&propias.size<ids.size};
 }
 
 // El código solo identifica una mesa física si el catálogo autorizado no es ambiguo.

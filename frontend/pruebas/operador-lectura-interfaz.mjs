@@ -28,12 +28,18 @@ const candidatos = [{id:'20000000-0000-4000-8000-000000000001', nombre:'Candidat
 const mesas = [1,2].map(n => ({id: '30000000-0000-4000-8000-00000000000'+n, idProceso:'cargo-prueba', codigo:'PRUEBA-0'+n, unidad:'Unidad de demostración', sector:'general', cargo:'Rectorado de demostración', estado:'recepcion', candidatos}));
 const propuesta = {votos:candidatos.map((c,i) => ({idCandidato:c.id,cantidad:i ? 80 : 120})), blancos:3,nulos:2,total:205,completa:true,advertencias:[],requiereRevision:true};
 let modo = 'completa';
+const versiones = new Map();
+mesas[1].estado = 'cerrada';
 await pagina.route('**/api/**', async ruta => {
   const solicitud = ruta.request(), url = new URL(solicitud.url());
   if (url.pathname.endsWith('/autenticacion/yo')) return ruta.fulfill({json:{idUsuario:'operador-prueba',usuario:'operador.prueba',idOrganizacion:org,roles:[{rol:'OPERADOR',idOrganizacion:org}]}});
   if (url.pathname.endsWith('/mis-mesas')) return ruta.fulfill({json:{elementos:mesas}});
   if (url.pathname.endsWith('/contexto')) return ruta.fulfill({json:mesas.find(m => url.pathname.includes(m.id))});
-  if (url.pathname.includes('/actas/mesa/')) return ruta.fulfill({json:{elementos:[],versionAnterior:0}});
+  if (url.pathname.includes('/actas/mesa/')) return ruta.fulfill({json:{elementos:[],versionAnterior:versiones.get(url.pathname.split('/').at(-1))??0}});
+  if (url.pathname.includes('/actas/mesas/') && solicitud.method() === 'PUT') {
+    const datos = solicitud.postDataJSON(); escrituras.push(datos); versiones.set(datos.idMesa, datos.versionAnterior + 1);
+    return ruta.fulfill({json:{id:'correccion-sintetica',version:datos.versionAnterior + 1,estado:'publicada'}});
+  }
   if (url.pathname.endsWith('/actas/lectura')) {
     const datos = solicitud.postDataJSON();
     assert.match(datos.foto, /^data:image\/png;base64,/);
@@ -50,6 +56,7 @@ await pagina.route('**/graphql', ruta => {
   const datos = ruta.request().postDataJSON();
   if (datos.query.includes('mutation Registrar')) {
     escrituras.push(datos.variables.entrada);
+    versiones.set(datos.variables.entrada.idMesa,1);
     return ruta.fulfill({json:{data:{registrarActa:{id:'acta-sintetica',version:1,estado:'publicada'}}}});
   }
   return ruta.fulfill({json:{data:{eventos:[]}}});
@@ -57,7 +64,7 @@ await pagina.route('**/graphql', ruta => {
 const foto = resolve(frontend, 'public/ejemplos/acta-prueba.png');
 const subir = () => pagina.getByLabel('Subir imagen').setInputFiles(foto);
 const valor = (nombre) => pagina.getByLabel(nombre, {exact:true}).inputValue();
-const confirmar = () => pagina.getByRole('button', {name:'Confirmar y publicar'});
+const confirmar = () => pagina.getByRole('button', {name:/^Confirmar (y publicar|corrección)$/});
 try {
   // Una preferencia antigua de pausa ya no desactiva la animación.
   await pagina.addInitScript(() => localStorage.setItem('tuvoto:pausar-animaciones', 'si'));
@@ -70,6 +77,7 @@ try {
   await pagina.emulateMedia({reducedMotion:'no-preference'});
   await pagina.goto(base + '/#panel');
   await pagina.getByRole('heading', {name:'2. Revisa los datos'}).waitFor();
+  assert.equal(await pagina.getByText('Usar una foto de otro cargo',{exact:true}).count(),0);
   assert.equal(await valor('Total del acta'), '');
   assert.ok(await confirmar().isDisabled());
 
@@ -109,6 +117,17 @@ try {
   await pagina.getByRole('button', {name:'Entendido'}).click();
   await pagina.waitForFunction(() => document.querySelector('[aria-label="Total del acta"]')?.value === '');
 
+  assert.ok(!('idActaOrigen' in escrituras[0]));
+  await pagina.getByRole('button',{name:'Confirmar corrección',exact:true}).waitFor();
+  modo = 'completa'; await subir();
+  await pagina.getByText('Lectura lista. Comprueba cada número.',{exact:true}).waitFor();
+  await pagina.getByLabel('He comparado los datos con el acta.').check();
+  await confirmar().click();
+  await pagina.getByRole('button',{name:'Entendido'}).click();
+  await pagina.waitForFunction(() => document.querySelector('[aria-label="Total del acta"]')?.value === '');
+  assert.equal(escrituras.length,2);assert.equal(escrituras[1].versionAnterior,1);assert.match(escrituras[1].foto,/^data:image\/png;base64,/);
+  assert.ok(!('idActaOrigen' in escrituras[1]));
+
   modo = 'parcial'; await subir();
   await pagina.getByText('Lectura parcial. Completa los campos vacíos.', {exact:true}).waitFor();
   assert.equal(await valor('Votos de Candidatura Beta'), '');
@@ -133,7 +152,10 @@ try {
   await pagina.getByLabel('Mesa asignada').selectOption(mesas[1].id);
   await pagina.waitForFunction(() => document.querySelector('[aria-label="Total del acta"]')?.value === '');
   assert.equal(await pagina.locator('.imagen-acta-cargada').count(), 0);
-  assert.equal(escrituras.length, 1, 'Solo se publicó tras confirmar explícitamente');
+  assert.equal(escrituras.length, 2, 'Solo se publicó y corrigió tras confirmar explícitamente');
+  assert.ok(await pagina.getByLabel('Subir imagen').isDisabled());
+  assert.ok(await pagina.getByLabel('Tomar fotografía').isDisabled());
+  assert.ok(await confirmar().isDisabled());
   assert.deepEqual(errores, []);
   console.log('OK: animación continua y movimiento reducido; autollenado, campos vacíos, revisión obligatoria, edición, carga parcial, errores, respuestas antiguas y cambio de mesa; cinco tamaños. APIs sintéticas, sin escrituras reales.');
 } catch (e) {

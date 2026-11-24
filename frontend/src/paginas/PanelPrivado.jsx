@@ -821,8 +821,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
   const [historial, setHistorial] = useState(null);
   const [foto, setFoto] = useState('');
   const [ampliada, setAmpliada] = useState(false);
-  const [actaOrigen,setActaOrigen]=useState('');
-  const [actasDisponibles,setActasDisponibles]=useState([]);
+  const [cargandoMesas, setCargandoMesas] = useState(true);
   const [votos, setVotos] = useState({});
   const [blancos, setBlancos] = useState('');
   const [nulos, setNulos] = useState('');
@@ -835,6 +834,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
   const [lectura, setLectura] = useState({estado: 'inicial'});
   const peticionLectura = useRef(null);
   const leyendo = lectura.estado === 'leyendo';
+  const recepcionAbierta = contexto?.estado === 'recepcion';
 
   function detenerLectura() {
     peticionLectura.current?.abort();
@@ -849,14 +849,14 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
   async function cargarFoto(e) {
     const archivo = e.target.files?.[0];
     e.target.value = '';
-    if (!archivo) return;
+    if (!archivo || !recepcionAbierta || ocupado) return;
     if (archivo.size > 10000000 || !['image/png', 'image/jpeg'].includes(archivo.type)) {
       setError('Usa una imagen JPEG o PNG de hasta 10 MB.'); return;
     }
     detenerLectura();
     const peticion = new AbortController();
     peticionLectura.current = peticion;
-    setError(''); setActaOrigen(''); setFoto(''); vaciarConteo();
+    setError(''); setFoto(''); vaciarConteo();
     setLectura({estado: 'leyendo'});
     try {
       const imagen = await archivoComoTexto(archivo);
@@ -873,17 +873,19 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
   }
 
 
-  useEffect(()=>{let v=true;solicitarRest('/actas?pagina=1&limite=100').then(r=>{if(v)setActasDisponibles(r.elementos);}).catch(e=>{if(v)setError(e.message);});return()=>{v=false};},[version]);
-
   useEffect(() => {
+    let vigente = true;
     solicitarRest('/mis-mesas')
       .then(d => {
+        if (!vigente) return;
         setMesas(d.elementos);
         if (d.elementos.length > 0 && !id) {
           setId(d.elementos[0].id);
         }
       })
-      .catch(e => setError(e.message));
+      .catch(e => { if (vigente) setError(e.message); })
+      .finally(() => { if (vigente) setCargandoMesas(false); });
+    return () => { vigente = false; };
   }, []);
 
   useEffect(() => {
@@ -891,7 +893,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
     detenerLectura();
     setContexto(null);
     setHistorial(null);
-    setFoto('');setActaOrigen('');
+    setFoto('');setAmpliada(false);
     setConfirmado(false);
     setError('');
     if (!id) return;
@@ -923,7 +925,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
 
   async function publicar(e) {
     e.preventDefault();
-    if (ocupado || leyendo || !historial || !camposCompletos || !confirmado) return;
+    if (!recepcionAbierta || ocupado || leyendo || !foto || !historial || !camposCompletos || !confirmado) return;
     setOcupado(true);
     setError('');
     try {
@@ -931,7 +933,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
         idMesa: id,
         idSolicitud: solicitud,
         versionAnterior: historial.versionAnterior,
-        ...(actaOrigen?{idActaOrigen:actaOrigen}:{foto}),
+        foto,
         votos: Object.entries(votos).map(([idCandidato, cantidad]) => ({ idCandidato, cantidad: Number(cantidad) })),
         blancos: Number(blancos),
         nulos: Number(nulos),
@@ -991,6 +993,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
 
           <div className="controles-cabecera-operador">
             {mesas.length > 0 && (
+              <label className="destino-acta-operador">Mesa y cargo del acta
               <select
                 aria-label="Mesa asignada"
                 value={id}
@@ -999,7 +1002,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                 className="selector-mesa-topbar"
               >
                 {agruparMesasFisicas(mesas).map(g=><optgroup key={g.id} label={`Mesa ${g.codigo} · ${g.unidad} · ${g.sector} · ${g.cargos.length} cargos`}>{g.cargos.map(m=><option key={m.id} value={m.id}>{m.cargo} · Mesa {m.codigo} · {m.unidad}</option>)}</optgroup>)}
-              </select>
+              </select></label>
             )}
 
             <ControlesSesion
@@ -1016,9 +1019,9 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
         <div className="contenido-seccion-privada">
           <Aviso error={error} />
 
-          {mesas.length === 0 ? (
+          {cargandoMesas ? <p role="status">Cargando mesas asignadas…</p> : mesas.length === 0 ? (
             <div className="panel-admin" style={{ padding: 32, textAlign: 'center' }}>
-              <p style={{ color: 'var(--secundario)' }}>No hay mesas asignadas para la elección actual. Solicita la asignación al administrador.</p>
+              <p style={{ color: 'var(--secundario)' }}>{error ? 'No se pudieron consultar tus mesas. Recarga la página para reintentar.' : 'No hay mesas asignadas para la elección actual. Solicita la asignación al administrador.'}</p>
             </div>
           ) : !contexto || !historial ? (
             <p style={{ color: 'var(--secundario)' }}>Cargando información de la mesa…</p>
@@ -1028,7 +1031,8 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
               <div className="introduccion-registro">
                 <p className="rotulo-trabajo-admin">REGISTRO CON FOTOGRAFÍA</p>
                 <h2>Del acta al conteo, paso a paso.</h2>
-                <p>Sube una foto nítida, revisa los números leídos y confirma el registro.</p>
+                <p>Cada cargo tiene su propia acta. Comprueba la mesa y el cargo seleccionados, sube su fotografía y revisa las cifras antes de confirmar.</p>
+                <p className="contexto-acta-operador"><strong>{contexto.codigo} · {contexto.cargo}</strong><span>{contexto.unidad} · {contexto.sectorNombre ?? contexto.sector ?? 'General'}</span>{historial.versionAnterior > 0 && <span>Corrección: se guardará la versión {historial.versionAnterior + 1}; se conserva el historial.</span>}</p>
                 <ol><li><span>1</span> Fotografía</li><li><span>2</span> Revisa los datos</li><li><span>3</span> Confirma y envía</li></ol>
               </div>
               <form onSubmit={publicar}>
@@ -1044,10 +1048,9 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                     </div>
 
                     <p>Sector de la mesa: <strong>{contexto.sectorNombre??contexto.sector??'General'}</strong>. No se mezcla con otros sectores.</p>
-                    <details className="reutilizar-foto"><summary>Usar una foto de otro cargo</summary><label>Reutilizar una foto ya registrada para otro cargo del mismo sector<select value={actaOrigen} disabled={ocupado} onChange={e=>{detenerLectura();vaciarConteo();setFoto('');cambiar(setActaOrigen,e.target.value);}}><option value="">Usar una fotografía nueva</option>{actasDisponibles.filter(a=>a.idProceso!==contexto.idProceso&&a.estado!=='anulada'&&(a.sector??'general')===(contexto.sector??'general')&&mesas.some(m=>m.id===a.idMesa)).map(a=><option key={a.id} value={a.id}>{mesas.find(m=>m.id===a.idMesa)?.cargo} · {mesas.find(m=>m.id===a.idMesa)?.codigo} · versión {a.version}</option>)}</select></label><p>Completa los números de este cargo; la foto original permanece intacta.</p></details>
                     <div className="visor-foto-acta">
-                      {foto || actaOrigen ? (
-                        <img src={actaOrigen?`/api/v1/actas/${actaOrigen}/foto`:foto} alt="Fotografía del acta a comparar con el conteo" className="imagen-acta-cargada" />
+                      {foto ? (
+                        <img src={foto} alt="Fotografía del acta a comparar con el conteo" className="imagen-acta-cargada" />
                       ) : (
                         <div className="visor-placeholder">
                           <IconoCamara tamano={48} color="#94A3B8" />
@@ -1057,8 +1060,8 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                       )}
                     </div>
 
-                    {(foto || actaOrigen) && <button type="button" className="ampliar-acta" onClick={() => setAmpliada(true)}>Ampliar fotografía ↗</button>}
-                    <ModalFormulario abierto={ampliada} titulo="Compara la fotografía original" alCerrar={() => setAmpliada(false)}><div className="ampliacion-acta"><img src={actaOrigen ? `/api/v1/actas/${actaOrigen}/foto` : foto} alt="Acta ampliada; desplázate para revisar sus cifras" /></div></ModalFormulario>
+                    {(foto) && <button type="button" className="ampliar-acta" onClick={() => setAmpliada(true)}>Ampliar fotografía ↗</button>}
+                    <ModalFormulario abierto={ampliada} titulo="Compara la fotografía original" alCerrar={() => setAmpliada(false)}><div className="ampliacion-acta"><img src={foto} alt="Acta ampliada; desplázate para revisar sus cifras" /></div></ModalFormulario>
                     <div className="acciones-foto-acta">
                       <label className="boton-camara">
                         <IconoCamara tamano={16} />
@@ -1068,7 +1071,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                           accept="image/jpeg,image/png"
                           capture="environment"
 
-                          disabled={ocupado}
+                          disabled={ocupado || !recepcionAbierta}
                           onChange={cargarFoto}
                         />
                       </label>
@@ -1079,7 +1082,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                         <input
                           type="file"
                           accept="image/jpeg,image/png"
-                          disabled={ocupado}
+                          disabled={ocupado || !recepcionAbierta}
                           onChange={cargarFoto}
                         />
                       </label>
@@ -1105,7 +1108,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                       {leyendo ? <><strong>Leyendo la fotografía…</strong><p>Buscando candidaturas, votos y totales. Esto puede tardar unos segundos.</p><button type="button" onClick={detenerLectura}>Completar manualmente</button></>
                         : lectura.estado === 'leida' ? <><strong>{lectura.completa ? 'Lectura lista. Comprueba cada número.' : 'Lectura parcial. Completa los campos vacíos.'}</strong>{lectura.advertencias.map(a => <p key={a}>{a}</p>)}</>
                         : lectura.estado === 'error' ? <><strong>Necesitamos tu revisión</strong><p>{lectura.mensaje}</p></>
-                        : <><strong>La lectura empieza al subir la foto.</strong><p>Lee texto y números impresos. Si son manuscritos o no se distinguen, transcríbelos aquí.</p><a href="/ejemplos/acta-prueba.png" target="_blank" rel="noreferrer">Ver acta de prueba · sin validez ↗</a></>}
+                        : <><strong>La lectura empieza al subir la foto.</strong><p>Lee texto y números impresos. Si son manuscritos o no se distinguen, transcríbelos aquí.</p><a href="/ejemplos/acta-escrutinio-prueba.html" target="_blank" rel="noreferrer">Abrir acta de prueba para imprimir ↗</a></>}
                     </div>
 
                     <table className="tabla-conteo-acta">
@@ -1126,7 +1129,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                                 max="1000000"
                                 step="1"
                                 required
-                                disabled={ocupado || leyendo}
+                                disabled={ocupado || leyendo || !recepcionAbierta}
                                 aria-label={`Votos de ${c.nombre}`}
                                 placeholder="Sin leer"
                                 value={votos[c.id] ?? ''}
@@ -1144,7 +1147,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                               max="1000000"
                               step="1"
                               required
-                              disabled={ocupado || leyendo}
+                              disabled={ocupado || leyendo || !recepcionAbierta}
                               aria-label="Blancos"
                               placeholder="Sin leer"
                               value={blancos}
@@ -1161,7 +1164,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                               max="1000000"
                               step="1"
                               required
-                              disabled={ocupado || leyendo}
+                              disabled={ocupado || leyendo || !recepcionAbierta}
                               aria-label="Nulos"
                               placeholder="Sin leer"
                               value={nulos}
@@ -1178,7 +1181,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                               max="1000000"
                               step="1"
                               required
-                              disabled={ocupado || leyendo}
+                              disabled={ocupado || leyendo || !recepcionAbierta}
                               aria-label="Total del acta"
                               placeholder="Sin leer"
                               value={total}
@@ -1219,7 +1222,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                         type="checkbox"
                         required
                         checked={confirmado}
-                        disabled={ocupado || leyendo || !camposCompletos || (!foto && !actaOrigen)}
+                        disabled={ocupado || leyendo || !recepcionAbierta || !camposCompletos || !foto}
                         onChange={e => setConfirmado(e.target.checked)}
                       />
                       <span>He comparado los datos con el acta.</span>
@@ -1228,14 +1231,14 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                     <button
                       type="submit"
                       className="boton-publicar-acta"
-                      disabled={contexto.estado!=='recepcion' || ocupado || leyendo || !camposCompletos || (!foto&&!actaOrigen) || !confirmado || contexto.candidatos.length === 0}
+                      disabled={contexto.estado!=='recepcion' || ocupado || leyendo || !camposCompletos || !foto || !confirmado || contexto.candidatos.length === 0}
                     >
                       <IconoCheck tamano={18} />
-                      <span>{ocupado ? 'Confirmando…' : 'Confirmar y publicar'}</span>
+                      <span>{ocupado ? 'Confirmando…' : historial.versionAnterior > 0 ? 'Confirmar corrección' : 'Confirmar y publicar'}</span>
                     </button>
 
                     <p style={{ fontSize: 11, color: 'var(--secundario)', margin: '14px 0 0', textAlign: 'center' }}>
-                      Si hay inconsistencias, el acta queda observada y no suma.
+                      Si las sumas no coinciden, el acta queda observada. Una corrección observada conserva el aporte válido anterior hasta que se publique una corrección válida.
                     </p>
                   </section>
                 </div>

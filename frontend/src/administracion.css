@@ -1388,3 +1388,9 @@
     width: 100% !important;
   }
 }
+
+.opciones-mesas-operador .mesa-operador-ocupada { background: #f1f5f9; color: #52647c; cursor: not-allowed; }
+.opciones-mesas-operador .estado-mesa-ocupada { font-weight: 700; color: #8a4b0f; }
+.opciones-mesas-operador label>span { min-width: 0; overflow-wrap: anywhere; }
+.opciones-mesas-operador .grupo-facultad-operador>summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.opciones-mesas-operador .nombre-grupo-operador { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }

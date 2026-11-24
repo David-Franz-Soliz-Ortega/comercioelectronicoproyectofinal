@@ -1,6 +1,12 @@
 # Estado de trabajo entre agentes
 
-Actualizado: 2026-11-23. Responsable: Antigravity / Equipo TUVOTO. Siguiente responsable: por asignar.
+Actualizado: 2026-11-24. Responsable de la revisión vigente: Codex. Siguiente responsable: desarrollo, por asignar.
+
+## Revisión vigente
+
+- [Operador, fotografías y avance de actas](entregas/revision-flujo-operador-avance.md) — **requiere_correccion**. Base `main`, `1e73b07`. Mesas sigue dentro de Elección; Conteo y publicación muestra configuración/asignaciones pero carece de avance y faltantes de conteo. El porcentaje público es por cargo y puede coexistir con revisiones pendientes; cerrar recepción no exige 100 %. OCR propone cifras del destino seleccionado, sin identificar mesa/cargo automáticamente.
+- **Pruebas actuales:** 27 frontend focalizadas y 14 de dominio/proyección pasaron; reproducción sintética de 100 % con una revisión pendiente. OCR real, navegador y publicación integral no ejecutados: entorno sin servicios TUVOTO activos, Tesseract ni dependencias del frontend. Las entregas anteriores conservan su carácter histórico.
+- **Siguiente acción:** corregir indicadores y terminología, después ampliar la sugerencia de destino del operador y verificar fotografías representativas en entorno aislado. Solo se actualizó documentación; sin cambios operativos, despliegue ni publicación Git.
 
 ## Entregas simultáneas recientes
 
@@ -64,7 +70,7 @@ Actualizado: 2026-11-23. Responsable: Antigravity / Equipo TUVOTO. Siguiente res
 - [Importador Excel: guía y presentación](entregas/importador-excel-visual.md) — `listo_para_qa`; guía contextual de columnas y estilo verde, sin despliegue.
 - [Login: aviso y contraseña](entregas/login-error-password.md) — `listo_para_qa`; mejora el aviso, el icono de visibilidad y las animaciones sin despliegue.
 
-## Entrega vigente
+## Entrega de desarrollo anterior
 
 - **Objetivo:** editar el nombre de cada candidato desde su tarjeta en borrador.
 - **Responsable:** Codex; siguiente responsable QA por asignar. **Estado:** listo_para_qa visual, despliegue verificado.
