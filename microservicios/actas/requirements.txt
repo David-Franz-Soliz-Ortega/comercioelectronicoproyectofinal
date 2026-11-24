@@ -4,3 +4,4 @@ psycopg[binary]==3.2.9
 pika==1.3.2
 grpcio==1.73.1
 grpcio-tools==1.73.1
+Pillow==13.0.0

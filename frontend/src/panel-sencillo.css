@@ -1,0 +1,57 @@
+/* Navegación por tareas; los formularios activos se conservan dentro de su grupo. */
+.panel-administrador { font-family: 'Manrope', system-ui, sans-serif; --secundario: #455873; }
+.panel-administrador .navegacion-lateral { gap: 10px; padding: 12px; }
+.panel-administrador .item-menu-lateral { align-items: center; gap: 13px; min-height: 76px; padding: 14px; border-radius: 12px; }
+.panel-administrador .item-menu-lateral>span { display: grid; text-align: left; gap: 4px; min-width: 0; }
+.panel-administrador .item-menu-lateral strong { font-size: 14px; font-weight: 750; }
+.panel-administrador .item-menu-lateral small { font-size: 12px; color: #455873; font-weight: 400; line-height: 1.45; }
+.panel-administrador .item-menu-lateral.activo { background: #e8f0ff; color: #1743a3; border-left-color: #174bd1; }
+.cabecera-trabajo-admin { display: grid; gap: 22px; padding: 8px 0 26px; }
+.cabecera-trabajo-admin h1 { font-size: clamp(26px,3vw,34px); line-height: 1.2; margin: 6px 0 10px; letter-spacing: -1px; color: #102440; }
+.cabecera-trabajo-admin p { margin: 0; color: #455873; font-size: 14px; line-height: 1.7; }
+.cabecera-trabajo-admin .rotulo-trabajo-admin { font-size: 12px; font-weight: 700; color: #1743a3; }
+.herramientas-admin { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px; background: #e4ebf5; border-radius: 12px; width: fit-content; max-width: 100%; }
+.herramientas-admin button { min-height: 44px; padding: 10px 18px; border-radius: 8px; font-weight: 700; color: #334764; }
+.herramientas-admin button[aria-pressed=true] { color: #1743a3; background: white; box-shadow: 0 2px 8px #142b4d14; }
+.herramientas-admin button:hover { background: #f5f8ff; }
+.panel-administrador :is(button,input,select,a):focus-visible { outline: 3px solid #174bd1; outline-offset: 3px; }
+@media(max-width:768px) {
+  .panel-administrador .navegacion-lateral { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
+  .panel-administrador .item-menu-lateral { min-height: 70px; flex-direction: column; justify-content: center; padding: 9px 6px; gap: 6px; white-space: normal; width: 100%; min-width: 0; border-left: 0; }
+  .panel-administrador .item-menu-lateral.activo { border-left: 0; }
+  .panel-administrador .item-menu-lateral>span { text-align: center; }
+  .panel-administrador .item-menu-lateral small { display: none; }
+  .panel-administrador .item-menu-lateral strong { font-size: 12px; }
+  .herramientas-admin { width: 100%; }
+  .herramientas-admin button { flex: 1 1 90px; padding: 10px; font-size: 13px; }
+}
+
+/* La fotografía y la revisión comparten jerarquía, contraste y pasos visibles. */
+.panel-operador { font-family: 'Manrope', system-ui, sans-serif; }
+.introduccion-registro { margin: 0 0 28px; }
+.introduccion-registro h2 { margin: 8px 0 10px; font-size: clamp(25px,3vw,36px); letter-spacing: -1px; color: #142b4d; }
+.introduccion-registro p { color: #455873; line-height: 1.65; }
+.introduccion-registro .rotulo-trabajo-admin { color: #1743a3; font-size: 11px; font-weight: 800; letter-spacing: 1px; }
+.introduccion-registro ol { list-style: none; padding: 0; margin: 22px 0 0; display: flex; flex-wrap: wrap; gap: 14px 28px; }
+.introduccion-registro li { display: flex; gap: 8px; align-items: center; font-weight: 650; color: #334764; }
+.introduccion-registro li span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #e0eaff; color: #1743a3; }
+.panel-operador .grid-operador-registro { align-items: start; gap: 24px; }
+.panel-operador :is(.panel-foto-acta,.panel-verificacion-acta) { border: 1px solid #d9e3f0; border-radius: 16px; padding: 24px; background: white; box-shadow: 0 8px 24px #19365c08; min-width: 0; }
+.panel-operador .visor-foto-acta { margin: 18px 0; background: #f3f6fb; max-height: none; }
+.panel-operador .imagen-acta-cargada { height: auto; max-height: 620px; object-fit: contain; }
+.reutilizar-foto { color: #455873; font-size: 13px; margin-top: 12px; }
+.reutilizar-foto summary { cursor: pointer; padding: 8px 0; }
+.reutilizar-foto select { width: 100%; }
+.estado-lectura { border: 1px solid #bfd1f4; background: #eef4ff; color: #1b3763; border-radius: 10px; padding: 16px; margin: 18px 0; font-size: 13px; line-height: 1.6; }
+.estado-lectura p { margin: 6px 0 0; }
+.estado-lectura a,.estado-lectura button { display: inline-block; text-decoration: underline; color: #1743a3; padding: 8px 0 0; }
+.estado-lectura-leyendo { border-left: 4px solid #174bd1; }
+.estado-lectura-error { background: #fff8eb; border-color: #e0bd76; color: #704b0d; }
+.panel-operador .tabla-conteo-acta input[type=number] { font-size: 19px; font-weight: 700; width: 120px; max-width: 100%; min-height: 48px; text-align: right; }
+.ampliacion-acta { overflow: auto; max-height: 70vh; background: #f3f6fb; }
+.ampliacion-acta img { display: block; width: 100%; min-width: 850px; }
+.ampliar-acta { color: #1743a3; font-weight: 700; padding: 8px 0; text-decoration: underline; }
+.panel-operador .tabla-conteo-acta input::placeholder { font-size: 12px; font-weight: 400; }
+.panel-operador .tabla-conteo-acta td { padding: 12px 4px; }
+.titulo-confirmacion { margin: 26px 0 14px; color: #142b4d; font-size: 16px; }
+@media(max-width:768px) { .panel-operador :is(.panel-foto-acta,.panel-verificacion-acta) { padding: 18px; } .panel-operador .selector-mesa-topbar { width: 100%; max-width: 100%; } }

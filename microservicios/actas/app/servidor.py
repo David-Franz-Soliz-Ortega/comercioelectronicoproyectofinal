@@ -5,6 +5,7 @@ import threading
 import time
 from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
+from typing import Literal
 from urllib.request import Request as Peticion, urlopen
 from urllib.error import HTTPError, URLError
 
@@ -16,6 +17,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
 from .cliente_mesas import consultar_mesa, registro_mesa
 from .dominio import decodificar_foto, validar_conteo, huella_solicitud, construir_evento
+from .lectura import leer_foto
 
 
 def conectar():
@@ -119,6 +121,44 @@ class NuevaActa(BaseModel):
     def documento_unico(self):
         if bool(self.foto)==bool(self.idActaOrigen):raise ValueError('Sube una fotografía o selecciona un acta de origen, no ambas')
         return self
+
+
+class FotoParaLectura(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    idMesa: UUID
+    foto: str = Field(min_length=1, max_length=14000000)
+
+
+class VotoLeido(BaseModel):
+    idCandidato: UUID
+    cantidad: int | None = Field(ge=0, le=1000000)
+
+
+class PropuestaLectura(BaseModel):
+    votos: list[VotoLeido]
+    blancos: int | None
+    nulos: int | None
+    total: int | None
+    completa: bool
+    sumaCoincide: bool | None
+    advertencias: list[str]
+    requiereRevision: Literal[True]
+    motor: Literal['tesseract']
+
+
+@app.post('/api/v1/actas/lectura', response_model=PropuestaLectura, summary='Proponer cifras de una fotografía, sin registrar ni publicar')
+def leer(datos: FotoParaLectura, req: Request, respuesta: Response):
+    # Mismos permisos/CSRF que el registro, pero sin persistencia ni eventos.
+    autorizar(req, True)
+    mesa = consultar_mesa(req, datos.idMesa)
+    if mesa['estado'] != 'recepcion':
+        raise HTTPException(409, 'La recepción está cerrada para esta mesa.')
+    respuesta.headers['Cache-Control'] = 'no-store'
+    try:
+        contenido, _, _ = decodificar_foto(datos.foto)
+        return leer_foto(contenido, mesa)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from None
 
 
 @app.get('/api/v1/salud')

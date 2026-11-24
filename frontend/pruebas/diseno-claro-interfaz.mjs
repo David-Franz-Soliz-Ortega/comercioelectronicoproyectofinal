@@ -1,7 +1,7 @@
 // Interfaz sintética: archivos compilados y catálogo vacío, sin contactar microservicios.
 import http from 'node:http';
-import {spawn} from 'node:child_process';
-import {readFile,writeFile,mkdtemp} from 'node:fs/promises';
+import {chromium} from 'playwright';
+import {readFile,writeFile} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
@@ -22,28 +22,22 @@ const servidor=http.createServer(async(req,res)=>{
 });
 await new Promise(r=>servidor.listen(0,'127.0.0.1',r));
 const origen='http://127.0.0.1:'+servidor.address().port;
-const perfil=await mkdtemp('/tmp/tuvoto-firefox-bidi-');
-const navegador=spawn('firefox',['--headless','--no-remote','--profile',perfil,'--remote-debugging-port','0','about:blank'],{stdio:['ignore','pipe','pipe']});
+const navegador=await chromium.launch({headless:true,...(process.env.CHROMIUM_EJECUTABLE?{executablePath:process.env.CHROMIUM_EJECUTABLE}:{}),args:['--no-sandbox']});
+const pagina=await navegador.newPage({viewport:{width:1440,height:1100}});
 const erroresJavascript=[];
-let ws;let identificador=0;const pendientes=new Map();
-const esperar=ms=>new Promise(r=>setTimeout(r,ms));
-try{
- const direccion=await new Promise((ok,no)=>{let salida='';const reloj=setTimeout(()=>no(Error('Firefox no inició BiDi')),20000);const leer=b=>{salida+=b.toString();const m=salida.match(/WebDriver BiDi listening on (ws:\/\/[^\s]+)/);if(m){clearTimeout(reloj);ok(m[1]);}};navegador.stderr.on('data',leer);navegador.stdout.on('data',leer);navegador.once('error',no);});
- ws=new WebSocket(direccion.replace(/\/$/,'')+'/session');await new Promise((ok,no)=>{ws.addEventListener('open',ok,{once:true});ws.addEventListener('error',no,{once:true});});
- ws.addEventListener('message',e=>{const d=JSON.parse(String(e.data));if(d.method==='log.entryAdded'&&d.params.type==='javascript'&&d.params.level==='error')erroresJavascript.push(d.params);if(d.id&&pendientes.has(d.id)){const {ok,no,reloj}=pendientes.get(d.id);clearTimeout(reloj);pendientes.delete(d.id);if(d.type==='error')no(Error('BiDi: '+d.error));else ok(d.result);}});
- const comando=(method,params={})=>new Promise((ok,no)=>{const id=++identificador;const reloj=setTimeout(()=>{pendientes.delete(id);no(Error('Timeout '+method));},20000);pendientes.set(id,{ok,no,reloj});ws.send(JSON.stringify({id,method,params}));});
- await comando('session.new',{capabilities:{alwaysMatch:{}}});
- await comando('session.subscribe',{events:['log.entryAdded']});
- const {context}=await comando('browsingContext.create',{type:'tab'});
- const evaluar=async expression=>{const r=await comando('script.evaluate',{expression,target:{context},awaitPromise:true});if(r.type==='exception')throw Error('Error JavaScript en la página');return r.result?.value;};
- const hasta=async expresion=>{for(let i=0;i<60;i++){if(await evaluar(expresion))return;await esperar(250);}throw Error('No apareció el estado esperado de la interfaz');};
-
- await comando('browsingContext.navigate',{context,url:origen,wait:'complete'});
- const pulsar=async(texto)=>{await hasta(`Array.from((document.querySelector('dialog[open]')??document).querySelectorAll('button')).some(b=>b.textContent.trim()===${JSON.stringify(texto)}&&!b.disabled)`);await evaluar(`Array.from((document.querySelector('dialog[open]')??document).querySelectorAll('button')).find(b=>b.textContent.trim()===${JSON.stringify(texto)}&&!b.disabled).click();true`);};
+pagina.on('pageerror',e=>erroresJavascript.push(e.message));
+const evaluar=expression=>pagina.evaluate(expression);
+const hasta=expresion=>pagina.waitForFunction(expresion, null, {timeout:15000});
+try {
+ await pagina.goto(origen);
+ const pulsar=async(texto)=>{
+  const selector=`Array.from((document.querySelector('dialog[open]')??document).querySelectorAll('button')).find(b=>!b.disabled&&((b.querySelector('strong')?.textContent.trim()??b.textContent.trim())===${JSON.stringify(texto)} || (${JSON.stringify(texto)}==='Cerrar'&& (/^Cerrar/.test(b.getAttribute('aria-label')??'') || b.textContent.trim()==='Cancelar'))))`;
+  await hasta(selector);await evaluar(selector+'.click();true');
+ };
  const llenar=async(selector,valor)=>evaluar(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(e.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype,'value').set.call(e,${JSON.stringify(valor)});e.dispatchEvent(new Event(e.tagName==='SELECT'?'change':'input',{bubbles:true}));return true;})()`);
  if(process.argv.includes('--pendientes-inicio')){
   await hasta("!!document.querySelector('.item-menu-lateral')&&!document.querySelector('.item-menu-lateral').disabled");
-  await pulsar('Estado y publicación');
+  await pulsar('Conteo y publicación');
   await hasta("document.querySelectorAll('[data-pendiente-inicio]').length>0");
   const pendientes=await evaluar("document.querySelectorAll('[data-pendiente-inicio]').length");
   assert.equal(await evaluar("document.querySelector('.boton-iniciar-conteo-publicacion').disabled"),true,'No inicia con asignaciones incompletas');
@@ -62,11 +56,11 @@ try{
   assert.equal(await evaluar('!!document.querySelector('+JSON.stringify('[data-pendiente-inicio="'+id+'"]')+')'),false);
   await pulsar('Ver mesas pendientes ↓');
   for(const ancho of [390,768,1440]){
-   await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1100}});
+   await pagina.setViewportSize({width:ancho,height:1100});
    assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Pendientes adaptables sin desbordamiento global');
   }
   assert.equal(await evaluar("window.solicitudes.filter(s=>s.metodo==='POST'&&s.ruta.includes('/institucion/')).length"),0,'No inicia ni termina un conteo');
-  await pulsar('Ir a operadores');
+  await pulsar('Ir a Operadores →');
   await hasta("!!document.querySelector('.directorio-operadores-recepcion')");
   console.log('OK: pendientes exactos, selección obligatoria, fallo/reintento, recarga tras asignación sintética, enlace a operadores y tres tamaños; sin escrituras reales.');
  }else{
@@ -76,9 +70,9 @@ try{
  assert.equal(await evaluar("document.querySelectorAll('.metricas-familias-cargos article').length"),4);
  assert.equal(await evaluar("getComputedStyle(document.querySelector('.barra-lateral-privada')).backgroundColor"),'rgb(255, 255, 255)');
  for(const ancho of [390,768,1440]){
-  await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1100}});
+  await pagina.setViewportSize({width:ancho,height:1100});
   assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Sin desbordamiento global');
-  const captura=await comando('browsingContext.captureScreenshot',{context});await writeFile('/tmp/tuvoto-diseno-claro-'+ancho+'.png',Buffer.from(captura.data,'base64'));
+  const captura={data:await pagina.screenshot({animations:'disabled'}).then(b=>b.toString('base64'))};await writeFile('/tmp/tuvoto-diseno-claro-'+ancho+'.png',Buffer.from(captura.data,'base64'));
  }
  await pulsar('Ver los 12 cargos →');
  await hasta("document.querySelectorAll('[data-grupo-cargos=decanos] tbody tr:not([hidden])').length===12");
@@ -106,12 +100,12 @@ try{
  await pulsar('＋ Crear cargo');
  await hasta("!!document.querySelector('dialog[open] .opciones-eleccion')");
  assert.equal(await evaluar("!!document.querySelector('.catalogo-claro')"),true,'Catálogo conservado tras abrir alta de cargo');
- await pulsar('Cerrar');
- await pulsar('Usuarios');
+ await pulsar('Cancelar');
+ await pulsar('Equipo');await pulsar('Administradores');
  await pulsar('+ Crear administrador');
  await hasta("!!document.querySelector('dialog[open] #titulo-administracion')");
  await pulsar('Cerrar');
- await pulsar('Mesas');
+ await pulsar('Elección');await pulsar('Mesas de la elección');
  await hasta("document.querySelectorAll('[data-facultad-mesas]').length===33");
  assert.equal(await evaluar("document.querySelector('.cantidad-total-mesas').textContent"),'34 mesas','Cuenta mesas físicas sin archivadas');
  assert.equal(await evaluar("document.querySelectorAll('[data-mesa-listado]').length"),2,'Solo mesas de la unidad activa');
@@ -131,10 +125,10 @@ try{
  await hasta("!!document.querySelector('#detalle-cargos-mesa [data-mesa-cargo]')");
  assert.equal(await evaluar("document.querySelector('#detalle-cargos-mesa').textContent.includes('Decano')"),true);
  for(const ancho of [390,768,1440,2560]){
-  await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1100}});
+  await pagina.setViewportSize({width:ancho,height:1100});
   assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Mesas sin desbordamiento global');
   assert.equal(await evaluar("getComputedStyle(document.querySelector('.distribucion-mesas-recepcion')).gridTemplateColumns.split(' ').length"),ancho>1100?2:1,'Dos paneles en escritorio y apilados en móvil');
-  const captura=await comando('browsingContext.captureScreenshot',{context});await writeFile('/tmp/tuvoto-mesas-referencia-'+ancho+'.png',Buffer.from(captura.data,'base64'));
+  const captura={data:await pagina.screenshot({animations:'disabled'}).then(b=>b.toString('base64'))};await writeFile('/tmp/tuvoto-mesas-referencia-'+ancho+'.png',Buffer.from(captura.data,'base64'));
  }
  await evaluar("document.querySelector('.menu-mesa-recepcion summary').click();true");
  await hasta("!!document.querySelector('.menu-mesa-recepcion[open] .control-eliminacion')");
@@ -150,7 +144,7 @@ try{
  await evaluar("document.querySelector('.acciones-mesas-clara [data-abrir-importacion]').click();true");
  await hasta("!!document.querySelector('[data-importacion=mesas] dialog[open] input[type=file]')");
  await pulsar('Cerrar');
- await pulsar('Asignar operadores');
+ await pulsar('Equipo');
  await hasta("document.querySelectorAll('[data-operador]').length===10");
  assert.equal(await evaluar("document.querySelector('.paginacion-operadores [role=status]').textContent"),'1–10 de 12');
  await pulsar('Siguiente ›');
@@ -171,13 +165,13 @@ try{
  await evaluar("document.querySelector('.desplegar-mesas-operador').click();true");
  await hasta("document.querySelectorAll('[data-asignacion-mesa-fisica]').length===2");
  for(const ancho of [390,768,1440,2560]){
-  await comando('browsingContext.setViewport',{context,viewport:{width:ancho,height:1100}});
+  await pagina.setViewportSize({width:ancho,height:1100});
   assert.equal(await evaluar('document.documentElement.scrollWidth<=innerWidth'),true,'Operadores sin desbordamiento global');
-  const captura=await comando('browsingContext.captureScreenshot',{context});await writeFile('/tmp/tuvoto-operadores-referencia-'+ancho+'.png',Buffer.from(captura.data,'base64'));
+  const captura={data:await pagina.screenshot({animations:'disabled'}).then(b=>b.toString('base64'))};await writeFile('/tmp/tuvoto-operadores-referencia-'+ancho+'.png',Buffer.from(captura.data,'base64'));
  }
  await pulsar('Editar mesas');
  await hasta("!!document.querySelector('dialog[open] .formulario-operador')");
- assert.equal(await evaluar("document.querySelectorAll('dialog[open] input[type=checkbox]:checked:disabled').length"),2,'Conserva asignaciones existentes');
+ assert.equal(await evaluar("document.querySelectorAll('dialog[open] input[type=checkbox]:checked').length"),2,'Muestra seleccionadas las asignaciones existentes');
  await pulsar('Cerrar');
  await pulsar('＋ Crear operador');
  await hasta("!!document.querySelector('dialog[open] .formulario-operador input[type=password]')");
@@ -192,11 +186,11 @@ try{
  await evaluar("document.querySelector('.menu-importar-operadores').open=false;true");
  await llenar('[aria-label="Filtrar operador"]','');
  await llenar('[aria-label="Filas por página"]','10');
- await comando('browsingContext.setViewport',{context,viewport:{width:1440,height:1100}});
- const operadoresCaptura=await comando('browsingContext.captureScreenshot',{context});await writeFile('/tmp/tuvoto-operadores-referencia-lista.png',Buffer.from(operadoresCaptura.data,'base64'));
+ await pagina.setViewportSize({width:1440,height:1100});
+ const operadoresCaptura={data:await pagina.screenshot({animations:'disabled'}).then(b=>b.toString('base64'))};await writeFile('/tmp/tuvoto-operadores-referencia-lista.png',Buffer.from(operadoresCaptura.data,'base64'));
  await pulsar('Resumen');
  await evaluar("window.fallarAsignaciones=true;true");
- await pulsar('Asignar operadores');
+ await pulsar('Equipo');
  await hasta("!!document.querySelector('.directorio-operadores-recepcion [role=alert]')");
  await evaluar("window.fallarAsignaciones=false;true");
  await pulsar('Reintentar');
@@ -204,6 +198,6 @@ try{
  assert.equal(await evaluar("window.solicitudes.every(s=>s.metodo==='GET')"),true,'Ninguna escritura para revisar el diseño');
  }
  assert.equal(erroresJavascript.length,0,'Sin errores JavaScript');
- await comando('session.end');
+
  if(!process.argv.includes('--pendientes-inicio'))console.log('OK: panel claro, 34 cargos sintéticos, filtros de grupo/estado/búsqueda/archivados, detalle/edición/creación/Excel y mesas con facultades laterales, tabla y detalle, búsqueda, sector, eliminación confirmada, alta/Excel y operadores con paginación, pendientes, filtros, mesas desplegadas, edición/alta/importaciones y cuatro tamaños; sin escrituras ni API real.');
-}finally{if(ws)ws.close();navegador.kill('SIGTERM');await new Promise(r=>servidor.close(r));}
+}catch(e){await pagina.screenshot({path:'/tmp/tuvoto-panel-fallo.png',fullPage:true});console.error(e);throw e;}finally{await navegador.close();servidor.closeAllConnections();await new Promise(r=>servidor.close(r));}

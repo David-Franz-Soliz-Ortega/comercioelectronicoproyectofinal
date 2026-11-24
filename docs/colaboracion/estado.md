@@ -1,8 +1,10 @@
 # Estado de trabajo entre agentes
 
-Actualizado: 2026-11-23. Responsable: Antigravity. Siguiente responsable: por asignar.
+Actualizado: 2026-11-23. Responsable: Antigravity / Equipo TUVOTO. Siguiente responsable: por asignar.
 
 ## Entregas simultáneas recientes
+
+- [Panel sencillo y lectura asistida de actas](entregas/panel-sencillo-lectura-actas.md) — cuatro apartados, mesas integradas en Elección, portada sin pausa y operador con OCR real de un formato impreso de prueba. 74 pruebas frontend, recorridos Chromium y 17 pruebas Actas pasadas (7 SQL omitidas). Frontend/Actas actualizados localmente, otros 11 contenedores conservados, 13 saludables. Sin publicación Git. Manuscritos y fotos de formatos institucionales siguen pendientes de validación.
 
 - [Presentación 3: Observabilidad, Seguridad, Alta Concurrencia (JMeter 5k), Resiliencia y Documentación](presentaciones/guia-presentacion-p3.md) — implementada la entrega completa de la rúbrica de P3 (40 pts):
   - **Observabilidad:** exportador nativo `/metrics` en todos los microservicios (`actas`, `resultados`, `elecciones`, `identidad`, `gateway-graphql`) con métricas de negocio (`tuvoto_actas_contabilizadas_total`, `tuvoto_votos_validos_total`), configuración Prometheus con reglas de alerta de SLO (`infraestructura/monitoreo/alertas-slo.yml`), tablero completo de Grafana con paneles de disponibilidad, latencia p50/p95/p99 y cómputos en vivo, Jaeger OTLP para trazabilidad de 3 saltos, y configuración Loki/Promtail para logs centralizados con `X-Correlation-ID`.

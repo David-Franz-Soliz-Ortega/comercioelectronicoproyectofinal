@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -6,7 +7,7 @@ import { createServer } from 'vite';
 import { comprobarEventos } from '../src/api/datosPortal.js';
 
 test('portada muestra los cargos guardados y sus candidatos; no depende del cargo que se esté editando', async()=>{
- const vite=await createServer({root:new URL('..',import.meta.url).pathname,configFile:false,optimizeDeps:{noDiscovery:true,include:[]},server:{middlewareMode:true,ws:false,hmr:false,watch:null},appType:'custom'});
+ const vite=await createServer({root:fileURLToPath(new URL('..',import.meta.url)),configFile:false,optimizeDeps:{noDiscovery:true,include:[]},server:{middlewareMode:true,ws:false,hmr:false,watch:null},appType:'custom'});
  try{
   const {default:Administracion}=await vite.ssrLoadModule('/src/componentes/PortadaAdministracion.jsx');
   const {default:Publico}=await vite.ssrLoadModule('/src/componentes/CargosDestacados.jsx');

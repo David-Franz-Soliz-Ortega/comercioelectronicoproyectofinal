@@ -157,7 +157,7 @@ export function ControlesSesion({ sesion, ocupado, salir, seleccionar, subtitulo
         <IconoUsuario tamano={16} />
         <span>{subtituloRol ? `${subtituloRol} · ${sesion.usuario}` : sesion.usuario}</span>
       </div>
-      {organizaciones.length > 0 && (
+      {(organizaciones.length > 1 || (organizaciones.length === 1 && !sesion.idOrganizacion)) && (
         <select
           aria-label="Organización"
           value={sesion.idOrganizacion ?? ''}

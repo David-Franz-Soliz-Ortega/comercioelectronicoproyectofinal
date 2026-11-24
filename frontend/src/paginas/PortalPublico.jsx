@@ -139,7 +139,6 @@ export default function PortalPublico() {
   const enfocarAlCargar = useRef(false);
   const encabezadoResultados = useRef(null);
   const [seleccion, cambiarSeleccion] = useState(()=>({evento:'',proceso:procesoDesdeEnlace(location.hash),unidad:''}));
-  const [pausadas, cambiarPausadas] = useState(() => { try { return localStorage.getItem('tuvoto:pausar-animaciones') === 'si'; } catch { return false; } });
   const [grupoDesplegado, cambiarGrupoDesplegado] = useState(null);
   const [verTodosGrupo, cambiarVerTodosGrupo] = useState(null);
   const [busquedaFacultad, cambiarBusquedaFacultad] = useState('');
@@ -175,14 +174,14 @@ export default function PortalPublico() {
 
   function mostrarResultados() {
     encabezadoResultados.current?.focus({ preventScroll: true });
-    encabezadoResultados.current?.scrollIntoView({ behavior: pausadas || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+    encabezadoResultados.current?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
   }
 
   useEffect(() => {
     if (!portal || !enfocarAlCargar.current) return;
     enfocarAlCargar.current = false;
     mostrarResultados();
-  }, [portal, pausadas]);
+  }, [portal]);
 
   function elegirProceso(id) {
     if (id === proceso?.id && !unidad && portal && !verTodosGrupo) { mostrarResultados(); return; }
@@ -195,10 +194,9 @@ export default function PortalPublico() {
     enfocarAlCargar.current = true;
     cambiarSeleccion({ evento: evento.id, proceso: proceso.id, unidad: valor });
   }
-  function alternarAnimaciones() { cambiarPausadas(valor => { try { localStorage.setItem('tuvoto:pausar-animaciones', !valor ? 'si' : 'no'); } catch { /* El control funciona también sin almacenamiento. */ } return !valor; }); }
   function reintentar() { catalogo.reintentar(); conteo.reintentar(); }
 
-  return <div data-proceso-publico={proceso?.id??''} className={`observatorio-publico ${pausadas ? 'animaciones-pausadas' : ''}`}>
+  return <div data-proceso-publico={proceso?.id??''} className="observatorio-publico">
     <a className="saltar-contenido" href="#resultados-electorales">Ir a resultados</a>
     <header className="cabecera-observatorio">
       <a href="#resultados" className="marca-observatorio" aria-label="TUVOTO, inicio"><span className="simbolo-marca"><IconoUrna tamano={21} /></span>TUVOTO<span className="punto-marca">.</span></a>
@@ -213,7 +211,7 @@ export default function PortalPublico() {
         <div className="presentacion-evento"><p className="sobre-titulo">{evento?.destacado ? 'EVENTO DESTACADO' : evento ? 'EVENTO ELECTORAL' : 'CADA ELECCIÓN CUENTA'}</p><h1 id="titulo-evento">{evento?.nombre ?? 'Tu comunidad.\nTu próxima elección.'}</h1><p className="bajada-evento">Candidaturas, votos y actas. Sigue el conteo de tu comunidad,<br className="salto-escritorio" /> conoce a sus candidatos y consulta los resultados por unidad.</p>
           {r ? <div className="avance-portada" aria-label="Avance de actas"><div className="detalle-avance-portada"><span><IconoUrna tamano={15} /><strong>{numero(r.avance)}%</strong> de actas contabilizadas</span><span>{numero(r.contabilizadas)} de {numero(r.esperadas)} actas</span></div><div className="barra-avance-portada" role="progressbar" aria-label="Porcentaje de mesas contabilizadas" aria-valuenow={r.avance} aria-valuemin="0" aria-valuemax="100"><span style={{ width: `${r.avance}%` }} /></div><p>{unidad || portal.proceso.cargo} · {error ? 'Última respuesta recibida; actualización pendiente.' : 'Una contribución vigente por mesa.'}</p></div> : <div className="espera-portada"><IconoReloj tamano={15} /><span>{cargando ? 'Consultando eventos publicados…' : error ? 'La consulta no pudo completarse.' : 'El conteo estará disponible cuando se publique un evento.'}</span></div>}
         </div>
-        <div className="urna-portada"><UrnaAnimada compacta /><span className="leyenda-urna">Del acta al resultado.</span><button type="button" className="pausa-urna" aria-pressed={pausadas} onClick={alternarAnimaciones}>{pausadas ? 'Reanudar animaciones' : 'Pausar animaciones'}</button><small>Una comunidad informada.</small></div>
+        <div className="urna-portada"><UrnaAnimada compacta /><span className="leyenda-urna">Del acta al resultado.</span><small>Una comunidad informada.</small></div>
       </section>
       {evento && (
         <div className="barra-cargos">

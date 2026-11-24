@@ -369,6 +369,68 @@
         ],
         "description": "Requiere OPERADOR asignado. Escrituras solo en recepción: Origin autorizado, cookie CSRF y X-CSRF-Token. No acepta identidad del cliente."
       }
+    },
+    "/api/v1/actas/lectura": {
+      "post": {
+        "summary": "Proponer cifras de una fotografía, sin registrar ni publicar",
+        "operationId": "leer_api_v1_actas_lectura_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FotoParaLectura"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropuestaLectura"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Recepción cerrada"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Sin permiso o mesa no asignada"
+          },
+          "429": {
+            "description": "Dos lecturas en curso"
+          },
+          "503": {
+            "description": "Motor de lectura no disponible"
+          },
+          "504": {
+            "description": "Lectura agotó su tiempo"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "description": "Requiere OPERADOR asignado, recepción abierta, Origin y CSRF válidos. Solo sugiere cifras impresas; no persiste fotografías, no registra actas ni publica eventos. Los campos no leídos son null. La confirmación humana se realiza por el endpoint de registro existente. Respuesta privada Cache-Control: no-store."
+      }
     }
   },
   "components": {
@@ -555,6 +617,145 @@
           "cantidad"
         ],
         "title": "Voto"
+      },
+      "FotoParaLectura": {
+        "properties": {
+          "idMesa": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idmesa"
+          },
+          "foto": {
+            "type": "string",
+            "maxLength": 14000000,
+            "minLength": 1,
+            "title": "Foto"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "idMesa",
+          "foto"
+        ],
+        "title": "FotoParaLectura"
+      },
+      "VotoLeido": {
+        "properties": {
+          "idCandidato": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idcandidato"
+          },
+          "cantidad": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cantidad"
+          }
+        },
+        "type": "object",
+        "required": [
+          "idCandidato",
+          "cantidad"
+        ],
+        "title": "VotoLeido"
+      },
+      "PropuestaLectura": {
+        "properties": {
+          "votos": {
+            "items": {
+              "$ref": "#/components/schemas/VotoLeido"
+            },
+            "type": "array",
+            "title": "Votos"
+          },
+          "blancos": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blancos"
+          },
+          "nulos": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nulos"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          },
+          "completa": {
+            "type": "boolean",
+            "title": "Completa"
+          },
+          "sumaCoincide": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sumacoincide"
+          },
+          "advertencias": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Advertencias"
+          },
+          "requiereRevision": {
+            "type": "boolean",
+            "const": true,
+            "title": "Requiererevision"
+          },
+          "motor": {
+            "type": "string",
+            "const": "tesseract",
+            "title": "Motor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "votos",
+          "blancos",
+          "nulos",
+          "total",
+          "completa",
+          "sumaCoincide",
+          "advertencias",
+          "requiereRevision",
+          "motor"
+        ],
+        "title": "PropuestaLectura"
       }
     },
     "securitySchemes": {
