@@ -8,7 +8,9 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 from app.lectura import interpretar, combinar_lecturas, leer_foto
 from test_lectura import MESA, tsv
 
-FOTO = Path(__file__).parents[3] / 'frontend/public/ejemplos/acta-escrutinio-prueba.png'
+FOTO = Path(__file__).with_name('acta-escrutinio-prueba.png')
+if not FOTO.exists():
+    FOTO = Path(__file__).parents[3] / 'frontend/public/ejemplos/acta-escrutinio-prueba.png'
 
 class TablaImpresa(unittest.TestCase):
     def test_png_y_jpeg_del_formato_imprimible(self):

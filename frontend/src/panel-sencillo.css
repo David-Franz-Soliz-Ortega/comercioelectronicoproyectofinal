@@ -56,3 +56,44 @@
 .destino-acta-operador { display: grid; gap: 6px; flex: 1 1 300px; min-width: 0; font-size: 12px; font-weight: 700; color: #455873; }
 .contexto-acta-operador { display: grid; gap: 6px; padding: 14px 16px; border-left: 3px solid #174bd1; background: #eef4ff; overflow-wrap: anywhere; }
 .contexto-acta-operador span { font-size: 13px; }
+
+/* En teléfono, el destino y los controles de cámara preceden a la fotografía. */
+@media(max-width:768px) {
+  .panel-operador .barra-lateral-privada { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; }
+  .panel-operador .cabecera-lateral-marca { padding: 0; min-height: 0; border: 0; }
+  .panel-operador .navegacion-lateral { display: none; }
+  .panel-operador .pie-lateral-privado { display: block; border: 0; padding: 0; font-size: 12px; }
+  .panel-operador .cabecera-superior-privada { padding: 16px; gap: 14px; }
+  .panel-operador .titulo-seccion-privada h1 { font-size: 22px; }
+  .panel-operador .subtitulo-seccion-privada { display: none; }
+  .panel-operador .controles-cabecera-operador { display: grid; gap: 14px; width: 100%; }
+  .panel-operador .perfil-usuario-privado { order: -1; gap: 10px; justify-content: space-between; }
+  .panel-operador .insignia-usuario-actual { flex: 1; min-width: 0; background: transparent; border: 0; padding: 0; font-size: 12px; }
+  .panel-operador .boton-cerrar-sesion { padding: 9px 12px; font-size: 12px; flex-shrink: 0; }
+  .panel-operador .destino-acta-operador select { font-size: 16px; min-height: 48px; }
+  .panel-operador .contenido-seccion-privada { padding: 20px 12px 28px; }
+  .panel-operador .introduccion-registro { margin-bottom: 20px; }
+  .panel-operador .rotulo-trabajo-admin { display: none; }
+  .panel-operador .introduccion-registro h2 { font-size: 23px; line-height: 1.3; letter-spacing: -.6px; }
+  .panel-operador .introduccion-registro p { font-size: 13px; }
+  .panel-operador .introduccion-registro ol { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-top: 16px; }
+  .panel-operador .introduccion-registro li { flex-direction: column; text-align: center; font-size: 12px; line-height: 1.4; }
+  .panel-operador .grid-operador-registro { gap: 16px; }
+  .panel-operador :is(.panel-foto-acta,.panel-verificacion-acta) { padding: 16px; }
+  .panel-operador .acciones-foto-acta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 16px; }
+  .panel-operador .boton-camara { justify-content: center; min-width: 0; min-height: 48px; padding: 10px 8px; font-size: 12px; }
+  .panel-operador .insignia-original-conservado { grid-column: 1 / -1; justify-self: start; }
+  .panel-operador .visor-foto-acta { min-height: 180px; max-height: 300px; margin: 14px 0 0; }
+  .panel-operador .imagen-acta-cargada { max-height: 298px; width: 100%; }
+  .panel-operador .ampliar-acta { display: flex; align-items: center; justify-content: center; min-height: 44px; width: 100%; margin-top: 8px; border: 1px solid #c4d1e2; border-radius: 8px; text-decoration: none; }
+  .panel-operador .ampliacion-acta img { min-width: 0; touch-action: pan-x pan-y pinch-zoom; }
+  .panel-operador .tabla-conteo-acta { table-layout: fixed; width: 100%; }
+  .panel-operador .tabla-conteo-acta :is(th,td):last-child { width: 90px; }
+  .panel-operador .tabla-conteo-acta input[type=number] { width: 100%; font-size: 18px; min-height: 48px; }
+  .panel-operador .tabla-conteo-acta td:first-child { font-size: 14px; overflow-wrap: anywhere; }
+  .panel-operador .casilla-confirmacion-acta { min-height: 56px; font-size: 13px; }
+  .panel-operador .casilla-confirmacion-acta input { width: 20px; height: 20px; flex-shrink: 0; }
+  .panel-operador .boton-publicar-acta { min-height: 52px; font-size: 16px; }
+  .panel-operador .item-historial-acta { flex-wrap: wrap; gap: 10px; }
+  .panel-operador .enlace-ver-original { min-height: 44px; }
+}

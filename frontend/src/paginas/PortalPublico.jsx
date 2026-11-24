@@ -49,6 +49,8 @@ function TarjetaCandidatura({ candidato, indice, candidatos, resultados, proceso
         <p className="etiqueta-candidatura">Candidatura publicada</p>
         <h3>{candidato.nombre}</h3>
         <p className="ambito-candidatura">{unidad || 'Todas las unidades'}</p>
+      </div>
+      <div className="cifras-candidatura">
         <div className="resultado-destacado"><div className="porcentaje-candidatura">{valor===null?'—':numero(valor)}<span>%</span></div><span className="base-porcentaje">{resultados.ponderacionAplicada?'ponderado':'de votos válidos'}</span></div>
         <p className={`distancia-candidatura ${lider ? 'distancia-favorable' : ''}`}>{diferencia === null ? resultados.validos ? 'Porcentaje sobre los votos válidos' : 'Esperando el avance del conteo' : diferencia === 0 ? 'Sin diferencia con el primer lugar' : lider ? `+${numero(diferencia)} puntos sobre el segundo lugar` : `A ${numero(diferencia)} puntos del primer lugar`}</p>
       </div>
@@ -70,13 +72,12 @@ function TablaUnidades({ resultados, unidad, etiqueta, alElegir }) {
     <div className="cabecera-unidades"><div><p className="sobre-titulo">EL DETALLE DE TU COMUNIDAD</p><h2 id="titulo-unidades">Conteo por {etiqueta.toLowerCase()}</h2><p>Consulta el avance de actas y abre los votos de cada unidad.</p></div>
       <label className="busqueda-unidades"><IconoEdificio tamano={16} /><input type="search" aria-label={`Buscar ${etiqueta.toLowerCase()}`} placeholder={`Buscar ${etiqueta.toLowerCase()}…`} value={busqueda} onChange={e => cambiarBusqueda(e.target.value)} /></label>
     </div>
-    <p className="ayuda-tabla-movil">Desliza la tabla para ver todas las columnas <span aria-hidden="true">↔</span></p>
     <div className="tabla-unidades-scroll" role="region" aria-label="Detalle de actas por unidad" tabIndex="0">
       <table className="tabla-unidades"><caption className="solo-lectores">Actas contabilizadas, avance y pendientes por {etiqueta.toLowerCase()}.</caption>
         <thead><tr><th scope="col">{etiqueta} / unidad</th><th scope="col">Actas</th><th scope="col">Avance del conteo</th><th scope="col">Pendientes</th><th scope="col">Resultados</th></tr></thead>
         <tbody>{unidades.map(u => {
           const avance = u.esperadas ? u.contabilizadas / u.esperadas * 100 : 0;
-          return <tr key={u.unidad}><th scope="row">{u.unidad}</th><td className="cifra-tabla">{numero(u.contabilizadas)} <span>/ {numero(u.esperadas)}</span></td><td><div className="avance-tabla"><span>{numero(avance)}%</span><span className="barra-unidad" aria-hidden="true"><span style={{ width: `${avance}%` }} /></span></div></td><td className="cifra-tabla">{numero(u.pendientes)}</td><td><button type="button" className="enlace-votos" onClick={() => alElegir(u.unidad)} aria-label={`Ver votos de ${u.unidad}`}>Ver votos</button></td></tr>;
+          return <tr key={u.unidad}><th scope="row">{u.unidad}</th><td className="cifra-tabla" data-etiqueta="Actas">{numero(u.contabilizadas)} <span>/ {numero(u.esperadas)}</span></td><td data-etiqueta="Avance"><div className="avance-tabla"><span>{numero(avance)}%</span><span className="barra-unidad" aria-hidden="true"><span style={{ width: `${avance}%` }} /></span></div></td><td className="cifra-tabla" data-etiqueta="Pendientes">{numero(u.pendientes)}</td><td className="accion-unidad"><button type="button" className="enlace-votos" onClick={() => alElegir(u.unidad)} aria-label={`Ver votos de ${u.unidad}`}>Ver votos</button></td></tr>;
         })}</tbody>
       </table>
     </div>

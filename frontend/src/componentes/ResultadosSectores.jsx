@@ -7,7 +7,7 @@ export default function ResultadosSectores({ proceso, resultados }) {
    <div className="cuadricula-sectores">{(resultados.sectores??[]).map(s=><article key={s.codigo}>
     <h3>{s.nombre}{resultados.ponderacionAplicada?` · Peso ${s.pesoBps/100} %`:''}</h3>
     <p>Mesas: {s.contabilizadas}/{s.esperadas} · Pendientes: {s.pendientes} · Válidos: {s.validos}</p>
-    <table className="tabla-admin"><thead><tr><th>Candidato</th><th>Votos</th><th>% válidos del sector</th></tr></thead><tbody>{s.candidatos.map(c=><tr key={c.id}><td>{c.nombre}</td><td>{c.votos}</td><td>{c.porcentaje} %</td></tr>)}</tbody></table>
+    <table className="tabla-admin"><thead><tr><th>Candidato</th><th>Votos</th><th>% válidos del sector</th></tr></thead><tbody>{s.candidatos.map(c=><tr key={c.id}><td>{c.nombre}</td><td data-etiqueta="Votos">{c.votos}</td><td data-etiqueta="% válidos del sector">{c.porcentaje} %</td></tr>)}</tbody></table>
     <p>Blancos: {s.blancos} · Nulos: {s.nulos}</p>
    </article>)}</div>
    {resultados.ponderacionAplicada&&<><h3>Porcentajes ponderados</h3><ul>{resultados.candidatos.map(c=><li key={c.id}>{c.nombre}: <strong>{c.porcentajePonderado===null||c.porcentajePonderado===undefined?'Pendiente de votos válidos por sector':c.porcentajePonderado+' %'}</strong></li>)}</ul></>}

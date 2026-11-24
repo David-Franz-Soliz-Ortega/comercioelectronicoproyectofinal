@@ -26,6 +26,12 @@ Una mesa física puede tener varios cargos; sus actas y resultados conservan ide
 
 Los contadores por facultad se calculan después de agrupar por ID físico, conservando mesas individuales no vinculadas y sectores distintos. Usar la facultad explícita de los cargos asociados o, si falta, la unidad registrada; no deducir una facultad por el nombre de una carrera. Ver [la prueba de contadores](../../frontend/pruebas/mesas-compartidas.test.mjs).
 
+Al editar asignaciones, bloquear el grupo físico si cualquiera de sus cargos pertenece a otro operador; comparar IDs físicos/lógicos, no códigos de mesa repetidos. La selección grupal debe omitir esos grupos. Releer disponibilidad antes de guardar detecta cambios posteriores a abrir el formulario, pero no sustituye una restricción transaccional del backend. Ver [regresiones](../../frontend/pruebas/operadores.test.mjs) y [recorrido del editor](../../frontend/pruebas/edicion-operadores-interfaz.mjs).
+
+## Lectura de tablas impresas
+
+La cuadrícula clara del formato sintético hacía que Tesseract omitiera cifras que sí estaban presentes. Una segunda copia con contraste acentuado recuperó esos campos en PNG/JPEG. Conservar sin completar los desacuerdos entre pasadas y las filas repetidas; una suma coincidente no resuelve la ambigüedad. El [test de tabla](../../microservicios/actas/pruebas/test_formato_tabla.py) ejecuta OCR real y mantiene los conflictos vacíos. Esta evidencia no acredita manuscritos ni fotos tomadas del papel.
+
 ## Esperas en pruebas del navegador
 
 La presencia de un contenedor del listado no implica que sus opciones hayan terminado de cargar. Tras recargar o guardar, esperar el elemento de destino disponible o la confirmación de persistencia, en lugar de usar una pausa fija como garantía. Ver el recorrido de [interfaz](../../pruebas/ampliacion/probar-interfaz.mjs).

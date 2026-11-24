@@ -1,12 +1,18 @@
 # Estado de trabajo entre agentes
 
-Actualizado: 2026-11-24. Responsable de la revisión vigente: Codex. Siguiente responsable: desarrollo, por asignar.
+Actualizado: 2026-11-24. Responsable de la entrega vigente: Codex. Siguiente responsable: QA de cámara, por asignar.
 
-## Revisión vigente
+## Entrega vigente
+
+- [Operador, acta imprimible y presentación móvil](entregas/operador-actas-movil-mesas-ocupadas.md) — **listo_para_qa** de fotografía física. Portada y operador adaptados a móvil, mesas ocupadas bloqueadas en edición y ejemplo ficticio A4 separado por cargo. Base inicial `main`, `1e73b07`; el commit concurrente ajeno `85159ee` incorporó parte del trabajo y se conservó.
+- **Pruebas actuales:** 76 frontend, compilación Vite, tres recorridos Chromium aislados y 12 pruebas de OCR real pasaron. Portada comprobada entre 320 y 2560 px con nombres largos, grupos abiertos, unidades y sectores. Sin escrituras en persistencia real ni despliegue.
+- **Siguiente acción:** probar el papel impreso con cámara física en una elección aislada. Detección automática de destino y exclusividad transaccional de asignaciones quedan fuera de esta entrega; conservar pendientes administrativos de la revisión siguiente.
+
+## Revisión de flujo pendiente
 
 - [Operador, fotografías y avance de actas](entregas/revision-flujo-operador-avance.md) — **requiere_correccion**. Base `main`, `1e73b07`. Mesas sigue dentro de Elección; Conteo y publicación muestra configuración/asignaciones pero carece de avance y faltantes de conteo. El porcentaje público es por cargo y puede coexistir con revisiones pendientes; cerrar recepción no exige 100 %. OCR propone cifras del destino seleccionado, sin identificar mesa/cargo automáticamente.
-- **Pruebas actuales:** 27 frontend focalizadas y 14 de dominio/proyección pasaron; reproducción sintética de 100 % con una revisión pendiente. OCR real, navegador y publicación integral no ejecutados: entorno sin servicios TUVOTO activos, Tesseract ni dependencias del frontend. Las entregas anteriores conservan su carácter histórico.
-- **Siguiente acción:** corregir indicadores y terminología, después ampliar la sugerencia de destino del operador y verificar fotografías representativas en entorno aislado. Solo se actualizó documentación; sin cambios operativos, despliegue ni publicación Git.
+- **Pruebas de esa revisión:** 27 frontend focalizadas y 14 de dominio/proyección pasaron; reproducción sintética de 100 % con una revisión pendiente. En esa fase no se ejecutaron OCR, navegador ni publicación integral. La entrega vigente añade pruebas aisladas de OCR y navegador; no acredita integración con servicios reales.
+- **Siguiente acción de flujo:** corregir indicadores y terminología, después ampliar la sugerencia de destino del operador y verificar fotografías representativas en entorno aislado. Esa revisión solo actualizó documentación; sus hallazgos administrativos continúan pendientes.
 
 ## Entregas simultáneas recientes
 

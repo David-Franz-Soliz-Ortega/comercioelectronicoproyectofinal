@@ -54,7 +54,8 @@ try{
  await pagina.getByRole('alert').filter({hasText:'Cambió la disponibilidad'}).waitFor();
  assert.ok(await mesa(4).isDisabled());assert.ok(!(await mesa(4).isChecked()));assert.equal((await escrituras()).length,0);
  // Crear, fallar parcialmente y reintentar conserva la cuenta y el primer vínculo confirmado.
- await pagina.goto(origen+'/?nuevo');await mesa(4).waitFor();
+ await pagina.goto(origen+'/?nuevo');await pagina.getByRole('dialog').waitFor();
+ await pagina.locator('details').evaluateAll(nodos=>nodos.forEach(n=>n.open=true));await mesa(4).waitFor();
  assert.ok(await mesa(1).isDisabled());assert.ok(await mesa(3).isDisabled());
  await pagina.getByLabel('Nombre de usuario',{exact:true}).fill('nuevo.sintetico');
  await pagina.locator('input[autocomplete="new-password"]').fill('Clave-Sintetica-2026');

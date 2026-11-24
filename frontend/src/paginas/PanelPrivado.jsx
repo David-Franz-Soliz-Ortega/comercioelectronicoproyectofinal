@@ -1010,7 +1010,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
               ocupado={ocupado || ocupadoSesion}
               salir={salir}
               seleccionar={seleccionar}
-              subtituloRol={`Operador · ${contexto?.unidad ?? 'Mesa'}`}
+              subtituloRol="Operador"
             />
           </div>
         </header>
@@ -1048,20 +1048,6 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                     </div>
 
                     <p>Sector de la mesa: <strong>{contexto.sectorNombre??contexto.sector??'General'}</strong>. No se mezcla con otros sectores.</p>
-                    <div className="visor-foto-acta">
-                      {foto ? (
-                        <img src={foto} alt="Fotografía del acta a comparar con el conteo" className="imagen-acta-cargada" />
-                      ) : (
-                        <div className="visor-placeholder">
-                          <IconoCamara tamano={48} color="#94A3B8" />
-                          <p style={{ marginTop: 12, fontSize: 13 }}>Fotografía pendiente de capturar o subir</p>
-                          <small style={{ color: '#94A3B8' }}>Formatos aceptados: JPEG o PNG (máximo 10 MB)</small>
-                        </div>
-                      )}
-                    </div>
-
-                    {(foto) && <button type="button" className="ampliar-acta" onClick={() => setAmpliada(true)}>Ampliar fotografía ↗</button>}
-                    <ModalFormulario abierto={ampliada} titulo="Compara la fotografía original" alCerrar={() => setAmpliada(false)}><div className="ampliacion-acta"><img src={foto} alt="Acta ampliada; desplázate para revisar sus cifras" /></div></ModalFormulario>
                     <div className="acciones-foto-acta">
                       <label className="boton-camara">
                         <IconoCamara tamano={16} />
@@ -1092,6 +1078,20 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                         <span>El original se conserva al confirmar</span>
                       </span>
                     </div>
+                    <div className="visor-foto-acta">
+                      {foto ? (
+                        <img src={foto} alt="Fotografía del acta a comparar con el conteo" className="imagen-acta-cargada" />
+                      ) : (
+                        <div className="visor-placeholder">
+                          <IconoCamara tamano={48} color="#94A3B8" />
+                          <p style={{ marginTop: 12, fontSize: 13 }}>Fotografía pendiente de capturar o subir</p>
+                          <small style={{ color: '#94A3B8' }}>Formatos aceptados: JPEG o PNG (máximo 10 MB)</small>
+                        </div>
+                      )}
+                    </div>
+
+                    {(foto) && <button type="button" className="ampliar-acta" onClick={() => setAmpliada(true)}>Ampliar fotografía ↗</button>}
+                    <ModalFormulario abierto={ampliada} titulo="Compara la fotografía original" alCerrar={() => setAmpliada(false)}><div className="ampliacion-acta"><img src={foto} alt="Acta ampliada; desplázate para revisar sus cifras" /></div></ModalFormulario>
                   </section>
 
                   {/* Columna Derecha: Transcribe y verifica los datos */}
@@ -1125,6 +1125,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                             <td style={{ textAlign: 'right' }}>
                               <input
                                 type="number"
+                                inputMode="numeric"
                                 min="0"
                                 max="1000000"
                                 step="1"
@@ -1143,6 +1144,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                           <td style={{ textAlign: 'right' }}>
                             <input
                               type="number"
+                                inputMode="numeric"
                               min="0"
                               max="1000000"
                               step="1"
@@ -1160,6 +1162,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                           <td style={{ textAlign: 'right' }}>
                             <input
                               type="number"
+                                inputMode="numeric"
                               min="0"
                               max="1000000"
                               step="1"
@@ -1177,6 +1180,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                           <td style={{ textAlign: 'right' }}>
                             <input
                               type="number"
+                                inputMode="numeric"
                               min="0"
                               max="1000000"
                               step="1"
