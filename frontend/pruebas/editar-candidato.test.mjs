@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -5,7 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
 test('Editar se ofrece en candidatos de borradores; cargos iniciados solo permiten consulta', async()=>{
- const vite=await createServer({root:new URL('..',import.meta.url).pathname,configFile:false,optimizeDeps:{noDiscovery:true,include:[]},server:{middlewareMode:true,ws:false,hmr:false,watch:null},appType:'custom'});
+ const vite=await createServer({root:fileURLToPath(new URL('..',import.meta.url)),configFile:false,optimizeDeps:{noDiscovery:true,include:[]},server:{middlewareMode:true,ws:false,hmr:false,watch:null},appType:'custom'});
  try{
   const {default:Listado}=await vite.ssrLoadModule('/src/componentes/CandidatosAdministracion.jsx');
   const base={nombre:'Elección sintética',cargo:'Rector',candidatos:[{id:'c',nombre:'Persona sintética'}],mesas:[]};

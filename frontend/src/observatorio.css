@@ -61,7 +61,6 @@
 .papeleta-animada { animation: votar 3.4s cubic-bezier(.4,0,.2,1) infinite; }
 .destello-urna { animation: destellar 3.4s ease-in-out infinite; }
 .leyenda-urna { font-size: .875rem; font-weight: 700; margin: 10px 0; }
-.pausa-urna { display: flex; justify-content: center; align-items: center; width: 100%; min-height: 44px; border: 1px solid var(--borde-control); background: white; border-radius: 8px; font-size: .875rem; font-weight: 600; padding: 9px 12px; }
 .urna-portada>small { color: var(--suave-publico); font-size: .75rem; margin-top: 10px; }
 .barra-cargos { display: flex; justify-content: space-between; align-items: center; gap: 20px; border-block: 1px solid var(--borde-publico); padding: 20px 0; }
 .navegacion-cargos { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -197,7 +196,6 @@
 .acceso-configuracion-vacia a { color: var(--acento-publico); margin-left: 5px; text-decoration: underline; text-underline-offset: 4px; }
 .aviso-observatorio { margin: 24px 0; display: flex; gap: 24px; align-items: center; justify-content: space-between; background: #fffbeb; border: 1px solid #c59d3a; padding: 20px 24px; border-radius: 12px; color: #754000; font-size: 1rem; }
 .sin-candidaturas { color: var(--suave-publico); padding: 28px 0; }
-.animaciones-pausadas *, .animaciones-pausadas *::before, .animaciones-pausadas *::after { animation: none !important; transition: none !important; }
 @keyframes votar { 0%,12% { transform: translateY(-12px) rotate(-5deg); opacity: 0; } 22%,42% { transform: translateY(0); opacity: 1; } 73%,88% { transform: translateY(111px); opacity: 1; } 93%,100% { transform: translateY(111px); opacity: 0; } }
 @keyframes destellar { 0%,42%,100% { opacity: .2; } 65%,80% { opacity: 1; } }
 @keyframes aparecer-observatorio { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
@@ -246,10 +244,9 @@
   .detalle-avance-portada { flex-wrap: wrap; gap: 6px; }
   .avance-portada { padding: 16px; }
   .urna-portada { display: grid; grid-template-columns: 70px minmax(0,1fr); gap: 5px 14px; padding: 14px 16px; }
-  .urna-portada .escena-urna { grid-row: span 3; width: 70px; }
+  .urna-portada .escena-urna { grid-row: span 2; width: 70px; }
   .urna-portada .leyenda-urna { margin: 0; }
   .urna-portada>small { margin: 0; }
-  .pausa-urna { font-size: .8125rem; padding: 8px; }
   .navegacion-cargos { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; }
   .navegacion-cargos button { padding: 11px 12px; text-align: left; overflow-wrap: anywhere; }
   .encabezado-conteo { align-items: flex-start; flex-direction: column; gap: 20px; padding-block: 26px 22px; }

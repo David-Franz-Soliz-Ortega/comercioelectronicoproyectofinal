@@ -1,8 +1,10 @@
 # Estado de trabajo entre agentes
 
-Actualizado: 2026-11-22. Responsable: Antigravity. Siguiente responsable: por asignar.
+Actualizado: 2026-11-23. Responsable: Codex. Siguiente responsable: por asignar.
 
 ## Entregas simultáneas recientes
+
+- [Panel sencillo y lectura asistida de actas](entregas/panel-sencillo-lectura-actas.md) — cuatro apartados, mesas integradas en Elección, portada sin pausa y operador con OCR real de un formato impreso de prueba. 74 pruebas frontend, recorridos Chromium y 17 pruebas Actas pasadas (7 SQL omitidas). Frontend/Actas actualizados localmente, otros 11 contenedores conservados, 13 saludables. Sin publicación Git. Manuscritos y fotos de formatos institucionales siguen pendientes de validación.
 
 - [Flujo de configuración simplificado](entregas/flujo-simplificado-configuracion.md) — opciones avanzadas plegadas, agrupación de mesas automática, alta de mesa con código propuesto y sin recinto/apellidos, distribución automática de mesas pendientes y confirmación única de inicio/cierre. 74/74 pruebas frontend, compilación e identidad OK; desplegado en `tuvoto-frontend-1` y `tuvoto-identidad-1`, sin cambiar contratos.
 

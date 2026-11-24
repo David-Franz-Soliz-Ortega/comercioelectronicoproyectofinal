@@ -40,12 +40,12 @@ try {
   assert.equal(await pagina.locator('.distancia-candidatura').first().innerText(), '+40 puntos sobre el segundo lugar');
   assert.equal(await pagina.locator('.retrato-candidatura img').evaluate(img => img.complete && img.naturalWidth > 0), true);
   assert.equal(await pagina.locator('.observatorio-publico').evaluate(n => getComputedStyle(n).backgroundColor), 'rgb(238, 243, 249)');
-  await pagina.getByRole('button', { name: 'Pausar animaciones' }).click();
-  assert.equal(await pagina.locator('.papeleta-animada').first().evaluate(n => getComputedStyle(n).animationName), 'none');
+  assert.equal(await pagina.getByRole('button', {name: /Pausar animaciones|Reanudar animaciones/}).count(), 0);
+  assert.equal(await pagina.locator('.papeleta-animada').first().evaluate(n => getComputedStyle(n).animationIterationCount), 'infinite');
   await pagina.screenshot({ path: `${carpeta}/escritorio.png`, fullPage: true, animations: 'disabled' });
   await pagina.reload(); await esperarConteo();
-  await pagina.getByRole('button', { name: 'Reanudar animaciones' }).click();
-  correcto('Evento destacado, candidato que lidera, fotos y paleta azul y blanca; pausa persistente');
+  assert.equal(await pagina.getByRole('button', {name: /Reanudar animaciones/}).count(), 0);
+  correcto('Evento destacado, candidato que lidera, fotos y paleta azul y blanca; animación continua');
   const consultasAntesDeBuscar = solicitudes.length;
   await pagina.getByLabel('Buscar facultad', { exact: true }).fill('tecnologia');
   assert.equal(await pagina.locator('.tabla-unidades tbody tr').count(), 1);

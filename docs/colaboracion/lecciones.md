@@ -6,9 +6,15 @@ Registrar solo casos demostrados. Cada entrada identifica la decisión que convi
 
 Una modificación local de React puede no estar en la imagen servida. Antes de atribuirlo a CSS o caché del navegador, comparar el recurso servido por NGINX con la compilación y revisar el [Dockerfile](../../frontend/Dockerfile). Comprobar después los recursos efectivamente servidos. La compilación, la salud y el despliegue son comprobaciones diferentes. En Node/TypeScript, comparar la imagen con los módulos de fuentes vigentes o con una compilación temporal limpia: `dist` puede conservar archivos retirados que `tsc` no elimina. El verificador de [operadores y mesas](entregas/importacion-operadores-mesa.md) detectó ese caso; no borrar cambios locales para resolver una comparación.
 
+## Rutas locales con espacios
+
+En los fixtures SSR, `new URL(...).pathname` conserva `%20` y Vite no encuentra los módulos en directorios con espacios. Usar `fileURLToPath()` de `node:url`. Se corrigieron tres suites que fallaban por esta causa y pasaron 74/74 pruebas en la [entrega del panel y OCR](entregas/panel-sencillo-lectura-actas.md).
+
 ## Capturas que representan el HTML real
 
 Los fixtures de navegador deben declarar UTF-8 igual que `frontend/index.html`. Sin esa declaración, una captura de prueba puede mostrar iconos Unicode de CSS corruptos aunque el recurso real sea correcto. Se comprobó en el [rediseño de candidatos](entregas/candidatos-flotantes-perfil-lateral.md); se ajustaron los HTML de prueba y se repitió la verificación.
+
+Las capturas tomadas durante una transición pueden conservar el resaltado anterior del menú o el color anterior de una validación. Para documentar el estado final en Playwright, usar `animations: 'disabled'`; comprobar el movimiento continuo por separado. Ver las capturas antes/después y los recorridos de la [entrega del panel y OCR](entregas/panel-sencillo-lectura-actas.md).
 
 ## Fotografías de candidatos
 

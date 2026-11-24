@@ -7,6 +7,8 @@ import AsignacionesOperadores from '../componentes/AsignacionesOperadores.jsx';
 import '../privado.css';
 import '../administracion.css';
 import '../tema-claro.css';
+import '../panel-sencillo.css';
+import { gruposAdministracion, grupoAdministracion } from '../api/navegacionAdministracion.js';
 import SeleccionAdministracion from '../componentes/SeleccionAdministracion.jsx';
 import CamposCargo from '../componentes/CamposCargo.jsx';
 import ModalFormulario from '../componentes/ModalFormulario.jsx';
@@ -14,7 +16,7 @@ import CandidatosAdministracion from '../componentes/CandidatosAdministracion.js
 import FotoCandidatoAdministracion from '../componentes/FotoCandidatoAdministracion.jsx';
 import { completarNombreEleccion, datosEleccionVacia, datosDeProceso } from '../api/seleccionAdministracion.js';
 import InstitucionesAdministracion from '../componentes/InstitucionesAdministracion.jsx';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Sesion, { ControlesSesion } from '../componentes/Sesion.jsx';
 import AdministrarCuentas from '../componentes/AdministrarCuentas.jsx';
 import ListadoCuentas from '../componentes/ListadoCuentas.jsx';
@@ -112,6 +114,8 @@ function PanelPrivadoReal(estado) {
    ========================================================================= */
 function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
   const [pestana, setPestana] = useState('resumen');
+  const grupoActivo = grupoAdministracion(pestana);
+  const iconosApartados = { resumen: IconoCasa, eleccion: IconoUrna, equipo: IconoUsuarios, conteo: IconoBarras };
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [datosInstitucionListos,setDatosInstitucionListos]=useState(false);
   const [creandoProceso, setCreandoProceso] = useState(false);
@@ -163,8 +167,9 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
   }
   function abrirApartado(paso) {
     if (paso.id === 'organizacion') { setPestana('resumen');setError('');return; }
+    if (paso.id === 'usuarios') { setPestana('usuarios');setError('');return; }
     if (!org) { setError('Selecciona una institución en Resumen para continuar.');setPestana('resumen');return; }
-    if (!actual && !['eleccion', 'operadores', 'asignaciones', 'publicacion'].includes(paso.id)) { mostrarCargos();setError('Agrega un cargo para continuar su preparación.');return; }
+    if (!actual && !['eleccion', 'operadores', 'usuarios', 'asignaciones', 'publicacion'].includes(paso.id)) { mostrarCargos();setError('Agrega un cargo para continuar su preparación.');return; }
     if (paso.id === 'operadores') setModoCuenta('usuario');
     if (paso.id === 'eleccion') { mostrarCargos();return; }
     setError(''); setPestana(paso.destino);
@@ -250,49 +255,13 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
         </div>
 
         <p className="rotulo-navegacion">Gestión electoral</p>
-        <nav className="navegacion-lateral">
-          <button
-            disabled={bloqueado}
-            className={`item-menu-lateral ${pestana === 'resumen' ? 'activo' : ''}`}
-            onClick={() => setPestana('resumen')}
-          >
-            <IconoCasa tamano={18} />
-            <span>Resumen</span>
-          </button>
-          <button
-            disabled={bloqueado}
-            className={`item-menu-lateral ${pestana === 'configuracion' ? 'activo' : ''}`}
-            onClick={() => abrirApartado({ id: 'eleccion', destino: 'configuracion' })}
-          >
-            <IconoEngranaje tamano={18} />
-            <span>Elección</span>
-          </button>
-          <button
-            disabled={bloqueado}
-            className={`item-menu-lateral ${pestana === 'candidatos' ? 'activo' : ''}`}
-            onClick={() => abrirApartado({ id: 'candidatos', destino: 'candidatos' })}
-          >
-            <IconoUsuarios tamano={18} />
-            <span>Candidatos</span>
-          </button>
-          <button
-            disabled={bloqueado}
-            className={`item-menu-lateral ${pestana === 'mesas' ? 'activo' : ''}`}
-            onClick={() => abrirApartado({ id: 'mesas', destino: 'mesas' })}
-          >
-            <IconoUrna tamano={18} />
-            <span>Mesas</span>
-          </button>
-          <button disabled={bloqueado} className={`item-menu-lateral ${pestana === 'asignaciones' ? 'activo' : ''}`} onClick={() => abrirApartado({ id: 'asignaciones', destino: 'asignaciones' })}><IconoUsuario tamano={18}/><span>Asignar operadores</span></button>
-          <button disabled={bloqueado} className={`item-menu-lateral ${pestana === 'publicacion' ? 'activo' : ''}`} onClick={() => abrirApartado({ id: 'publicacion', destino: 'publicacion' })}><IconoCheck tamano={18}/><span>Estado y publicación</span></button>
-          <button
-            disabled={bloqueado}
-            className={`item-menu-lateral ${pestana === 'usuarios' ? 'activo' : ''}`}
-            onClick={() => { setModoCuenta('usuario'); setPestana('usuarios'); }}
-          >
-            <IconoUsuario tamano={18} />
-            <span>Usuarios</span>
-          </button>
+        <nav className="navegacion-lateral" aria-label="Administración principal">
+          {gruposAdministracion.map(grupo => {
+            const Icono = iconosApartados[grupo.id];
+            return <button key={grupo.id} type="button" disabled={bloqueado} aria-current={grupoActivo.id === grupo.id ? 'page' : undefined} className={`item-menu-lateral ${grupoActivo.id === grupo.id ? 'activo' : ''}`} onClick={() => grupo.id === 'resumen' ? setPestana('resumen') : abrirApartado(grupo.id === 'equipo' && !org ? grupo.apartados[1] : grupo.apartados[0])}>
+              <Icono tamano={22} /><span><strong>{grupo.nombre}</strong><small>{grupo.descripcion}</small></span>
+            </button>;
+          })}
         </nav>
 
         <div className="pie-lateral-privado pie-administrador-claro">
@@ -312,7 +281,7 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
               <span>Administración</span>
               <span aria-hidden="true" style={{ color: '#94A3B8' }}>/</span>
               <strong style={{ color: '#0F172A' }}>
-                {{ resumen: 'Resumen', configuracion: 'Elección', candidatos: 'Candidatos', mesas: 'Mesas', usuarios: 'Usuarios', asignaciones: 'Asignar operadores', publicacion: 'Estado y publicación' }[pestana] ?? 'Administración'}
+                {grupoActivo.nombre}
               </strong>
             </p>
           </div>
@@ -354,6 +323,12 @@ function PanelAdministrador({ sesion, salir, seleccionar, ocupado: ocupadoSesion
 
         {/* Contenido según pestaña */}
         <div className="contenido-seccion-privada">
+          {grupoActivo.id !== 'resumen' && <section className="cabecera-trabajo-admin" aria-label="Apartado actual">
+            <div><p className="rotulo-trabajo-admin">{institucionSeleccionada?.nombre || 'Administración electoral'}</p><h1>{grupoActivo.nombre}</h1><p>{grupoActivo.ayuda}</p></div>
+            {grupoActivo.apartados.length > 1 && <nav aria-label={`Herramientas de ${grupoActivo.nombre}`} className="herramientas-admin">
+              {grupoActivo.apartados.map(apartado => <button key={apartado.destino} type="button" disabled={bloqueado} aria-pressed={pestana === apartado.destino} onClick={() => abrirApartado(apartado)}>{apartado.nombre}</button>)}
+            </nav>}
+          </section>}
           <Aviso error={error} />
 
           {cargandoDatos && <p role="status">Cargando la configuración de tu organización…</p>}
@@ -845,17 +820,58 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
   const [contexto, setContexto] = useState(null);
   const [historial, setHistorial] = useState(null);
   const [foto, setFoto] = useState('');
+  const [ampliada, setAmpliada] = useState(false);
   const [actaOrigen,setActaOrigen]=useState('');
   const [actasDisponibles,setActasDisponibles]=useState([]);
   const [votos, setVotos] = useState({});
-  const [blancos, setBlancos] = useState(0);
-  const [nulos, setNulos] = useState(0);
-  const [total, setTotal] = useState(0);
+  const [blancos, setBlancos] = useState('');
+  const [nulos, setNulos] = useState('');
+  const [total, setTotal] = useState('');
   const [confirmado, setConfirmado] = useState(false);
   const [solicitud, setSolicitud] = useState(crearIdentificador);
   const [version, setVersion] = useState(0);
   const [error, setError] = useState('');
   const [ocupado, setOcupado] = useState(false);
+  const [lectura, setLectura] = useState({estado: 'inicial'});
+  const peticionLectura = useRef(null);
+  const leyendo = lectura.estado === 'leyendo';
+
+  function detenerLectura() {
+    peticionLectura.current?.abort();
+    peticionLectura.current = null;
+    setLectura({estado: 'inicial'});
+  }
+  function vaciarConteo() {
+    setVotos(Object.fromEntries((contexto?.candidatos ?? []).map(c => [c.id, ''])));
+    setBlancos(''); setNulos(''); setTotal(''); setConfirmado(false);
+    setSolicitud(crearIdentificador());
+  }
+  async function cargarFoto(e) {
+    const archivo = e.target.files?.[0];
+    e.target.value = '';
+    if (!archivo) return;
+    if (archivo.size > 10000000 || !['image/png', 'image/jpeg'].includes(archivo.type)) {
+      setError('Usa una imagen JPEG o PNG de hasta 10 MB.'); return;
+    }
+    detenerLectura();
+    const peticion = new AbortController();
+    peticionLectura.current = peticion;
+    setError(''); setActaOrigen(''); setFoto(''); vaciarConteo();
+    setLectura({estado: 'leyendo'});
+    try {
+      const imagen = await archivoComoTexto(archivo);
+      if (peticion.signal.aborted) return;
+      setFoto(imagen);
+      const propuesta = await solicitarRest('/actas/lectura', {metodo: 'POST', datos: {idMesa: id, foto: imagen}, senal: peticion.signal, espera: 22000, mostrarDetalleValidacion: true});
+      if (peticion.signal.aborted) return;
+      setVotos(Object.fromEntries(contexto.candidatos.map(c => [c.id, propuesta.votos.find(v => v.idCandidato === c.id)?.cantidad ?? ''])));
+      setBlancos(propuesta.blancos ?? ''); setNulos(propuesta.nulos ?? ''); setTotal(propuesta.total ?? '');
+      setLectura({estado: 'leida', advertencias: propuesta.advertencias, completa: propuesta.completa});
+    } catch (errorLectura) {
+      if (!peticion.signal.aborted) setLectura({estado: 'error', mensaje: [409,422].includes(errorLectura.estado) ? errorLectura.message : 'No se pudo leer la foto. Puedes volver a subirla o completar los números manualmente.'});
+    }
+  }
+
 
   useEffect(()=>{let v=true;solicitarRest('/actas?pagina=1&limite=100').then(r=>{if(v)setActasDisponibles(r.elementos);}).catch(e=>{if(v)setError(e.message);});return()=>{v=false};},[version]);
 
@@ -872,6 +888,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
 
   useEffect(() => {
     let v = true;
+    detenerLectura();
     setContexto(null);
     setHistorial(null);
     setFoto('');setActaOrigen('');
@@ -883,15 +900,15 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
         if (v) {
           setContexto(c);
           setHistorial(h);
-          setVotos(Object.fromEntries(c.candidatos.map(cand => [cand.id, 0])));
-          setBlancos(0);
-          setNulos(0);
-          setTotal(0);
+          setVotos(Object.fromEntries(c.candidatos.map(cand => [cand.id, ''])));
+          setBlancos('');
+          setNulos('');
+          setTotal('');
           setSolicitud(crearIdentificador());
         }
       })
       .catch(e => { if (v) setError(e.message); });
-    return () => { v = false; };
+    return () => { v = false; peticionLectura.current?.abort(); };
   }, [id, version]);
 
   const cambiar = (setter, valor) => {
@@ -900,12 +917,13 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
     setSolicitud(crearIdentificador());
   };
 
-  const sumaCalculada = Object.values(votos).reduce((a, b) => a + b, 0) + blancos + nulos;
-  const sumaCoincide = sumaCalculada === total;
+  const camposCompletos = contexto?.candidatos.length > 0 && [...Object.values(votos), blancos, nulos, total].every(v => v !== '' && Number.isInteger(Number(v)) && Number(v) >= 0 && Number(v) <= 1000000);
+  const sumaCalculada = Object.values(votos).reduce((a, b) => a + Number(b), 0) + Number(blancos) + Number(nulos);
+  const sumaCoincide = camposCompletos && sumaCalculada === Number(total);
 
   async function publicar(e) {
     e.preventDefault();
-    if (ocupado || !historial) return;
+    if (ocupado || leyendo || !historial || !camposCompletos || !confirmado) return;
     setOcupado(true);
     setError('');
     try {
@@ -914,10 +932,10 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
         idSolicitud: solicitud,
         versionAnterior: historial.versionAnterior,
         ...(actaOrigen?{idActaOrigen:actaOrigen}:{foto}),
-        votos: Object.entries(votos).map(([idCandidato, cantidad]) => ({ idCandidato, cantidad })),
-        blancos,
-        nulos,
-        total,
+        votos: Object.entries(votos).map(([idCandidato, cantidad]) => ({ idCandidato, cantidad: Number(cantidad) })),
+        blancos: Number(blancos),
+        nulos: Number(nulos),
+        total: Number(total),
         confirmado,
       };
       const r = historial.versionAnterior > 0
@@ -976,7 +994,8 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
               <select
                 aria-label="Mesa asignada"
                 value={id}
-                onChange={e => setId(e.target.value)}
+                disabled={ocupado}
+                onChange={e => { detenerLectura(); setId(e.target.value); }}
                 className="selector-mesa-topbar"
               >
                 {agruparMesasFisicas(mesas).map(g=><optgroup key={g.id} label={`Mesa ${g.codigo} · ${g.unidad} · ${g.sector} · ${g.cargos.length} cargos`}>{g.cargos.map(m=><option key={m.id} value={m.id}>{m.cargo} · Mesa {m.codigo} · {m.unidad}</option>)}</optgroup>)}
@@ -1006,6 +1025,12 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
           ) : (
             <>
               {contexto.estado!=='recepcion'&&<p className="aviso" role="status">La recepción está cerrada. Puedes consultar el historial, pero no registrar cambios.</p>}
+              <div className="introduccion-registro">
+                <p className="rotulo-trabajo-admin">REGISTRO CON FOTOGRAFÍA</p>
+                <h2>Del acta al conteo, paso a paso.</h2>
+                <p>Sube una foto nítida, revisa los números leídos y confirma el registro.</p>
+                <ol><li><span>1</span> Fotografía</li><li><span>2</span> Revisa los datos</li><li><span>3</span> Confirma y envía</li></ol>
+              </div>
               <form onSubmit={publicar}>
                 <div className="grid-operador-registro">
                   {/* Columna Izquierda: Fotografía del acta */}
@@ -1013,13 +1038,13 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <h3 style={{ margin: 0, fontSize: 16, color: 'var(--azul-oscuro)', display: 'flex', alignItems: 'center', gap: 8 }}>
                         <IconoFoto tamano={18} color="var(--azul-principal)" />
-                        <span>Fotografía del acta</span>
+                        <span>1. Fotografía del acta</span>
                       </h3>
-                      <span className="insignia-suave">Copia digital respaldada</span>
+
                     </div>
 
                     <p>Sector de la mesa: <strong>{contexto.sectorNombre??contexto.sector??'General'}</strong>. No se mezcla con otros sectores.</p>
-                    <label>O reutilizar una foto ya registrada para otro cargo del mismo sector<select value={actaOrigen} disabled={ocupado} onChange={e=>{setFoto('');cambiar(setActaOrigen,e.target.value);}}><option value="">Usar una fotografía nueva</option>{actasDisponibles.filter(a=>a.idProceso!==contexto.idProceso&&a.estado!=='anulada'&&(a.sector??'general')===(contexto.sector??'general')&&mesas.some(m=>m.id===a.idMesa)).map(a=><option key={a.id} value={a.id}>{mesas.find(m=>m.id===a.idMesa)?.cargo} · {mesas.find(m=>m.id===a.idMesa)?.codigo} · versión {a.version}</option>)}</select></label>
+                    <details className="reutilizar-foto"><summary>Usar una foto de otro cargo</summary><label>Reutilizar una foto ya registrada para otro cargo del mismo sector<select value={actaOrigen} disabled={ocupado} onChange={e=>{detenerLectura();vaciarConteo();setFoto('');cambiar(setActaOrigen,e.target.value);}}><option value="">Usar una fotografía nueva</option>{actasDisponibles.filter(a=>a.idProceso!==contexto.idProceso&&a.estado!=='anulada'&&(a.sector??'general')===(contexto.sector??'general')&&mesas.some(m=>m.id===a.idMesa)).map(a=><option key={a.id} value={a.id}>{mesas.find(m=>m.id===a.idMesa)?.cargo} · {mesas.find(m=>m.id===a.idMesa)?.codigo} · versión {a.version}</option>)}</select></label><p>Completa los números de este cargo; la foto original permanece intacta.</p></details>
                     <div className="visor-foto-acta">
                       {foto || actaOrigen ? (
                         <img src={actaOrigen?`/api/v1/actas/${actaOrigen}/foto`:foto} alt="Fotografía del acta a comparar con el conteo" className="imagen-acta-cargada" />
@@ -1032,6 +1057,8 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                       )}
                     </div>
 
+                    {(foto || actaOrigen) && <button type="button" className="ampliar-acta" onClick={() => setAmpliada(true)}>Ampliar fotografía ↗</button>}
+                    <ModalFormulario abierto={ampliada} titulo="Compara la fotografía original" alCerrar={() => setAmpliada(false)}><div className="ampliacion-acta"><img src={actaOrigen ? `/api/v1/actas/${actaOrigen}/foto` : foto} alt="Acta ampliada; desplázate para revisar sus cifras" /></div></ModalFormulario>
                     <div className="acciones-foto-acta">
                       <label className="boton-camara">
                         <IconoCamara tamano={16} />
@@ -1040,19 +1067,9 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                           type="file"
                           accept="image/jpeg,image/png"
                           capture="environment"
-                          required={!foto&&!actaOrigen}
+
                           disabled={ocupado}
-                          onChange={async e => {
-                            try {
-                              const f = e.target.files[0];
-                              if (f) {
-                                if (f.size > 10000000) throw Error('Máximo 10 MB');
-                                setActaOrigen('');cambiar(setFoto, await archivoComoTexto(f));
-                              }
-                            } catch (err) {
-                              setError(err.message);
-                            }
-                          }}
+                          onChange={cargarFoto}
                         />
                       </label>
 
@@ -1063,17 +1080,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                           type="file"
                           accept="image/jpeg,image/png"
                           disabled={ocupado}
-                          onChange={async e => {
-                            try {
-                              const f = e.target.files[0];
-                              if (f) {
-                                if (f.size > 10000000) throw Error('Máximo 10 MB');
-                                setActaOrigen('');cambiar(setFoto, await archivoComoTexto(f));
-                              }
-                            } catch (err) {
-                              setError(err.message);
-                            }
-                          }}
+                          onChange={cargarFoto}
                         />
                       </label>
 
@@ -1088,15 +1095,17 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                   <section className="panel-verificacion-acta">
                     <h3 style={{ margin: 0, fontSize: 16, color: 'var(--azul-oscuro)', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <IconoCheck tamano={18} color="var(--azul-principal)" />
-                      <span>Transcribe y verifica los datos</span>
+                      <span>2. Revisa los datos</span>
                     </h3>
                     <p style={{ margin: '4px 0 14px', fontSize: 12, color: 'var(--secundario)' }}>
                       Compara cada número con la fotografía.
                     </p>
 
-                    <div className="aviso-ocr-humano">
-                      <strong>Reconocimiento OCR: propuesta que requiere confirmación humana.</strong>
-                      <div>Transcripción manual respaldada por fotografía; no se generan cifras automáticamente.</div>
+                    <div className={`estado-lectura estado-lectura-${lectura.estado}`} role="status" aria-live="polite">
+                      {leyendo ? <><strong>Leyendo la fotografía…</strong><p>Buscando candidaturas, votos y totales. Esto puede tardar unos segundos.</p><button type="button" onClick={detenerLectura}>Completar manualmente</button></>
+                        : lectura.estado === 'leida' ? <><strong>{lectura.completa ? 'Lectura lista. Comprueba cada número.' : 'Lectura parcial. Completa los campos vacíos.'}</strong>{lectura.advertencias.map(a => <p key={a}>{a}</p>)}</>
+                        : lectura.estado === 'error' ? <><strong>Necesitamos tu revisión</strong><p>{lectura.mensaje}</p></>
+                        : <><strong>La lectura empieza al subir la foto.</strong><p>Lee texto y números impresos. Si son manuscritos o no se distinguen, transcríbelos aquí.</p><a href="/ejemplos/acta-prueba.png" target="_blank" rel="noreferrer">Ver acta de prueba · sin validez ↗</a></>}
                     </div>
 
                     <table className="tabla-conteo-acta">
@@ -1117,9 +1126,11 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                                 max="1000000"
                                 step="1"
                                 required
-                                disabled={ocupado}
-                                value={votos[c.id] ?? 0}
-                                onChange={e => cambiar(setVotos, { ...votos, [c.id]: Number(e.target.value) })}
+                                disabled={ocupado || leyendo}
+                                aria-label={`Votos de ${c.nombre}`}
+                                placeholder="Sin leer"
+                                value={votos[c.id] ?? ''}
+                                onChange={e => cambiar(setVotos, { ...votos, [c.id]: e.target.value })}
                               />
                             </td>
                           </tr>
@@ -1133,9 +1144,11 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                               max="1000000"
                               step="1"
                               required
-                              disabled={ocupado}
+                              disabled={ocupado || leyendo}
+                              aria-label="Blancos"
+                              placeholder="Sin leer"
                               value={blancos}
-                              onChange={e => cambiar(setBlancos, Number(e.target.value))}
+                              onChange={e => cambiar(setBlancos, e.target.value)}
                             />
                           </td>
                         </tr>
@@ -1148,9 +1161,11 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                               max="1000000"
                               step="1"
                               required
-                              disabled={ocupado}
+                              disabled={ocupado || leyendo}
+                              aria-label="Nulos"
+                              placeholder="Sin leer"
                               value={nulos}
-                              onChange={e => cambiar(setNulos, Number(e.target.value))}
+                              onChange={e => cambiar(setNulos, e.target.value)}
                             />
                           </td>
                         </tr>
@@ -1163,9 +1178,11 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                               max="1000000"
                               step="1"
                               required
-                              disabled={ocupado}
+                              disabled={ocupado || leyendo}
+                              aria-label="Total del acta"
+                              placeholder="Sin leer"
                               value={total}
-                              onChange={e => cambiar(setTotal, Number(e.target.value))}
+                              onChange={e => cambiar(setTotal, e.target.value)}
                             />
                           </td>
                         </tr>
@@ -1183,14 +1200,15 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                         <>
                           <IconoAlerta tamano={18} color="#9F1239" />
                           <span>
-                            {total === 0
-                              ? `Suma actual: ${sumaCalculada}`
+                            {!camposCompletos
+                              ? 'Completa todos los campos para comprobar la suma.'
                               : `Suma calculada (${sumaCalculada}) ≠ Total declarado (${total})`}
                           </span>
                         </>
                       )}
                     </div>
 
+                    <h3 className="titulo-confirmacion">3. Confirma y envía</h3>
                     <div className="tarjeta-estado-confirmacion">
                       <IconoReloj tamano={16} />
                       <span>{confirmado ? 'Listo para publicar' : 'Pendiente de confirmación'}</span>
@@ -1201,7 +1219,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                         type="checkbox"
                         required
                         checked={confirmado}
-                        disabled={ocupado}
+                        disabled={ocupado || leyendo || !camposCompletos || (!foto && !actaOrigen)}
                         onChange={e => setConfirmado(e.target.checked)}
                       />
                       <span>He comparado los datos con el acta.</span>
@@ -1210,7 +1228,7 @@ function PanelOperador({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
                     <button
                       type="submit"
                       className="boton-publicar-acta"
-                      disabled={contexto.estado!=='recepcion' || ocupado || (!foto&&!actaOrigen) || !confirmado || contexto.candidatos.length === 0}
+                      disabled={contexto.estado!=='recepcion' || ocupado || leyendo || !camposCompletos || (!foto&&!actaOrigen) || !confirmado || contexto.candidatos.length === 0}
                     >
                       <IconoCheck tamano={18} />
                       <span>{ocupado ? 'Confirmando…' : 'Confirmar y publicar'}</span>
