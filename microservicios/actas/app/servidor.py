@@ -125,8 +125,14 @@ class NuevaActa(BaseModel):
 
 class FotoParaLectura(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    idMesa: UUID
+    idMesa: UUID | None = None
+    candidatas: list[UUID] = Field(default_factory=list, max_length=60, description='Mesas asignadas entre las que se identifica el destino de la foto')
     foto: str = Field(min_length=1, max_length=14000000)
+
+    @model_validator(mode='after')
+    def destino_unico(self):
+        if bool(self.idMesa) == bool(self.candidatas): raise ValueError('Indica la mesa o las mesas candidatas, no ambas')
+        return self
 
 
 class VotoLeido(BaseModel):
@@ -144,19 +150,39 @@ class PropuestaLectura(BaseModel):
     advertencias: list[str]
     requiereRevision: Literal[True]
     motor: Literal['tesseract']
+    idMesa: UUID | None = None
+    detectada: bool = False
+    opciones: list[UUID] = []
 
 
-@app.post('/api/v1/actas/lectura', response_model=PropuestaLectura, summary='Proponer cifras de una fotografía, sin registrar ni publicar')
+@app.post('/api/v1/actas/lectura', response_model=PropuestaLectura, summary='Proponer destino y cifras de una fotografía, sin registrar ni publicar')
 def leer(datos: FotoParaLectura, req: Request, respuesta: Response):
     # Mismos permisos/CSRF que el registro, pero sin persistencia ni eventos.
     autorizar(req, True)
-    mesa = consultar_mesa(req, datos.idMesa)
-    if mesa['estado'] != 'recepcion':
-        raise HTTPException(409, 'La recepción está cerrada para esta mesa.')
     respuesta.headers['Cache-Control'] = 'no-store'
+    if datos.idMesa:
+        mesa = consultar_mesa(req, datos.idMesa)
+        if mesa['estado'] != 'recepcion':
+            raise HTTPException(409, 'La recepción está cerrada para esta mesa.')
+        mesas = None
+    else:
+        # Elecciones confirma cada mesa: las ajenas o cerradas no participan en la detección.
+        mesas = []
+        for identificador in dict.fromkeys(datos.candidatas):
+            try:
+                candidata = consultar_mesa(req, identificador)
+            except HTTPException as e:
+                if e.status_code in (403, 404):
+                    continue
+                raise
+            if candidata['estado'] == 'recepcion':
+                mesas.append(candidata)
+        if not mesas:
+            raise HTTPException(409, 'No tienes mesas con la recepción abierta.')
+        mesa = None
     try:
         contenido, _, _ = decodificar_foto(datos.foto)
-        return leer_foto(contenido, mesa)
+        return leer_foto(contenido, mesa, mesas)
     except ValueError as e:
         raise HTTPException(422, str(e)) from None
 

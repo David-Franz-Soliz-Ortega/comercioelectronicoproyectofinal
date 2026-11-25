@@ -1,0 +1,24 @@
+# Capa opcional del mapa vivo para la feria. Se usa SIEMPRE junto al Compose base
+# (las rutas relativas se resuelven desde la raíz, directorio del primer archivo):
+#   scripts/feria-mapa-vivo.sh            (recomendado)
+#   docker compose --env-file .env.tuvoto -p tuvoto -f docker-compose.yml \
+#     -f infraestructura/mapa-vivo/docker-compose.mapa-vivo.yml up -d --build mapa-vivo
+# El mapa solo se publica en 127.0.0.1. La entrada se publica además en
+# TUVOTO_FERIA_IP para que los celulares de la red local abran el portal.
+services:
+  mapa-vivo:
+    build: {context: ., dockerfile: infraestructura/mapa-vivo/Dockerfile}
+    restart: unless-stopped
+    environment:
+      RABBITMQ_HOST: mensajeria-rabbitmq
+      RABBITMQ_USUARIO: tuvoto_app
+      RABBITMQ_CLAVE: ${TUVOTO_RABBIT_CLAVE:?Define clave RabbitMQ}
+      MAPA_VIVO_ORIGEN: ${TUVOTO_ORIGEN:?Define origen público exacto}
+      MAPA_VIVO_URL_OPERADOR: ${TUVOTO_FERIA_URL:-}
+    ports: ['127.0.0.1:${TUVOTO_MAPA_PUERTO:-8891}:8080']
+    networks: [interna, entrada]
+    depends_on: {mensajeria-rabbitmq: {condition: service_healthy}}
+  entrada-nginx:
+    volumes: ['./infraestructura/mapa-vivo/nginx-registro.conf:/etc/nginx/conf.d/mapa-vivo-registro.conf:ro']
+    ports: ['${TUVOTO_FERIA_IP:-127.0.0.1}:${TUVOTO_FERIA_PUERTO:-8892}:80']
+    depends_on: {mapa-vivo: {condition: service_healthy}}

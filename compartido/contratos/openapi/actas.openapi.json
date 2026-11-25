@@ -372,7 +372,7 @@
     },
     "/api/v1/actas/lectura": {
       "post": {
-        "summary": "Proponer cifras de una fotografía, sin registrar ni publicar",
+        "summary": "Proponer destino y cifras de una fotografía, sin registrar ni publicar",
         "operationId": "leer_api_v1_actas_lectura_post",
         "requestBody": {
           "content": {
@@ -406,7 +406,7 @@
             }
           },
           "409": {
-            "description": "Recepción cerrada"
+            "description": "Recepción cerrada o ninguna mesa candidata abierta"
           },
           "401": {
             "description": "Sesión requerida"
@@ -429,7 +429,7 @@
             "sesion": []
           }
         ],
-        "description": "Requiere OPERADOR asignado, recepción abierta, Origin y CSRF válidos. Solo sugiere cifras impresas; no persiste fotografías, no registra actas ni publica eventos. Los campos no leídos son null. La confirmación humana se realiza por el endpoint de registro existente. Respuesta privada Cache-Control: no-store."
+        "description": "Requiere OPERADOR asignado, recepción abierta, Origin y CSRF válidos. Solo sugiere cifras impresas; no persiste fotografías, no registra actas ni publica eventos. Los campos no leídos son null. La confirmación humana se realiza por el endpoint de registro existente. Respuesta privada Cache-Control: no-store. Con candidatas, identifica la mesa y el cargo entre las mesas asignadas del operador; si hay empate devuelve opciones sin cifras."
       }
     }
   },
@@ -623,7 +623,18 @@
           "idMesa": {
             "type": "string",
             "format": "uuid",
-            "title": "Idmesa"
+            "title": "Idmesa",
+            "description": "Mesa elegida por el operador. Excluye candidatas."
+          },
+          "candidatas": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 60,
+            "title": "Candidatas",
+            "description": "Mesas asignadas entre las que Actas identifica el destino de la foto. Elecciones confirma cada una; las ajenas o cerradas no participan."
           },
           "foto": {
             "type": "string",
@@ -635,10 +646,10 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "idMesa",
           "foto"
         ],
-        "title": "FotoParaLectura"
+        "title": "FotoParaLectura",
+        "description": "Indica idMesa o candidatas, no ambas."
       },
       "VotoLeido": {
         "properties": {
@@ -741,6 +752,33 @@
             "type": "string",
             "const": "tesseract",
             "title": "Motor"
+          },
+          "idMesa": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idmesa",
+            "description": "Destino de las cifras; null si no se identificó."
+          },
+          "detectada": {
+            "type": "boolean",
+            "title": "Detectada",
+            "description": "true si el destino se identificó en la foto (código de mesa, candidaturas, cargo o sector impresos)."
+          },
+          "opciones": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "title": "Opciones",
+            "description": "Destinos empatados para que el operador elija; nunca se adivina."
           }
         },
         "type": "object",

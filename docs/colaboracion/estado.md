@@ -8,6 +8,10 @@ Actualizado: 2026-11-24. Responsable de la entrega vigente: Codex. Siguiente res
 - **Pruebas actuales:** 76 frontend, compilación Vite, tres recorridos Chromium aislados y 12 pruebas de OCR real pasaron. Portada comprobada entre 320 y 2560 px con nombres largos, grupos abiertos, unidades y sectores. Sin escrituras en persistencia real ni despliegue.
 - **Siguiente acción:** probar el papel impreso con cámara física en una elección aislada. Detección automática de destino y exclusividad transaccional de asignaciones quedan fuera de esta entrega; conservar pendientes administrativos de la revisión siguiente.
 
+## Entregas simultáneas en curso
+
+- [Mapa vivo y operador para la feria](entregas/mapa-vivo-feria.md) — **listo_para_qa**. Observador `infraestructura/mapa-vivo`, operador nuevo (escanear primero, detección automática de mesa y cargo por OCR), actas de práctica imprimibles y bienvenida `?feria`. 16 + 82 pruebas, recorrido Chromium, 39 de Actas con OCR real y prueba integral en un proyecto Docker aislado. Pendiente: autorización para desplegar en `tuvoto`, cámara física y red del puesto.
+
 ## Revisión de flujo pendiente
 
 - [Operador, fotografías y avance de actas](entregas/revision-flujo-operador-avance.md) — **requiere_correccion**. Base `main`, `1e73b07`. Mesas sigue dentro de Elección; Conteo y publicación muestra configuración/asignaciones pero carece de avance y faltantes de conteo. El porcentaje público es por cargo y puede coexistir con revisiones pendientes; cerrar recepción no exige 100 %. OCR propone cifras del destino seleccionado, sin identificar mesa/cargo automáticamente.

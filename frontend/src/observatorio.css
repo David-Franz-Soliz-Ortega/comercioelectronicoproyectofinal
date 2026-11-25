@@ -339,3 +339,12 @@
 .rejilla-resumen-resultados p{font-size:13px;color:#51647d}.rejilla-resumen-resultados ul{padding:0;list-style:none}.rejilla-resumen-resultados li{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #e4ebf5;font-size:14px;overflow-wrap:anywhere}.rejilla-resumen-resultados li strong{white-space:nowrap;color:#123b70}
 .resumen-resultados-cargos button{padding:8px 14px;border:1px solid #c4d1e2;border-radius:8px;background:#fff;color:#123b70;cursor:pointer}.resumen-resultados-cargos button:disabled{opacity:.5;cursor:default}.resumen-resultados-cargos>nav{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:20px}
 @media(max-width:650px){.resumen-resultados-cargos{padding:16px}.rejilla-resumen-resultados{grid-template-columns:minmax(0,1fr)}.rejilla-resumen-resultados li{flex-wrap:wrap}}
+
+/* Bienvenida del puesto de feria (?feria en la URL del QR). */
+.bienvenida-feria { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; margin: 16px clamp(16px, 4vw, 48px) 0; padding: 20px 22px; border-radius: 24px; color: #fff; background: radial-gradient(120% 160% at 100% 0%, #3b82f6 0%, transparent 55%), linear-gradient(150deg, #123b70, #174bd1 70%); box-shadow: 0 16px 36px #174bd133; }
+.bienvenida-feria .sobre-titulo { margin: 0; color: #bfdbfe; }
+.bienvenida-feria h2 { margin: 4px 0 6px; font-size: clamp(20px, 3.2vw, 28px); letter-spacing: -.02em; }
+.bienvenida-feria p:not(.sobre-titulo) { margin: 0; max-width: 46rem; color: #dbeafe; line-height: 1.5; }
+.acciones-feria { display: flex; flex-wrap: wrap; gap: 10px; }
+.boton-feria { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 12px 18px; border-radius: 14px; background: #fff; color: #123b70; font-weight: 800; text-decoration: none; box-shadow: 0 8px 20px #0b1f4733; }
+.acciones-feria button { min-height: 48px; padding: 12px 16px; border: 1px solid #ffffff66; border-radius: 14px; background: transparent; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }

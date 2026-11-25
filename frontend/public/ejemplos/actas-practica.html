@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Actas de práctica · TUVOTO</title>
+  <style>
+    :root { --azul: #123b70; --azul-claro: #eaf0ff; --borde: #d2e1f1; --tenue: #4b5d78; --rojo: #9f1239; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eef3f9; color: #0f172a; font-family: system-ui, 'Segoe UI', Roboto, sans-serif; }
+
+    .panel { max-width: 1080px; margin: 0 auto; padding: 24px 16px 8px; }
+    .panel h1 { margin: 0 0 6px; color: var(--azul); font-size: clamp(24px, 4vw, 32px); }
+    .panel p { margin: 0 0 12px; color: var(--tenue); line-height: 1.5; }
+    .aviso { padding: 12px 14px; border-radius: 14px; background: #fff7ed; border: 1px solid #fed7aa; color: #7c2d12; font-weight: 600; }
+    .controles { display: grid; gap: 14px; margin: 16px 0; padding: 18px; border-radius: 20px; background: #fff; border: 1px solid var(--borde); box-shadow: 0 10px 30px #0f2a5c14; }
+    .cargos { display: flex; flex-wrap: wrap; gap: 8px; }
+    .cargos label, .opciones label { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--borde); background: var(--azul-claro); font-weight: 700; color: var(--azul); cursor: pointer; }
+    .opciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .opciones label { background: #fff; font-weight: 600; }
+    .acciones { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    button { font: inherit; font-weight: 800; border: 0; border-radius: 14px; padding: 12px 18px; cursor: pointer; }
+    .principal { background: var(--azul); color: #fff; }
+    .secundario { background: var(--azul-claro); color: var(--azul); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #estado { color: var(--tenue); font-weight: 600; }
+
+    /* Hoja: texto negro sobre blanco y una fila por dato, el formato que admite la lectura. */
+    .hojas { display: grid; justify-content: center; gap: 24px; padding: 8px 16px 40px; }
+    .hoja { width: 210mm; min-height: 297mm; padding: 14mm 16mm; background: #fff; color: #000; box-shadow: 0 12px 40px #0f2a5c26; display: flex; flex-direction: column; gap: 6mm; }
+    .encabezado { display: flex; justify-content: space-between; align-items: flex-start; gap: 8mm; }
+    .encabezado h2 { margin: 0; font-size: 17pt; letter-spacing: 0.02em; }
+    .encabezado p { margin: 1mm 0 0; font-size: 11pt; }
+    .marca-agua { border: 2px solid #000; padding: 3mm 5mm; font-weight: 800; font-size: 12pt; text-align: center; letter-spacing: 0.06em; }
+    .datos { display: grid; gap: 3mm; font-size: 20pt; }
+    .datos div { border-bottom: 2px solid #000; padding-bottom: 1mm; }
+    .datos b { font-weight: 800; }
+    .etiqueta-practica { align-self: flex-start; border: 2px dashed #000; padding: 2mm 4mm; font-size: 12pt; font-weight: 800; }
+    /* Sin líneas verticales junto a las cifras y con el mismo tamaño que los nombres:
+       así Tesseract leyó 80 de 80 hojas sintéticas (PNG y JPEG). */
+    table { width: 100%; border-collapse: collapse; font-size: 20pt; border-top: 2px solid #000; }
+    td { border-bottom: 1.5px solid #000; padding: 3.4mm 2mm; }
+    td:last-child { width: 40mm; padding-right: 6mm; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+    tr.total td { font-weight: 700; border-bottom-width: 2.5px; }
+    .firmas { margin-top: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6mm; font-size: 10pt; text-align: center; }
+    .firmas span { border-top: 1.5px solid #000; padding-top: 2mm; }
+    .pie { font-size: 10pt; text-align: center; font-weight: 700; }
+
+    @media (max-width: 900px) {
+      .hojas { justify-content: stretch; }
+      .hoja { width: 100%; min-height: auto; padding: 18px; }
+      .datos, table { font-size: 16px; }
+      td:last-child { width: 30%; font-size: 20px; }
+      .encabezado { flex-direction: column; }
+    }
+    @page { size: A4; margin: 0; }
+    @media print {
+      body { background: #fff; }
+      .panel { display: none; }
+      .hojas { display: block; padding: 0; }
+      .hoja { box-shadow: none; break-after: page; width: 210mm; min-height: 297mm; padding: 14mm 16mm; }
+      .hoja:last-child { break-after: auto; }
+    }
+  </style>
+  <script type="module" src="/ejemplos/actas-practica.js"></script>
+</head>
+<body>
+  <section class="panel">
+    <h1>Actas de práctica</h1>
+    <p>Genera una hoja A4 por mesa y por cargo con los códigos y las candidaturas de la elección publicada. Las cifras son ficticias y cuadran entre sí, salvo en la hoja marcada para practicar un acta observada.</p>
+    <p class="aviso">Úsalas solo en una elección de prueba. Cada hoja lleva «DOCUMENTO DE PRUEBA — SIN VALIDEZ» y una institución ficticia.</p>
+    <div class="controles">
+      <div>
+        <p><strong>Cargos publicados</strong></p>
+        <div class="cargos" id="cargos"><span id="estado">Consultando elecciones publicadas…</span></div>
+      </div>
+      <div class="opciones">
+        <label><input type="checkbox" id="erronea" checked> Agregar una hoja con la suma errónea</label>
+        <label><input type="checkbox" id="correccion" checked> Agregar la versión 2 de una mesa</label>
+        <label>Variante <input type="number" id="semilla" min="1" max="9999" value="1" style="width:5.5em"></label>
+      </div>
+      <div class="acciones">
+        <button class="principal" id="generar" type="button" disabled>Generar actas</button>
+        <button class="secundario" id="imprimir" type="button" disabled>Imprimir o guardar PDF</button>
+        <span id="resumen" role="status"></span>
+      </div>
+    </div>
+  </section>
+  <main class="hojas" id="hojas" aria-live="polite"></main>
+</body>
+</html>

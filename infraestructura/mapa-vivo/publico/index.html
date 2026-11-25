@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mapa vivo · TUVOTO</title>
+  <link rel="stylesheet" href="/mapa.css">
+  <script type="module" src="/mapa.js"></script>
+</head>
+<body>
+  <div class="pantalla">
+    <header class="cabecera">
+      <div class="marca">
+        <span class="logo" aria-hidden="true">TU<b>VOTO</b></span>
+        <div>
+          <h1>Mapa vivo de microservicios</h1>
+          <p>Cada luz es una solicitud o un evento real del sistema</p>
+        </div>
+      </div>
+      <div class="cabecera-derecha">
+        <div class="conexion" id="conexion" data-estado="conectando"><span class="punto" aria-hidden="true"></span><span id="texto-conexion">Conectando…</span></div>
+        <time class="reloj" id="reloj"></time>
+      </div>
+    </header>
+
+    <main class="mapa" id="mapa">
+      <svg id="lienzo" viewBox="0 -96 1080 736" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Mapa de los microservicios de TUVOTO y su actividad en tiempo real"></svg>
+      <div class="anuncios" id="anuncios" aria-live="polite"></div>
+      <footer class="leyenda">
+        <span class="clave clave-http">HTTP</span>
+        <span class="clave clave-grpc">gRPC</span>
+        <span class="clave clave-evento">Evento</span>
+        <span class="clave clave-datos">Datos</span>
+        <span class="nota">Animación ralentizada para que se vea; los datos son reales.</span>
+        <span class="registro" id="registro-entrada" data-activo="false">Registro de entrada: esperando</span>
+      </footer>
+    </main>
+
+    <aside class="panel">
+      <section class="kpis" aria-label="Indicadores en vivo">
+        <div class="kpi"><strong id="kpi-actas">0</strong><span>Actas en esta sesión</span></div>
+        <div class="kpi"><strong id="kpi-dispositivos">0</strong><span>Dispositivos activos</span></div>
+        <div class="kpi"><strong id="kpi-solicitudes">0</strong><span>Solicitudes por minuto</span></div>
+        <div class="kpi"><strong id="kpi-latencia">—</strong><span>Latencia p95</span></div>
+      </section>
+
+      <section class="tarjeta" aria-labelledby="titulo-resultados">
+        <div class="tarjeta-cabecera">
+          <h2 id="titulo-resultados">Resultados preliminares</h2>
+          <span class="etiqueta" id="cargo-resultados"></span>
+        </div>
+        <div id="resultados" class="resultados"><p class="vacio">Sin resultados publicados todavía.</p></div>
+      </section>
+
+      <section class="tarjeta" aria-labelledby="titulo-colas">
+        <div class="tarjeta-cabecera">
+          <h2 id="titulo-colas">Colas de RabbitMQ</h2>
+          <span class="etiqueta" id="estado-mensajeria">Sin conexión</span>
+        </div>
+        <div id="colas" class="colas"></div>
+      </section>
+
+      <section class="tarjeta tarjeta-linea" aria-labelledby="titulo-linea">
+        <div class="tarjeta-cabecera"><h2 id="titulo-linea">Lo último</h2></div>
+        <ol id="linea" class="linea"><li class="vacio">Esperando actividad: fotografía un acta con el celular del operador.</li></ol>
+      </section>
+    </aside>
+  </div>
+
+  <button class="abrir-presentador" id="abrir-presentador" type="button" aria-controls="presentador" aria-expanded="false" title="Controles del presentador (tecla P)" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+    <span class="oculto-visual">Controles del presentador</span>
+  </button>
+
+  <section class="presentador" id="presentador" hidden aria-label="Controles del presentador">
+    <div class="presentador-cabecera">
+      <h2>Controles del presentador</h2>
+      <button type="button" class="cerrar" id="cerrar-presentador" aria-label="Cerrar controles">×</button>
+    </div>
+    <div class="grupo">
+      <h3>Derribar un servicio <small>Docker lo vuelve a iniciar solo</small></h3>
+      <div class="botones" id="botones-derribar"></div>
+    </div>
+    <div class="grupo">
+      <h3>Detener el conteo <small>las actas esperan en la cola</small></h3>
+      <div class="botones">
+        <button type="button" data-accion="apagar" data-servicio="resultados-conteo" data-docker>Apagar conteo</button>
+        <button type="button" data-accion="encender" data-servicio="resultados-conteo" data-docker>Encender conteo</button>
+      </div>
+    </div>
+    <div class="grupo">
+      <h3>Seguridad <small>intentos reales que el sistema debe rechazar</small></h3>
+      <div class="botones">
+        <button type="button" data-accion="ataque-sesion">Sesión falsificada</button>
+        <button type="button" data-accion="ataque-interno">Ruta interna desde fuera</button>
+      </div>
+    </div>
+    <div class="grupo">
+      <h3>Carga <small>consultas públicas a través de NGINX</small></h3>
+      <div class="botones"><button type="button" data-accion="rafaga">Ráfaga de 300 consultas</button></div>
+    </div>
+    <p class="aviso-presentador" id="aviso-presentador" role="status"></p>
+  </section>
+</body>
+</html>

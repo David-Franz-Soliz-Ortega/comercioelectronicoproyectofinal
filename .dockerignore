@@ -16,6 +16,10 @@ pruebas
 gateway/*
 !gateway/graphql
 infraestructura
+# El mapa vivo se construye desde la raíz para reutilizar la fuente del frontend.
+!infraestructura/mapa-vivo
+infraestructura/mapa-vivo/node_modules
+infraestructura/mapa-vivo/pruebas
 archivo/
 secrets/
 **/*.pem

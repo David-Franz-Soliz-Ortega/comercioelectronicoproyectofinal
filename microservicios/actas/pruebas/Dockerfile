@@ -1,4 +1,5 @@
-FROM tuvoto-actas:latest
+ARG BASE=tuvoto-actas:latest
+FROM ${BASE}
 USER root
 RUN pip install --no-cache-dir httpx==0.28.1
 COPY microservicios/actas/pruebas /app/pruebas

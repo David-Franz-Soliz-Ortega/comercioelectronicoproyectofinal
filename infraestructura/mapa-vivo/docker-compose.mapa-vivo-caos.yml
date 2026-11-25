@@ -1,0 +1,12 @@
+# Capa de caos, opcional y solo para la demostración local. Monta el socket de
+# Docker en el observador: equivale a privilegios de administrador del host.
+# El observador limita las acciones a derribar/apagar/encender actas, resultados
+# y sus consumidores, y solo atiende peticiones a 127.0.0.1 con cabecera propia.
+# Retirarla al terminar: scripts/feria-mapa-vivo.sh --detener
+services:
+  mapa-vivo:
+    environment:
+      MAPA_VIVO_CAOS: docker
+      MAPA_VIVO_PROYECTO: ${TUVOTO_MAPA_PROYECTO:-tuvoto}
+    group_add: ['${TUVOTO_DOCKER_GID:?Indica el GID del grupo docker (getent group docker)}']
+    volumes: ['/var/run/docker.sock:/var/run/docker.sock']

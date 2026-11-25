@@ -1,0 +1,18 @@
+{
+  "name": "tuvoto-mapa-vivo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Observador de demostración: muestra en vivo el flujo real de TUVOTO sin ser dueño de datos ni reglas.",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "iniciar": "node src/servidor.mjs",
+    "verificar": "node --test --test-isolation=none pruebas/*.test.mjs"
+  },
+  "dependencies": {
+    "amqplib": "2.4.1",
+    "qrcode": "1.5.4"
+  }
+}

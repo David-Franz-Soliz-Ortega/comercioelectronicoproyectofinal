@@ -143,6 +143,8 @@ export default function PortalPublico() {
   const [grupoDesplegado, cambiarGrupoDesplegado] = useState(null);
   const [verTodosGrupo, cambiarVerTodosGrupo] = useState(null);
   const [busquedaFacultad, cambiarBusquedaFacultad] = useState('');
+  // El QR del puesto de feria abre el portal con ?feria: invita a probar el registro de actas.
+  const [bienvenidaFeria, cambiarBienvenidaFeria] = useState(() => new URLSearchParams(location.search).has('feria'));
 
   const catalogo = usarConsultaPublica(consultaEventos, {}, validarEventos, 60000);
   const eventos = catalogo.datos ?? [];
@@ -204,6 +206,10 @@ export default function PortalPublico() {
       <span className="descripcion-marca">La elección, a la vista.</span>
       <nav className="enlaces-cabecera" aria-label="Navegación pública"><a className="enlace-observatorio" href="#resultados-electorales">Observatorio electoral</a><a href="#como-leer">Cómo leer los resultados</a>{portal && <a href="#por-unidades">Por unidades</a>}<a href="#panel" className="acceso-observatorio"><IconoUsuario tamano={14} /> Acceso al personal</a></nav>
     </header>
+    {bienvenidaFeria && <aside className="bienvenida-feria" aria-labelledby="titulo-feria">
+      <div><p className="sobre-titulo">PUESTO TUVOTO</p><h2 id="titulo-feria">Mira el conteo en vivo… o regístralo tú.</h2><p>Pide una tarjeta de operador en el puesto, entra y fotografía un acta de práctica: verás cómo viaja por los microservicios en el monitor.</p></div>
+      <div className="acciones-feria"><a className="boton-feria" href="#panel"><IconoUsuario tamano={16} /> Entrar como operador</a><button type="button" onClick={() => cambiarBienvenidaFeria(false)}>Solo ver resultados</button></div>
+    </aside>}
     <main className="contenido-observatorio" id="resultados-electorales" tabIndex="-1">
       <div className="franja-eventos"><span className="etiqueta-directorio">OBSERVATORIO ELECTORAL <span className="separador-etiqueta">/</span> RESULTADOS PRELIMINARES</span>
         {eventos.length > 0 && <label className="selector-evento">Evento electoral <select aria-label="Evento electoral" value={evento?.id??''} onChange={e => cambiarSeleccion({ evento: e.target.value, proceso: '', unidad: '' })}>{!evento&&<option value="" disabled>Selecciona un evento disponible</option>}{eventos.map(e => <option key={e.id} value={e.id}>{e.nombre}{e.destacado ? ' · Destacado' : ''}</option>)}</select></label>}

@@ -32,6 +32,8 @@ Al editar asignaciones, bloquear el grupo físico si cualquiera de sus cargos pe
 
 La cuadrícula clara del formato sintético hacía que Tesseract omitiera cifras que sí estaban presentes. Una segunda copia con contraste acentuado recuperó esos campos en PNG/JPEG. Conservar sin completar los desacuerdos entre pasadas y las filas repetidas; una suma coincidente no resuelve la ambigüedad. El [test de tabla](../../microservicios/actas/pruebas/test_formato_tabla.py) ejecuta OCR real y mantiene los conflictos vacíos. Esta evidencia no acredita manuscritos ni fotos tomadas del papel.
 
+En las actas de práctica, los bordes verticales negros junto a las cifras y las cifras de 24–28 pt en negrita produjeron lecturas erróneas con confianza alta («70→7», «5→NO», «188→13838»). Sin líneas verticales y con cifras del mismo tamaño que los nombres, 40 hojas en PNG y JPEG se leyeron completas. Antes de cambiar el diseño de un formato, medirlo con `leer_foto` real sobre varias variantes. Ver [actas-practica.html](../../frontend/public/ejemplos/actas-practica.html) y la [entrega de feria](entregas/mapa-vivo-feria.md).
+
 ## Esperas en pruebas del navegador
 
 La presencia de un contenedor del listado no implica que sus opciones hayan terminado de cargar. Tras recargar o guardar, esperar el elemento de destino disponible o la confirmación de persistencia, en lugar de usar una pausa fija como garantía. Ver el recorrido de [interfaz](../../pruebas/ampliacion/probar-interfaz.mjs).
@@ -57,3 +59,7 @@ Emitir el éxito después de la respuesta de la API y mostrarlo en un componente
 Una fila exterior con varios cargos de 300 px y dos candidatos interiores comprimía los nombres hasta una letra por línea. Comprobar solo el desbordamiento global o los grupos Rector/Vicerrector no detectaba el defecto: la regresión abre Decanos con varios candidatos por cargo y verifica sus dimensiones entre 390 y 2560 px. Cada cargo ocupa ahora el ancho completo. Antes de retirar módulos, recorrer referencias desde la entrada, incluidas cargas diferidas: ocho de los nueve módulos API denunciados como huérfanos sí tenían uso operativo. Ver [entrega](entregas/limpieza-paneles.md) y [regresión de importaciones](../../frontend/pruebas/importaciones.test.mjs).
 
 En `ModalFormulario`, asegurar `abierto = true` por defecto previene que un modal montado condicionalmente retorne `null` si quien lo invoca no suministra explícitamente el atributo `abierto`. Asimismo, para botones con acciones de descarte o desvinculación transformados en botones compactos (como el de 3 puntos en cargos destacados), filtrar selectores heredados mediante `:not(.boton-puntos-destacado)` impide que clases globales de peligro o secundarias alteren su estilo sutil y redondeado.
+
+## DNS en la red interna de Compose
+
+En la red `interna` (`internal: true`), `getaddrinfo` tarda 5–10 s en devolver `EAI_AGAIN` para el nombre de un contenedor detenido y no se puede cancelar; once sondas simultáneas hicieron que incluso la entrada sana apareciera caída. `dns.Resolver` (c-ares) responde al instante en ambos casos. Para sondear servicios que pueden detenerse, resolver con c-ares y compartir una búsqueda en curso por host. Ver [sondas del mapa vivo](../../infraestructura/mapa-vivo/src/sondas.mjs), su prueba de regresión y la [entrega](entregas/mapa-vivo-feria.md).

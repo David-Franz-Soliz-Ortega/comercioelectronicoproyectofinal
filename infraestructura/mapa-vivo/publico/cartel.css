@@ -1,0 +1,15 @@
+@font-face { font-family: 'Manrope'; src: url('/fuentes/manrope-variable.ttf') format('truetype'); font-weight: 200 800; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #eef3f9; color: #0f172a; font-family: 'Manrope', system-ui, sans-serif; }
+.cartel { width: min(210mm, 100%); min-height: 100vh; margin: 0 auto; padding: 32px 24px; display: grid; justify-items: center; align-content: center; gap: 18px; text-align: center; background: #fff; }
+.marca { margin: 0; padding: 10px 18px; border-radius: 16px; font-size: 32px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #123b70, #174bd1); }
+.marca b { color: #fde68a; }
+h1 { margin: 0; font-size: clamp(30px, 7vw, 52px); line-height: 1.1; color: #123b70; letter-spacing: -.02em; }
+.bajada { margin: 0; max-width: 34rem; font-size: clamp(17px, 3vw, 22px); color: #334155; line-height: 1.45; }
+.qr { width: min(320px, 78vw); aspect-ratio: 1; padding: 14px; border: 4px solid #123b70; border-radius: 22px; background: #fff; }
+.pasos { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 22px; font-size: 18px; font-weight: 700; color: #123b70; }
+.pasos li { display: flex; align-items: center; gap: 8px; }
+.pasos span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #174bd1; color: #fff; }
+.pie { margin: 0; color: #64748b; font-size: 14px; }
+@page { size: A4; margin: 0; }
+@media print { body { background: #fff; } .cartel { min-height: 297mm; } }

@@ -10,7 +10,6 @@
 .administracion-tuvoto .item-menu-lateral:hover{background:#244467;color:#fff}
 .administracion-tuvoto .item-menu-lateral.activo{background:#174bd1;border-color:#83a9ff;box-shadow:none;outline:none;color:white}
 
-
 .administracion-tuvoto .cabecera-superior-privada{padding:24px 30px;gap:24px;align-items:center;background:#fff;min-height:112px}
 .administracion-tuvoto .titulo-seccion-privada h1{font-size:clamp(23px,2.4vw,32px);font-weight:800;letter-spacing:-.8px;line-height:1.25}
 .administracion-tuvoto .subtitulo-seccion-privada{font-size:13px;margin-top:8px;max-width:650px;overflow-wrap:anywhere}
@@ -178,7 +177,6 @@
 .administracion-tuvoto .sin-cargos-institucion p{margin:0;font-size:14px;color:#46566d}
 @media(max-width:768px){.grilla-detalle-cargo-modal{grid-template-columns:minmax(0,1fr)}.administracion-tuvoto .cabecera-lista-cargos .boton{width:100%}}
 
-
 .administracion-tuvoto .destinos-importacion{min-width:0;display:grid;gap:14px;margin:20px 0;padding:16px;border:1px solid #c4d1e2;border-radius:12px;background:#fff}.administracion-tuvoto .destinos-importacion legend{font-weight:750;padding:0 6px}.administracion-tuvoto .destinos-importacion label{display:grid;gap:8px;min-width:0;overflow-wrap:anywhere}.administracion-tuvoto .destinos-importacion select{width:100%;min-width:0}
 .administracion-tuvoto .estado-confirmacion-importacion{padding:16px;margin:18px 0 12px;overflow-wrap:anywhere}.administracion-tuvoto .estado-confirmacion-importacion>strong{display:block;font-size:15px}.administracion-tuvoto .estado-confirmacion-importacion>p{margin:8px 0}.administracion-tuvoto .errores-importacion{scroll-margin:100px;padding:16px 16px 16px 36px}
 .administracion-tuvoto .panel-importacion .tabla-admin{min-width:680px;table-layout:auto}.administracion-tuvoto .panel-importacion .tabla-admin :is(th,td){overflow-wrap:normal;word-break:normal}
@@ -297,9 +295,6 @@
 .administracion-tuvoto .cargos-mesa-compartida{display:grid;gap:12px;max-height:350px;overflow-y:auto}
 .administracion-tuvoto .cargos-mesa-compartida label{display:flex;align-items:flex-start;gap:10px;font-size:13px;overflow-wrap:anywhere}
 
-
-
-
 @media(max-width:600px){.administracion-tuvoto .mesas-compartidas{padding:0}.administracion-tuvoto .formulario-mesa-compartida{grid-template-columns:minmax(0,1fr)}.administracion-tuvoto .confirmar-eliminacion>div>.boton{width:100%}}
 @media(max-width:1100px){.administracion-tuvoto .cabecera-candidatos-institucion{flex-direction:column}}
 @media(max-width:600px){
@@ -392,264 +387,6 @@
 /* =========================================================================
    PANEL OPERADOR Y AUDITOR CON IDENTIDAD OBSERVATORIO
    ========================================================================= */
-.administracion-tuvoto .grid-operador-registro {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-  margin-bottom: 24px;
-}
-
-.administracion-tuvoto .panel-foto-acta,
-.administracion-tuvoto .panel-verificacion-acta {
-  background: #ffffff;
-  border: 1px solid var(--borde);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 3px 14px rgba(16, 36, 64, 0.05);
-  animation: entrarTarjetaPanel 0.35s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-  transition: box-shadow 0.22s ease;
-}
-
-.administracion-tuvoto .panel-foto-acta:hover,
-.administracion-tuvoto .panel-verificacion-acta:hover {
-  box-shadow: 0 6px 20px rgba(16, 36, 64, 0.08);
-}
-
-.administracion-tuvoto .visor-foto-acta {
-  width: 100%;
-  min-height: 380px;
-  max-height: 520px;
-  background: #f4f8fd;
-  border: 2px dashed #9ab3d4;
-  border-radius: 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  margin: 16px 0;
-  position: relative;
-  transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.administracion-tuvoto .visor-foto-acta:hover {
-  border-color: var(--azul-principal);
-  background: #edf4fe;
-}
-
-.administracion-tuvoto .imagen-acta-cargada {
-  width: 100%;
-  height: 100%;
-  max-height: 500px;
-  object-fit: contain;
-  transition: transform 0.25s ease;
-}
-
-.administracion-tuvoto .visor-placeholder {
-  text-align: center;
-  padding: 24px;
-  color: var(--secundario);
-}
-
-.administracion-tuvoto .acciones-foto-acta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.administracion-tuvoto .boton-camara {
-  position: relative;
-  overflow: hidden;
-  background: #ffffff;
-  border: 1px solid #71839e;
-  color: #102440;
-  padding: 10px 16px;
-  border-radius: 9px;
-  font-size: 13px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(16, 36, 64, 0.05);
-  transition: all 0.18s ease;
-}
-
-.administracion-tuvoto .boton-camara:hover {
-  background: #eaf0ff;
-  border-color: var(--azul-principal);
-  color: var(--azul-principal);
-  transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(23, 75, 209, 0.15);
-}
-
-.administracion-tuvoto .boton-camara input[type="file"] {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.administracion-tuvoto .tabla-conteo-acta {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-}
-
-.administracion-tuvoto .tabla-conteo-acta tr {
-  transition: background 0.15s ease;
-}
-
-.administracion-tuvoto .tabla-conteo-acta tr:hover {
-  background: #f7faff;
-}
-
-.administracion-tuvoto .tabla-conteo-acta td {
-  padding: 12px 14px;
-  border-bottom: 1px solid #e2e9f2;
-  vertical-align: middle;
-  font-size: 14px;
-}
-
-.administracion-tuvoto .tabla-conteo-acta input[type="number"] {
-  width: 110px;
-  min-height: 42px;
-  padding: 6px 12px;
-  border: 1px solid #71839e;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 750;
-  text-align: right;
-  font-family: inherit;
-  color: #102440;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(16, 36, 64, 0.04);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.administracion-tuvoto .tabla-conteo-acta input[type="number"]:focus {
-  outline: 3px solid var(--azul-principal);
-  outline-offset: 2px;
-  border-color: var(--azul-principal);
-}
-
-.administracion-tuvoto .tarjeta-validacion-sumas {
-  border-radius: 10px;
-  padding: 14px 18px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  transition: all 0.25s ease;
-}
-
-.administracion-tuvoto .tarjeta-validacion-sumas.correcta {
-  background: #eafaf1;
-  color: #0d6832;
-  border: 1px solid #82d8a7;
-}
-
-.administracion-tuvoto .tarjeta-validacion-sumas.discrepancia {
-  background: #fde8ec;
-  color: #a02346;
-  border: 1px solid #f5a9b8;
-}
-
-.administracion-tuvoto .tarjeta-estado-confirmacion {
-  background: #fff8e8;
-  color: #92400e;
-  border: 1px solid #fcd34d;
-  border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.administracion-tuvoto .casilla-confirmacion-acta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #102440;
-  cursor: pointer;
-  margin-bottom: 20px;
-  padding: 10px 14px;
-  background: #f9fbfe;
-  border: 1px solid #dce5f0;
-  border-radius: 9px;
-  transition: background 0.18s ease, border-color 0.18s ease;
-}
-
-.administracion-tuvoto .casilla-confirmacion-acta:hover {
-  background: #eaf0ff;
-  border-color: var(--azul-principal);
-}
-
-.administracion-tuvoto .boton-publicar-acta {
-  width: 100%;
-  min-height: 48px;
-  background: var(--azul-principal);
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 750;
-  padding: 12px 20px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  box-shadow: 0 4px 14px rgba(23, 75, 209, 0.28);
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.administracion-tuvoto .boton-publicar-acta:hover:enabled {
-  background: var(--azul-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(23, 75, 209, 0.38);
-}
-
-.administracion-tuvoto .boton-publicar-acta:active:enabled {
-  transform: scale(0.985);
-}
-
-.administracion-tuvoto .selector-mesa-topbar {
-  min-height: 44px;
-  border: 1px solid #71839e;
-  border-radius: 9px;
-  background-color: #ffffff;
-  color: #102440;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 8px 36px 8px 12px;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2346566d' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  box-shadow: 0 1px 2px rgba(16, 36, 64, 0.04);
-  transition: border-color 0.18s ease;
-}
-
-.administracion-tuvoto .selector-mesa-topbar:hover {
-  border-color: var(--azul-principal);
-}
-
-.administracion-tuvoto .controles-cabecera-operador {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
 
 .administracion-tuvoto .insignia-usuario-actual {
   display: flex;
@@ -696,22 +433,7 @@
 }
 
 /* Mantener la disposición móvil al aplicar los estilos compartidos al operador. */
-@media (max-width: 1080px) {
-  .administracion-tuvoto .grid-operador-registro {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
 
-@media (max-width: 600px) {
-  .administracion-tuvoto .panel-foto-acta,
-  .administracion-tuvoto .panel-verificacion-acta {
-    padding: 16px;
-  }
-  .administracion-tuvoto .tabla-conteo-acta { table-layout: fixed; }
-  .administracion-tuvoto .tabla-conteo-acta td { padding: 10px 8px; overflow-wrap: anywhere; }
-  .administracion-tuvoto .tabla-conteo-acta :is(th, td):last-child { width: 104px; }
-  .administracion-tuvoto .tabla-conteo-acta input[type="number"] { width: 100%; font-size: 16px; }
-}
 .portada-administracion .seleccion-portada{padding:22px;margin-top:22px}
 .portada-administracion h3{font-size:20px;margin:0 0 12px}
 .portada-administracion p{font-size:13px;color:#46566d;line-height:1.6}
@@ -786,14 +508,11 @@
 .entrada-importacion{margin:16px 0}
 .boton-importar-excel{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 
-
 .opciones-mesas-operador{display:grid;gap:10px;max-height:340px;overflow:auto}
 .opciones-mesas-operador label{display:flex;gap:12px;align-items:start;padding:12px;border:1px solid #d6e3f5;border-radius:10px}
 .opciones-mesas-operador input{width:auto;flex-shrink:0}.opciones-mesas-operador small{display:block;margin-top:4px}
 .formulario-operador fieldset{min-width:0}.modal-formulario .formulario-mesa-compartida{margin-top:18px}
 @media(max-width:600px){.modal-formulario{padding:16px;max-height:94dvh}.cabecera-modal-formulario h2{font-size:1.1rem}.modal-formulario .formulario-mesa-compartida{grid-template-columns:minmax(0,1fr)}}
-
-
 
 .administracion-tuvoto .insignia-estado.pendiente{background:#fff3cd;color:#854d0e}
 .resultado-importacion-operadores .tabla-admin{min-width:600px}
