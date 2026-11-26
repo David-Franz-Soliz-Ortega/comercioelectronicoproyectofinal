@@ -1,10 +1,10 @@
 import { cabecerasSesion, comprobarAcceso } from './clienteSesion.js';
-export async function consultarGraphql(query, variables = {}, senal) {
+export async function consultarGraphql(query, variables = {}, senal, espera = 20000) {
   let respuesta;
   try { respuesta = await fetch('/graphql', {
     method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...cabecerasSesion() },
     body: JSON.stringify({ query, variables }),
-    signal: senal ? AbortSignal.any([senal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
+    signal: senal ? AbortSignal.any([senal, AbortSignal.timeout(espera)]) : AbortSignal.timeout(espera),
   }); } catch (fallo) {
     throw new Error(fallo.name === 'TimeoutError' ? 'La consulta tardó demasiado. Vuelve a actualizar.' : 'No se pudo conectar con TUVOTO. Revisa tu conexión y vuelve a intentarlo.');
   }

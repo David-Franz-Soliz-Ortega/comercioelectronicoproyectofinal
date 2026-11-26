@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
 from .cliente_mesas import consultar_mesa, registro_mesa
 from .dominio import decodificar_foto, validar_conteo, huella_solicitud, construir_evento
 from .lectura import leer_foto
+from .cargas import ESQUEMA_CARGAS, ParteFoto, guardar_parte, recuperar_foto
 
 
 def conectar():
@@ -50,10 +51,11 @@ ESQUEMA = '''CREATE TABLE IF NOT EXISTS versiones_actas(
  DO $$ BEGIN IF EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='versiones_actas'::regclass AND conname='versiones_actas_estado_check' AND position('anulada' IN pg_get_constraintdef(oid))=0) THEN ALTER TABLE versiones_actas DROP CONSTRAINT versiones_actas_estado_check; ALTER TABLE versiones_actas ADD CONSTRAINT versiones_actas_estado_check CHECK(estado IN ('publicada','observada','anulada')); END IF; END $$;
  ALTER TABLE versiones_actas ADD COLUMN IF NOT EXISTS sector TEXT NOT NULL DEFAULT 'general';
  ALTER TABLE versiones_actas ADD COLUMN IF NOT EXISTS id_acta_origen UUID REFERENCES versiones_actas(id);
- CREATE TABLE IF NOT EXISTS bandeja_actas(id UUID PRIMARY KEY,evento JSONB NOT NULL,publicado_en TIMESTAMPTZ);'''
+ CREATE TABLE IF NOT EXISTS bandeja_actas(id UUID PRIMARY KEY,evento JSONB NOT NULL,publicado_en TIMESTAMPTZ);''' + ESQUEMA_CARGAS
 
 
 def publicar_pendientes(detener):
+    proxima_limpieza = 0
     while not detener.is_set():
         try:
             con = pika.BlockingConnection(pika.ConnectionParameters(host=os.environ['RABBITMQ_HOST'], port=int(os.getenv('RABBITMQ_PUERTO','5672')), credentials=pika.PlainCredentials(os.environ['RABBITMQ_USUARIO'], os.environ['RABBITMQ_CLAVE']), heartbeat=20, blocked_connection_timeout=5, socket_timeout=5))
@@ -62,6 +64,9 @@ def publicar_pendientes(detener):
                 with conectar() as db:
                     while not detener.is_set():
                         with db.transaction():
+                            if time.monotonic() >= proxima_limpieza:
+                                db.execute("DELETE FROM partes_foto WHERE creada <= now() - interval '1 hour'")
+                                proxima_limpieza = time.monotonic() + 60
                             fila = db.execute('SELECT id,evento FROM bandeja_actas WHERE publicado_en IS NULL ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1').fetchone()
                             if fila:
                                 canal.basic_publish(exchange='tuvoto.actas', routing_key='acta.actualizada.v1', body=json.dumps(fila['evento']).encode(), mandatory=True, properties=pika.BasicProperties(content_type='application/json', delivery_mode=2, message_id=str(fila['id'])))
@@ -110,6 +115,7 @@ class NuevaActa(BaseModel):
     idSolicitud: UUID
     versionAnterior: StrictInt = Field(ge=0)
     foto: str | None = Field(default=None,max_length=14000000)
+    idCargaFoto: UUID | None = None
     idActaOrigen: UUID | None = None
     votos: list[Voto] = Field(min_length=1, max_length=100)
     blancos: StrictInt = Field(ge=0, le=1000000)
@@ -119,7 +125,8 @@ class NuevaActa(BaseModel):
 
     @model_validator(mode='after')
     def documento_unico(self):
-        if bool(self.foto)==bool(self.idActaOrigen):raise ValueError('Sube una fotografía o selecciona un acta de origen, no ambas')
+        if sum(bool(v) for v in (self.foto, self.idCargaFoto, self.idActaOrigen)) != 1:
+            raise ValueError('Indica una sola fuente de fotografía.')
         return self
 
 
@@ -127,10 +134,12 @@ class FotoParaLectura(BaseModel):
     model_config = ConfigDict(extra='forbid')
     idMesa: UUID | None = None
     candidatas: list[UUID] = Field(default_factory=list, max_length=60, description='Mesas asignadas entre las que se identifica el destino de la foto')
-    foto: str = Field(min_length=1, max_length=14000000)
+    foto: str | None = Field(default=None, min_length=1, max_length=14000000)
+    idCargaFoto: UUID | None = None
 
     @model_validator(mode='after')
     def destino_unico(self):
+        if bool(self.foto) == bool(self.idCargaFoto): raise ValueError('Indica una sola fotografía.')
         if bool(self.idMesa) == bool(self.candidatas): raise ValueError('Indica la mesa o las mesas candidatas, no ambas')
         return self
 
@@ -155,10 +164,25 @@ class PropuestaLectura(BaseModel):
     opciones: list[UUID] = []
 
 
+@app.put('/api/v1/actas/cargas/{carga}', status_code=204, summary='Guardar una parte de la fotografía del operador')
+def subir_parte(carga: UUID, datos: ParteFoto, req: Request):
+    actor = autorizar(req, True)
+    with conectar() as db:
+        guardar_parte(db, actor, carga, datos)
+    return Response(status_code=204)
+
+
+def obtener_foto(datos, actor):
+    if datos.idCargaFoto:
+        with conectar() as db:
+            return decodificar_foto(recuperar_foto(db, actor, datos.idCargaFoto))
+    return decodificar_foto(datos.foto)
+
+
 @app.post('/api/v1/actas/lectura', response_model=PropuestaLectura, summary='Proponer destino y cifras de una fotografía, sin registrar ni publicar')
 def leer(datos: FotoParaLectura, req: Request, respuesta: Response):
     # Mismos permisos/CSRF que el registro, pero sin persistencia ni eventos.
-    autorizar(req, True)
+    actor = autorizar(req, True)
     respuesta.headers['Cache-Control'] = 'no-store'
     if datos.idMesa:
         mesa = consultar_mesa(req, datos.idMesa)
@@ -181,7 +205,7 @@ def leer(datos: FotoParaLectura, req: Request, respuesta: Response):
             raise HTTPException(409, 'No tienes mesas con la recepción abierta.')
         mesa = None
     try:
-        contenido, _, _ = decodificar_foto(datos.foto)
+        contenido, _, _ = obtener_foto(datos, actor)
         return leer_foto(contenido, mesa, mesas)
     except ValueError as e:
         raise HTTPException(422, str(e)) from None
@@ -218,6 +242,15 @@ def registrar(datos: NuevaActa, req: Request):
     with registro_mesa(req,datos.idMesa) as mesa:
         return registrar_en_recepcion(datos,req,actor,mesa)
 
+def registro_unico(actor):
+    return str(actor['idOrganizacion']) == os.environ.get('FERIA_ORGANIZACION_REGISTRO_UNICO')
+
+
+def comprobar_modificacion(actor, version):
+    if version and registro_unico(actor):
+        raise HTTPException(409, 'El acta de esta mesa y cargo ya está registrada.')
+
+
 def registrar_en_recepcion(datos,req,actor,mesa):
     if not datos.confirmado: raise HTTPException(422, 'Debe confirmar la comparación con la fotografía')
     d = datos.model_dump(mode='json')
@@ -231,7 +264,7 @@ def registrar_en_recepcion(datos,req,actor,mesa):
                 raise HTTPException(422,'Solo se reutiliza explícitamente una foto de otro cargo y del mismo sector')
             contenido,mime,foto_hash=bytes(origen['foto']),origen['mime'],origen['foto_hash']
         else:
-            contenido, mime, foto_hash = decodificar_foto(datos.foto)
+            contenido, mime, foto_hash = obtener_foto(datos, actor)
         estado = validar_conteo(d['votos'], mesa['candidatos'], datos.blancos, datos.nulos, datos.total)
     except ValueError as e: raise HTTPException(422, str(e)) from None
     huella = huella_solicitud(d, foto_hash)
@@ -244,6 +277,7 @@ def registrar_en_recepcion(datos,req,actor,mesa):
                 if previa['huella'] != huella: raise HTTPException(409, 'Solicitud reutilizada con otros datos')
                 return {k: str(v) if isinstance(v, UUID) else v for k, v in previa.items() if k != 'huella'}
             ultima = db.execute('SELECT coalesce(max(version),0) AS version FROM versiones_actas WHERE id_mesa=%s', (datos.idMesa,)).fetchone()['version']
+            comprobar_modificacion(actor, ultima)
             if ultima != datos.versionAnterior: raise HTTPException(409, 'La mesa cambió. Consulte su última versión antes de corregir')
             db.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,1))', (mesa['idProceso'] + foto_hash,))
             duplicada = db.execute('SELECT 1 FROM versiones_actas WHERE id_proceso=%s AND foto_hash=%s AND id_mesa<>%s LIMIT 1', (mesa['idProceso'], foto_hash, datos.idMesa)).fetchone()
@@ -306,7 +340,7 @@ def documentacion_interactiva():
     return get_swagger_ui_html(openapi_url='/api/v1/esquemas/actas',title='TUVOTO · actas')
 
 
-@app.get('/api/v1/actas')
+@app.get('/api/v1/actas', responses={200: {'description': 'Lista paginada con registroUnico. Si es verdadero, la primera acta confirmada cierra esa mesa y cargo.'}})
 def listar_actas(req:Request,pagina:int=Query(1,ge=1),limite:int=Query(20,ge=1,le=100),estado:str|None=None):
     actor=autorizar(req)
     if estado not in (None,'publicada','observada','anulada'):raise HTTPException(422,'Estado inválido')
@@ -316,7 +350,7 @@ def listar_actas(req:Request,pagina:int=Query(1,ge=1),limite:int=Query(20,ge=1,l
     with conectar() as db:
         total=db.execute('SELECT count(*)::int AS n FROM versiones_actas WHERE '+where,valores).fetchone()['n']
         filas=db.execute('SELECT id,id_mesa,id_mesa AS "idMesa",id_proceso AS "idProceso",sector,version,estado,creado_en FROM versiones_actas WHERE '+where+' ORDER BY creado_en,id LIMIT %s OFFSET %s',[*valores,limite,(pagina-1)*limite]).fetchall()
-    return {'elementos':filas,'pagina':pagina,'limite':limite,'total':total}
+    return {'elementos':filas,'pagina':pagina,'limite':limite,'total':total,'registroUnico':registro_unico(actor)}
 
 
 @app.put('/api/v1/actas/mesas/{id_mesa}')
@@ -350,6 +384,7 @@ def anular_en_recepcion(id_mesa,datos,req,actor,mesa):
                 return Response(status_code=204)
             ultima=db.execute('SELECT * FROM versiones_actas WHERE id_mesa=%s AND id_organizacion=%s ORDER BY version DESC LIMIT 1',(id_mesa,actor['idOrganizacion'])).fetchone()
             if not ultima:raise HTTPException(404,'Acta no disponible')
+            comprobar_modificacion(actor, ultima['version'])
             if ultima['version']!=datos.versionAnterior:raise HTTPException(409,'La mesa cambió')
             if ultima['estado']=='anulada':return Response(status_code=204)
             version=ultima['version']+1;identificador=uuid4();id_evento=uuid4()

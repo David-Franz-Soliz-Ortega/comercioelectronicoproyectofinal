@@ -199,7 +199,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Lista paginada con registroUnico. Si es verdadero, la primera acta confirmada cierra esa mesa y cargo.",
             "content": {
               "application/json": {
                 "schema": {}
@@ -431,6 +431,70 @@
         ],
         "description": "Requiere OPERADOR asignado, recepción abierta, Origin y CSRF válidos. Solo sugiere cifras impresas; no persiste fotografías, no registra actas ni publica eventos. Los campos no leídos son null. La confirmación humana se realiza por el endpoint de registro existente. Respuesta privada Cache-Control: no-store. Con candidatas, identifica la mesa y el cargo entre las mesas asignadas del operador; si hay empate devuelve opciones sin cifras."
       }
+    },
+    "/api/v1/actas/cargas/{carga}": {
+      "put": {
+        "summary": "Guardar una parte de la fotografía del operador",
+        "operationId": "subir_parte_api_v1_actas_cargas__carga__put",
+        "parameters": [
+          {
+            "name": "carga",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Carga"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParteFoto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Parte guardada o ya presente con el mismo contenido"
+          },
+          "401": {
+            "description": "Sesión requerida"
+          },
+          "403": {
+            "description": "Sin permiso o CSRF inválido"
+          },
+          "409": {
+            "description": "La parte ya contiene otros datos; no se sobrescribe"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas fotos temporales para el operador"
+          },
+          "503": {
+            "description": "Persistencia no disponible"
+          }
+        },
+        "security": [
+          {
+            "sesion": []
+          }
+        ],
+        "description": "Requiere OPERADOR autenticado, Origin y CSRF válidos. Cada parte es de 131072 caracteres ASCII como máximo; las partes caducan a la hora y solo las recupera el mismo operador y organización. Un reintento con el mismo contenido responde 204."
+      }
     }
   },
   "components": {
@@ -503,7 +567,8 @@
                 "type": "null"
               }
             ],
-            "title": "Foto"
+            "title": "Foto",
+            "description": "Data URL de la foto completa. Excluyente con idCargaFoto e idActaOrigen."
           },
           "idActaOrigen": {
             "anyOf": [
@@ -547,6 +612,19 @@
           "confirmado": {
             "type": "boolean",
             "title": "Confirmado"
+          },
+          "idCargaFoto": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idcargafoto",
+            "description": "Identificador de una foto subida por partes con PUT /api/v1/actas/cargas/{carga}."
           }
         },
         "additionalProperties": false,
@@ -561,7 +639,25 @@
           "total",
           "confirmado"
         ],
-        "title": "NuevaActa"
+        "title": "NuevaActa",
+        "anyOf": [
+          {
+            "required": [
+              "foto"
+            ]
+          },
+          {
+            "required": [
+              "idCargaFoto"
+            ]
+          },
+          {
+            "required": [
+              "idActaOrigen"
+            ]
+          }
+        ],
+        "description": "Indica exactamente una fuente de fotografía: foto, idCargaFoto o idActaOrigen."
       },
       "ValidationError": {
         "properties": {
@@ -637,19 +733,49 @@
             "description": "Mesas asignadas entre las que Actas identifica el destino de la foto. Elecciones confirma cada una; las ajenas o cerradas no participan."
           },
           "foto": {
-            "type": "string",
-            "maxLength": 14000000,
-            "minLength": 1,
-            "title": "Foto"
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 14000000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Foto",
+            "description": "Data URL de la foto completa. Excluyente con idCargaFoto."
+          },
+          "idCargaFoto": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idcargafoto",
+            "description": "Identificador de una foto subida por partes con PUT /api/v1/actas/cargas/{carga}."
           }
         },
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "foto"
-        ],
         "title": "FotoParaLectura",
-        "description": "Indica idMesa o candidatas, no ambas."
+        "description": "Indica idMesa o candidatas, no ambas; y foto o idCargaFoto, no ambas.",
+        "anyOf": [
+          {
+            "required": [
+              "foto"
+            ]
+          },
+          {
+            "required": [
+              "idCargaFoto"
+            ]
+          }
+        ]
       },
       "VotoLeido": {
         "properties": {
@@ -794,6 +920,36 @@
           "motor"
         ],
         "title": "PropuestaLectura"
+      },
+      "ParteFoto": {
+        "properties": {
+          "indice": {
+            "type": "integer",
+            "minimum": 0,
+            "title": "Indice"
+          },
+          "longitud": {
+            "type": "integer",
+            "maximum": 14000000,
+            "exclusiveMinimum": 0,
+            "title": "Longitud"
+          },
+          "contenido": {
+            "type": "string",
+            "maxLength": 131072,
+            "minLength": 1,
+            "title": "Contenido"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "indice",
+          "longitud",
+          "contenido"
+        ],
+        "title": "ParteFoto",
+        "description": "Parte ASCII de una foto temporal. longitud es el total de caracteres de la foto; indice empieza en cero."
       }
     },
     "securitySchemes": {

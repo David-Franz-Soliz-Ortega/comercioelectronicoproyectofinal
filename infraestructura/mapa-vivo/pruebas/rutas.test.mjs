@@ -22,7 +22,13 @@ test('el enrutamiento coincide con cada location de NGINX', () => {
 test('describe el flujo del operador y clasifica rechazos', () => {
   const lectura = describirSolicitud({ metodo: 'POST', uri: '/api/v1/actas/lectura', estado: 200 });
   assert.deepEqual([lectura.servicio, lectura.accion, lectura.resultado, lectura.origen], ['actas', 'Lectura OCR del acta', 'ok', 'operadores']);
+  const motivo = estado => describirSolicitud({ metodo: 'POST', uri: '/api/v1/actas/lectura', estado }).motivo;
+  assert.notEqual(motivo(400), motivo(422));
+  assert.equal(motivo(499), 'El cliente cerró la conexión');
   assert.deepEqual(lectura.ramas, ['identidad', 'elecciones']);
+
+  const parte = describirSolicitud({ metodo: 'PUT', uri: '/api/v1/actas/cargas/5b9f6d55-6a3a-4a1f-9a0e-3a3a3a3a3a3a', estado: 204 });
+  assert.deepEqual([parte.servicio, parte.accion, parte.resultado, parte.menor], ['actas', 'Carga de fotografía por partes', 'ok', true]);
 
   const correccion = describirSolicitud({ metodo: 'PUT', uri: '/api/v1/actas/mesas/5b9f6d55-6a3a-4a1f-9a0e-3a3a3a3a3a3a', estado: 200 });
   assert.equal(correccion.accion, 'Corrección de acta');

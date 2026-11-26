@@ -36,6 +36,10 @@ def lineas_ocr(tsv):
     return [(' '.join(p[0] for p in palabras), min(p[1] for p in palabras)) for palabras in lineas.values()]
 
 
+class CodigoPocoLegible(ValueError):
+    pass
+
+
 def interpretar(tsv, candidatos, codigo, ambiguos=None):
     filas = lineas_ocr(tsv)
     etiquetas = [(c['id'], normalizar(c['nombre'])) for c in candidatos]
@@ -47,7 +51,9 @@ def interpretar(tsv, candidatos, codigo, ambiguos=None):
     for texto, confianza in filas:
         limpio = normalizar(texto)
         if limpio.startswith('mesa '):
-            if confianza < 70 or limpio[5:] != normalizar(codigo):
+            if confianza < 70:
+                raise CodigoPocoLegible('No se pudo leer el código de mesa con suficiente claridad.')
+            if limpio[5:] != normalizar(codigo):
                 raise ValueError('La mesa de la fotografía no coincide o no se pudo leer. Revisa la foto y la mesa seleccionada.')
             mesa_leida = True
         coincidencia = FILA.fullmatch(texto.strip())
@@ -155,11 +161,12 @@ def leer_foto(contenido, mesa=None, mesas=None):
                 limite = time.monotonic() + 15
                 ambiguos = set()
                 lecturas = []
-                def ocr():
+                def ocr(guardar=True):
                     resultado = subprocess.run(['tesseract', str(ruta), 'stdout', '-l', 'spa', '--psm', '6', 'tsv'],
                         capture_output=True, text=True, timeout=max(0.01, limite - time.monotonic()), check=True,
                         env={**os.environ, 'OMP_THREAD_LIMIT': '1'})
-                    lecturas.append(resultado.stdout)
+                    if guardar:
+                        lecturas.append(resultado.stdout)
                     return resultado.stdout
                 def contrastar():
                     # Una segunda copia atenúa la cuadrícula clara del formato impreso.
@@ -179,9 +186,22 @@ def leer_foto(contenido, mesa=None, mesas=None):
                                 'advertencias': [aviso], 'requiereRevision': True, 'motor': 'tesseract',
                                 'idMesa': None, 'detectada': False, 'opciones': destino['opciones']}
                     mesa = destino['mesa']
+                lectura_reescalada = None
                 def interpretar_lectura(tsv, ambiguos_lectura=None):
+                    nonlocal lectura_reescalada
                     try:
-                        return interpretar(tsv, mesa['candidatos'], mesa['codigo'], ambiguos_lectura)
+                        try:
+                            return interpretar(tsv, mesa['candidatos'], mesa['codigo'], ambiguos_lectura)
+                        except CodigoPocoLegible:
+                            if lectura_reescalada is None:
+                                copia = imagen.copy()
+                                copia.thumbnail((1800, 1800), Image.Resampling.LANCZOS)
+                                copia.save(ruta)
+                                lectura_reescalada = ocr(guardar=False)
+                            codigo = normalizar(mesa['codigo'])
+                            if not any(normalizar(t) == 'mesa ' + codigo and c >= 70 for t, c in lineas_ocr(lectura_reescalada)):
+                                raise
+                            return interpretar(lectura_reescalada, mesa['candidatos'], mesa['codigo'], ambiguos_lectura)
                     except ValueError:
                         # Con detección, el destino ya concuerda con alguna lectura del código; otra pasada difusa no decide.
                         if not detectada:

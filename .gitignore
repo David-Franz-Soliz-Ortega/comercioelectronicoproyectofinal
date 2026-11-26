@@ -44,3 +44,6 @@ archivo/**/node_modules/
 archivo/**/dist/
 .respaldo-local/
 
+# Respaldos con datos personales: nunca en un repositorio público.
+infraestructura/tuvoto/datos/
+

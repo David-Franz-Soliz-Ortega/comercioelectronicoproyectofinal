@@ -7,6 +7,7 @@ x-python: &salud-python
   start_period: 20s
 x-actas: &entorno-actas
   DB_HOST: base-postgres
+  FERIA_ORGANIZACION_REGISTRO_UNICO: ${TUVOTO_FERIA_ORGANIZACION_REGISTRO_UNICO:-}
   DB_NAME: actas_db
   DB_USER: actas_app
   DB_PASSWORD: ${TUVOTO_ACTAS_CLAVE:?Define credenciales TUVOTO independientes}

@@ -41,7 +41,7 @@ class Persistencia(unittest.TestCase):
         with conectar() as db: db.execute(s.ESQUEMA)
 
     def setUp(self):
-        with self.conectar() as db: db.execute('TRUNCATE versiones_actas,bandeja_actas')
+        with self.conectar() as db: db.execute('TRUNCATE versiones_actas,bandeja_actas,partes_foto')
 
     def entrada(self, **cambios):
         foto = b'\x89PNG\r\n\x1a\n' + str(uuid4()).encode()
@@ -51,6 +51,41 @@ class Persistencia(unittest.TestCase):
         valores.update(cambios); return s.NuevaActa(**valores)
 
     def registrar(self, d): return s.registrar(d, SimpleNamespace(headers={}))
+
+    def test_foto_por_partes_es_privada_reintentable_y_conserva_el_original(self):
+        from app.cargas import ParteFoto, TAMANO_PARTE
+        req = SimpleNamespace(headers={})
+        actor = s.autorizar(req)
+        carga = uuid4()
+        imagen = b'\x89PNG\r\n\x1a\n' + os.urandom(160000)
+        foto = 'data:image/png;base64,' + base64.b64encode(imagen).decode()
+        partes = [ParteFoto(indice=i, longitud=len(foto), contenido=foto[inicio:inicio+TAMANO_PARTE])
+                  for i, inicio in enumerate(range(0, len(foto), TAMANO_PARTE))]
+        entrada = self.entrada(foto=None, idCargaFoto=carga)
+        self.assertEqual(s.subir_parte(carga, partes[0], req).status_code, 204)
+        self.assertEqual(s.subir_parte(carga, partes[0], req).status_code, 204)
+        with self.assertRaises(HTTPException) as error:
+            s.subir_parte(carga, ParteFoto(indice=0, longitud=len(foto), contenido='otra' + partes[0].contenido[4:]), req)
+        self.assertEqual(error.exception.status_code, 409)
+        with self.assertRaises(HTTPException) as error:
+            s.subir_parte(carga, ParteFoto(indice=0, longitud=len(foto), contenido='x'), req)
+        self.assertEqual(error.exception.status_code, 422)
+        with self.assertRaises(HTTPException) as error:
+            self.registrar(entrada)
+        self.assertEqual(error.exception.status_code, 409)
+        for parte in partes[1:]:
+            s.subir_parte(carga, parte, req)
+        with self.assertRaises(HTTPException):
+            s.obtener_foto(entrada, {**actor, 'idUsuario':str(uuid4())})
+        with self.conectar() as db: db.execute("UPDATE partes_foto SET creada = now() - interval '2 hours'")
+        with self.assertRaises(HTTPException) as error:
+            s.obtener_foto(entrada, actor)
+        self.assertEqual(error.exception.status_code, 409)
+        with self.conectar() as db: db.execute('UPDATE partes_foto SET creada = now()')
+        self.assertEqual(self.registrar(entrada)['id'], self.registrar(entrada)['id'])
+        with self.conectar() as db:
+            self.assertEqual(bytes(db.execute('SELECT foto FROM versiones_actas').fetchone()['foto']), imagen)
+            self.assertEqual(db.execute('SELECT count(*) AS n FROM bandeja_actas').fetchone()['n'], 1)
 
     def test_anulacion_conserva_original_y_reintento(self):
         dato=self.entrada();self.registrar(dato)
@@ -64,6 +99,21 @@ class Persistencia(unittest.TestCase):
             self.assertEqual(bytes(filas[0]['foto']),bytes(filas[1]['foto']))
             evento=db.execute("SELECT evento FROM bandeja_actas WHERE (evento->'datos'->>'versionActa')::int=2").fetchone()['evento']
             self.assertIsNone(evento['datos']['conteo'])
+
+    def test_registro_unico_respeta_reintento_y_bloquea_correccion_y_anulacion(self):
+        from unittest.mock import patch
+        with patch.dict(os.environ, FERIA_ORGANIZACION_REGISTRO_UNICO=self.org):
+            d = self.entrada()
+            primero = self.registrar(d)
+            self.assertEqual(primero['id'], self.registrar(d)['id'])
+            with self.assertRaises(HTTPException) as error:
+                self.registrar(self.entrada(versionAnterior=1))
+            self.assertEqual(error.exception.status_code, 409)
+            with self.assertRaises(HTTPException) as error:
+                s.anular_acta(d.idMesa, s.Anulacion(idSolicitud=uuid4(), versionAnterior=1, motivo='Prueba de cierre'), SimpleNamespace(headers={}))
+            self.assertEqual(error.exception.status_code, 409)
+            with self.conectar() as db:
+                self.assertEqual(db.execute('SELECT count(*) AS n FROM bandeja_actas').fetchone()['n'], 1)
 
     def test_diez_mil_registros_filtros_paginacion_y_aislamiento(self):
         with self.conectar() as db:

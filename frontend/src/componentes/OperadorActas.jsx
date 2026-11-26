@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import '../operador.css';
 import { solicitarRest } from '../api/clienteRest.js';
 import { consultarGraphql } from '../api/clienteGraphql.js';
+import { prepararCargaFoto, transmitirFoto } from '../api/cargaFoto.js';
 import { crearIdentificador } from '../api/identificadores.js';
 import { agruparMesasFisicas } from '../api/mesasCompartidas.js';
 import {
@@ -19,6 +20,28 @@ const archivoComoTexto = archivo => new Promise((aceptar, rechazar) => {
   lector.readAsDataURL(archivo);
 });
 
+// El registro conserva el archivo original. Solo la lectura usa una copia para la red móvil.
+async function prepararFotoLectura(original) {
+  if (original.length <= 400000) return original;
+  const imagen = new Image();
+  imagen.src = original;
+  try {
+    await imagen.decode();
+    const escala = Math.min(1, 2300 / Math.max(imagen.width, imagen.height));
+    const lienzo = document.createElement('canvas');
+    lienzo.width = Math.max(1, Math.round(imagen.width * escala));
+    lienzo.height = Math.max(1, Math.round(imagen.height * escala));
+    const contexto = lienzo.getContext('2d');
+    contexto.fillStyle = '#fff';
+    contexto.fillRect(0, 0, lienzo.width, lienzo.height);
+    contexto.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+    const copia = lienzo.toDataURL('image/jpeg', 0.85);
+    return copia.startsWith('data:image/jpeg;') && copia.length < original.length ? copia : original;
+  } catch {
+    return original;
+  }
+}
+
 const esperar = (ms, senal) => new Promise((aceptar, rechazar) => {
   const reloj = setTimeout(aceptar, ms);
   senal.addEventListener('abort', () => { clearTimeout(reloj); rechazar(new DOMException('Cancelada', 'AbortError')); }, { once: true });
@@ -28,12 +51,14 @@ const nombreSector = codigo => !codigo || codigo === 'general' ? 'General' : cod
 
 async function cargarVersiones() {
   const elementos = [];
+  let registroUnico = false;
   for (let pagina = 1; pagina <= 20; pagina += 1) {
     const r = await solicitarRest(`/actas?pagina=${pagina}&limite=100`);
+    registroUnico = r.registroUnico === true;
     elementos.push(...r.elementos);
     if (!r.elementos.length || elementos.length >= r.total) break;
   }
-  return elementos;
+  return { elementos, registroUnico };
 }
 
 function Pasos({ actual }) {
@@ -55,6 +80,10 @@ function FichaEstado({ estado }) {
 export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocupadoSesion }) {
   const [mesas, setMesas] = useState([]);
   const [ultimas, setUltimas] = useState(new Map());
+  const [registroUnico, setRegistroUnico] = useState(false);
+  const fotoLectura = useRef(null);
+  const cargaOriginal = useRef(null);
+  const [subida, setSubida] = useState('');
   const [cargando, setCargando] = useState(true);
   const [vista, setVista] = useState('inicio');
   const [foto, setFoto] = useState('');
@@ -75,11 +104,14 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
   const abiertas = mesas.filter(recepcionAbierta);
   const progreso = avance(mesas, ultimas);
 
+  const quedanAbiertas = abiertas.some(m => !registroUnico || !ultimas.has(m.id));
+
   async function actualizarMesas() {
     try {
       const [respuesta, versiones] = await Promise.all([solicitarRest('/mis-mesas'), cargarVersiones()]);
       setMesas(respuesta.elementos);
-      setUltimas(ultimasVersiones(versiones));
+      setUltimas(ultimasVersiones(versiones.elementos));
+      setRegistroUnico(versiones.registroUnico);
       setError('');
     } catch (e) {
       setError(e.message);
@@ -96,6 +128,9 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
   function cancelar() {
     peticion.current?.abort();
     peticion.current = null;
+    fotoLectura.current = null;
+    cargaOriginal.current = null;
+    setSubida('');
     mesaPedida.current = null;
     setVista('inicio'); setFoto(''); setLectura(null); setDestino(null); setCampos(null); setConfirmado(false); setAmpliada(false);
   }
@@ -120,11 +155,17 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
     setVista('revision');
   }
 
+  function indicarSubida(enviadas, partes) {
+    setSubida(`Subiendo fotografía · ${Math.round(100 * enviadas / partes)} %`);
+  }
+
   // Lee la foto. Sin mesa elegida, Actas identifica el destino entre las mesas abiertas del operador.
-  async function leer(imagen, pedido, control) {
+  async function leer(carga, pedido, control) {
     for (let intento = 0; ; intento += 1) {
       try {
-        const r = await solicitarRest('/actas/lectura', { metodo: 'POST', datos: { ...pedido, foto: imagen }, senal: control.signal, espera: 30000, mostrarDetalleValidacion: true });
+        const origen = await transmitirFoto(carga, control.signal, indicarSubida);
+        setSubida('');
+        const r = await solicitarRest('/actas/lectura', { metodo: 'POST', datos: { ...pedido, ...origen }, senal: control.signal, espera: 120000, mostrarDetalleValidacion: true });
         if (control.signal.aborted) return;
         if (!r.idMesa) {
           setLectura({ aviso: r.advertencias[0] ?? 'Elige la mesa y el cargo del acta.', opciones: r.opciones ?? [] });
@@ -142,11 +183,11 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
           setLectura({ fase: pedido.idMesa ? 'cifras' : 'destino' });
           continue;
         }
-        const aviso = [409, 422].includes(e.estado) ? e.message : 'No se pudo leer la foto. Puedes escribir las cifras mirando el papel.';
+        const aviso = [409, 422].includes(e.estado) ? e.message : 'La lectura no terminó. Elige la mesa y escribe las cifras mirando la foto.';
         if (pedido.idMesa) {
           await abrirDestino(pedido.idMesa, null, control, false, aviso).catch(fallo => { if (!control.signal.aborted) { setError(fallo.message); cancelar(); } });
         } else {
-          setLectura({ aviso, opciones: [] });
+          setLectura({ aviso, opciones: [], manual: true });
           setVista('elegir');
         }
         return;
@@ -164,6 +205,7 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
     const control = new AbortController();
     peticion.current = control;
     const pedida = mesaPedida.current;
+    setSubida('');
     setError(''); setDestino(null); setCampos(null); setConfirmado(false); setEnviado(null); setAmpliada(false);
     setLectura({ fase: pedida ? 'cifras' : 'destino' });
     setVista('leyendo');
@@ -171,7 +213,11 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
       const imagen = await archivoComoTexto(archivo);
       if (control.signal.aborted) return;
       setFoto(imagen);
-      await leer(imagen, pedida ? { idMesa: pedida.id } : { candidatas: abiertas.map(m => m.id) }, control);
+      const copia = await prepararFotoLectura(imagen);
+      if (control.signal.aborted) return;
+      cargaOriginal.current = prepararCargaFoto(imagen);
+      fotoLectura.current = copia === imagen ? cargaOriginal.current : prepararCargaFoto(copia);
+      await leer(fotoLectura.current, pedida ? { idMesa: pedida.id } : { candidatas: abiertas.map(m => m.id) }, control);
     } catch (e) {
       if (!control.signal.aborted) { setError(e.message); cancelar(); }
     }
@@ -183,7 +229,12 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
     peticion.current = control;
     setLectura({ fase: 'cifras' });
     setVista('leyendo');
-    await leer(foto, { idMesa: mesa.id }, control);
+    if (lectura?.manual) {
+      try { await abrirDestino(mesa.id, null, control, false, 'Escribe las cifras que ves en la fotografía.'); }
+      catch (e) { if (!control.signal.aborted) { cancelar(); setError(e.message); } }
+    } else {
+      await leer(fotoLectura.current, { idMesa: mesa.id }, control);
+    }
   }
 
   function editar(campo, valor) {
@@ -198,7 +249,8 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
   const revision = campos ? revisarConteo(campos) : null;
   const abiertaDestino = destino?.contexto?.estado === 'recepcion';
   const versionAnterior = destino?.historial?.versionAnterior ?? 0;
-  const puedeEnviar = vista === 'revision' && abiertaDestino && foto && revision?.completos && confirmado && !enviando && destino.contexto.candidatos.length > 0;
+  const bloqueada = registroUnico && versionAnterior > 0;
+  const puedeEnviar = !bloqueada && vista === 'revision' && abiertaDestino && foto && revision?.completos && confirmado && !enviando && destino.contexto.candidatos.length > 0;
 
   async function enviar(evento) {
     evento.preventDefault();
@@ -206,10 +258,14 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
     setEnviando(true);
     setError('');
     try {
-      const datos = datosRegistro({ idMesa: destino.mesa.id, idSolicitud: solicitud, versionAnterior, foto, ...campos });
+      const origen = cargaOriginal.current
+        ? await transmitirFoto(cargaOriginal.current, peticion.current?.signal, indicarSubida)
+        : { foto };
+      setSubida('');
+      const datos = { ...datosRegistro({ idMesa: destino.mesa.id, idSolicitud: solicitud, versionAnterior, ...campos }), ...origen };
       const r = versionAnterior > 0
-        ? await solicitarRest('/actas/mesas/' + destino.mesa.id, { metodo: 'PUT', datos })
-        : (await consultarGraphql('mutation Registrar($entrada:NuevaActa!){registrarActa(entrada:$entrada){id version estado}}', { entrada: datos })).datos.registrarActa;
+        ? await solicitarRest('/actas/mesas/' + destino.mesa.id, { metodo: 'PUT', datos, espera: 180000 })
+        : (await consultarGraphql('mutation Registrar($entrada:NuevaActa!){registrarActa(entrada:$entrada){id version estado}}', { entrada: datos }, undefined, 180000)).datos.registrarActa;
       setUltimas(previas => new Map(previas).set(destino.mesa.id, { version: r.version, estado: r.estado }));
       setEnviado({ ...destino, version: r.version, estado: r.estado });
       setVista('enviado');
@@ -218,6 +274,7 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
     } catch (e) {
       setError(e.message);
     } finally {
+      setSubida('');
       setEnviando(false);
     }
   }
@@ -254,11 +311,11 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
                 <p>{cargando ? 'Cargando tus mesas…' : progreso.total ? `Registraste ${progreso.registradas} de ${progreso.total} ${progreso.total === 1 ? 'acta' : 'actas'}.` : 'No tienes mesas con la recepción abierta.'}</p>
                 {progreso.total > 0 && <div className="progreso-operador" role="progressbar" aria-label="Actas registradas" aria-valuemin={0} aria-valuemax={progreso.total} aria-valuenow={progreso.registradas}><i style={{ width: `${(progreso.registradas / progreso.total) * 100}%` }} /></div>}
               </div>
-              <button type="button" className="boton-escanear" disabled={!abiertas.length || cargando} onClick={() => escanear()}>
+              <button type="button" className="boton-escanear" disabled={!quedanAbiertas || cargando} onClick={() => escanear()}>
                 <span className="icono-escanear"><IconoCamara tamano={30} /></span>
                 <span><strong>Escanear acta</strong><small>Detectamos la mesa y el cargo al leer la hoja</small></span>
               </button>
-              <button type="button" className="boton-galeria" disabled={!abiertas.length || cargando} onClick={() => escanear(null, true)}><IconoSubir tamano={16} />Subir desde la galería</button>
+              <button type="button" className="boton-galeria" disabled={!quedanAbiertas || cargando} onClick={() => escanear(null, true)}><IconoSubir tamano={16} />Subir desde la galería</button>
               <p className="consejo-operador">Encuadra la hoja completa, recta y con buena luz. Tú confirmas cada número antes de enviar.</p>
             </section>
 
@@ -282,8 +339,8 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
                           <li key={mesa.id}>
                             <span className="cargo-operador">{mesa.cargo}</span>
                             <FichaEstado estado={estado} />
-                            <button type="button" className="boton-mesa-operador" disabled={!recepcionAbierta(mesa)} onClick={() => escanear(mesa)} aria-label={`Escanear acta de ${mesa.cargo}, mesa ${mesa.codigo}`}>
-                              <IconoCamara tamano={16} />{estado.version ? 'Corregir' : 'Escanear'}
+                            <button type="button" className="boton-mesa-operador" disabled={!recepcionAbierta(mesa) || (registroUnico && estado.version > 0)} onClick={() => escanear(mesa)} aria-label={`Escanear acta de ${mesa.cargo}, mesa ${mesa.codigo}`}>
+                              <IconoCamara tamano={16} />{estado.version ? (registroUnico ? 'Registrada' : 'Corregir') : 'Escanear'}
                             </button>
                           </li>
                         );
@@ -303,7 +360,7 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
               <span className="linea-escaner" aria-hidden="true" />
             </div>
             <div className="estado-escaner" role="status" aria-live="polite">
-              <h2 id="titulo-leyendo">{lectura?.fase === 'espera' ? 'Otras actas se están leyendo' : lectura?.fase === 'cifras' ? 'Leyendo los votos…' : 'Buscando la mesa y el cargo…'}</h2>
+              <h2 id="titulo-leyendo">{subida || (lectura?.fase === 'espera' ? 'Otras actas se están leyendo' : lectura?.fase === 'cifras' ? 'Leyendo los votos…' : 'Buscando la mesa y el cargo…')}</h2>
               <p>{lectura?.fase === 'espera' ? `Reintentamos solos en un momento (intento ${lectura.intento} de 5).` : 'La lectura propone las cifras; tú las revisas antes de enviar.'}</p>
             </div>
             <button type="button" className="boton-secundario-operador" onClick={cancelar}>Cancelar</button>
@@ -323,7 +380,7 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
             <ul className="opciones-destino">
               {opcionesDestino(mesas, lectura?.opciones).map(mesa => (
                 <li key={mesa.id}>
-                  <button type="button" onClick={() => elegirDestino(mesa)}>
+                  <button type="button" disabled={registroUnico && ultimas.has(mesa.id)} onClick={() => elegirDestino(mesa)}>
                     <strong>Mesa {mesa.codigo} · {mesa.cargo}</strong>
                     <span>{mesa.unidad} · {nombreSector(mesa.sector)}</span>
                     <FichaEstado estado={estadoMesa(mesa, ultimas)} />
@@ -347,7 +404,7 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
               <button type="button" className="boton-cambiar" onClick={() => { setLectura({ aviso: 'Elige el destino correcto; volveremos a leer la foto.', opciones: [] }); setVista('elegir'); }}>Cambiar</button>
             </section>
             {!abiertaDestino && <p className="aviso-operador" role="status"><IconoAlerta tamano={18} />La recepción de esta mesa está cerrada: puedes revisar, pero no registrar.</p>}
-            {versionAnterior > 0 && <p className="aviso-correccion">Esta mesa ya tiene la versión {versionAnterior}. Se guardará la versión {versionAnterior + 1}: reemplaza a la anterior, no se suma.</p>}
+            {versionAnterior > 0 && <p className="aviso-correccion">{bloqueada ? 'El acta de esta mesa y cargo ya está registrada.' : `Esta mesa ya tiene la versión ${versionAnterior}. Se guardará la versión ${versionAnterior + 1}: reemplaza a la anterior, no se suma.`}</p>}
 
             <div className="grilla-revision">
               <figure className="foto-revision">
@@ -397,7 +454,7 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
             <div className="barra-envio">
               <button type="button" className="boton-secundario-operador" onClick={cancelar} disabled={enviando}>Descartar</button>
               <button type="submit" className="boton-enviar" disabled={!puedeEnviar}>
-                <IconoCheck tamano={18} />{enviando ? 'Enviando…' : versionAnterior > 0 ? 'Confirmar corrección' : 'Confirmar y enviar'}
+                <IconoCheck tamano={18} />{enviando ? (subida || 'Confirmando acta…') : bloqueada ? 'Acta ya registrada' : versionAnterior > 0 ? 'Confirmar corrección' : 'Confirmar y enviar'}
               </button>
             </div>
             <ModalFormulario abierto={ampliada} titulo="Compara la fotografía original" alCerrar={() => setAmpliada(false)}><div className="ampliacion-foto-operador"><img src={foto} alt="Acta ampliada; desplázate para revisar sus cifras" /></div></ModalFormulario>
@@ -410,9 +467,9 @@ export default function OperadorActas({ sesion, salir, seleccionar, ocupado: ocu
             <div className={`sello-enviado ${enviado.estado === 'observada' ? 'sello-observada' : ''}`} aria-hidden="true">{enviado.estado === 'observada' ? <IconoAlerta tamano={44} /> : <IconoCheck tamano={48} />}</div>
             <h2 id="titulo-enviado">{enviado.estado === 'observada' ? 'Acta enviada como observada' : '¡Acta enviada!'}</h2>
             <p className="destino-enviado">Mesa {enviado.contexto.codigo} · {enviado.contexto.cargo} · versión {enviado.version}</p>
-            <p>{enviado.estado === 'observada' ? 'La suma no coincide con el total: el cómputo conserva la última versión válida hasta que se corrija.' : 'El conteo y la auditoría la procesan en segundo plano; el resultado público se actualiza al terminar.'}</p>
+            <p>{registroUnico ? 'Se cerró el registro de este cargo para esta mesa.' : enviado.estado === 'observada' ? 'La suma no coincide con el total: el cómputo conserva la última versión válida hasta que se corrija.' : 'El conteo y la auditoría la procesan en segundo plano; el resultado público se actualiza al terminar.'}</p>
             <p className="pendientes-enviado">{progreso.pendientes > 0 ? `Te ${progreso.pendientes === 1 ? 'queda 1 acta' : `quedan ${progreso.pendientes} actas`} por registrar.` : 'Registraste todas tus actas abiertas.'}</p>
-            <button type="button" className="boton-escanear" disabled={!abiertas.length} onClick={() => { cancelar(); escanear(); }}>
+            <button type="button" className="boton-escanear" disabled={!quedanAbiertas} onClick={() => { cancelar(); escanear(); }}>
               <span className="icono-escanear"><IconoCamara tamano={30} /></span>
               <span><strong>Escanear siguiente acta</strong><small>La mesa se detecta al leer la hoja</small></span>
             </button>

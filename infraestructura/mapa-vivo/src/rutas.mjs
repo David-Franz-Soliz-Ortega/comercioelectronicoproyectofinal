@@ -58,6 +58,7 @@ function accionDe(metodo, uri, servicio) {
   }
   if (servicio === 'actas') {
     if (uri === '/api/v1/actas/lectura' && metodo === 'POST') return { accion: 'Lectura OCR del acta', ramas: ['identidad', 'elecciones'] };
+    if (uri.startsWith('/api/v1/actas/cargas/') && metodo === 'PUT') return { accion: 'Carga de fotografía por partes', ramas: ['identidad', 'postgres'], menor: true };
     if (uri === '/api/v1/actas' && metodo === 'POST') return { accion: 'Registro de acta', ramas: REGISTRO };
     if (uri.startsWith('/api/v1/actas/mesas/') && metodo === 'PUT') return { accion: 'Corrección de acta', ramas: REGISTRO };
     if (uri.startsWith('/api/v1/actas/mesas/') && metodo === 'DELETE') return { accion: 'Anulación de acta', ramas: REGISTRO };
@@ -110,5 +111,6 @@ export function describirSolicitud({ metodo, uri, estado }) {
   let rechazoEn = null;
   if (resultado === 'denegado') rechazoEn = servicio === 'entrada' ? 'entrada' : ramas.includes('identidad') ? 'identidad' : servicio;
   else if (resultado !== 'ok') rechazoEn = servicio;
-  return { servicio, accion, ramas, menor, estatico, resultado, motivo: MOTIVOS[resultado], origen, rechazoEn };
+  const motivosHttp = { 400: 'Solicitud incompleta o con formato inválido', 413: 'La carga supera el tamaño admitido', 499: 'El cliente cerró la conexión' };
+  return { servicio, accion, ramas, menor, estatico, resultado, motivo: motivosHttp[estado] ?? MOTIVOS[resultado], origen, rechazoEn };
 }

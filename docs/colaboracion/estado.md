@@ -1,8 +1,10 @@
 # Estado de trabajo entre agentes
 
-Actualizado: 2026-11-24. Responsable de la entrega vigente: Codex. Siguiente responsable: QA de cámara, por asignar.
+Actualizado: 2026-11-26. Responsable de la entrega vigente: Codex. Siguiente responsable: QA de cámara, por asignar.
 
 ## Entrega vigente
+
+- [Registro único y escáner móvil de feria](entregas/feria-registro-unico-lectura.md) — Carga por partes desplegada en la institución de práctica. Foto de 6,23 MB en 70 partes, una interrumpida y repetida, OCR real y GraphQL de 0,5 KB; 84 frontend, 41 Actas y 16 mapa vivo. Pendiente revisar el caos de auditoría y hacer el ensayo de cámara física.
 
 - [Operador, acta imprimible y presentación móvil](entregas/operador-actas-movil-mesas-ocupadas.md) — **listo_para_qa** de fotografía física. Portada y operador adaptados a móvil, mesas ocupadas bloqueadas en edición y ejemplo ficticio A4 separado por cargo. Base inicial `main`, `1e73b07`; el commit concurrente ajeno `85159ee` incorporó parte del trabajo y se conservó.
 - **Pruebas actuales:** 76 frontend, compilación Vite, tres recorridos Chromium aislados y 12 pruebas de OCR real pasaron. Portada comprobada entre 320 y 2560 px con nombres largos, grupos abiertos, unidades y sectores. Sin escrituras en persistencia real ni despliegue.
